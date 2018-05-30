@@ -1,6 +1,6 @@
 /* General css. */
 div:empty {
-  display: none;
+  display: block;
 }
 
 .error {
@@ -398,8 +398,9 @@ body {
   height: 32px;
   width: 32px;
   color: transparent;
-  margin: 0 15px 0 0;
-  float: right;
+  margin: 0 0px 0 0;
+  float: left;
+  clear: left;
 }
 
 .page-user #jrc-profile-twitter-link {
@@ -409,8 +410,30 @@ body {
   height: 32px;
   width: 32px;
   color: transparent;
-  margin: 0 10px;
-  float: right;
+  margin: 0 0px;
+  float: left;
+}
+
+.page-user #jrc-profile-linkedin-link {
+  background: transparent url("../images/linkedin.png") no-repeat scroll 0 0 / 100% auto;
+  background-size: 32px;
+  display: inline-block;
+  height: 32px;
+  width: 32px;
+  color: transparent;
+  margin: 0 0px;
+  float: left;
+}
+
+.page-user #jrc-profile-research-gate-link {
+  background: transparent url("../images/ResearchGate.png") no-repeat scroll 0 0 / 100% auto;
+  background-size: 32px;
+  display: inline-block;
+  height: 32px;
+  width: 32px;
+  color: transparent;
+  margin: 0 0px;
+  float: left;
 }
 
 .page-user .views-field-privatemsg-link a {
@@ -1147,4 +1170,27 @@ fieldset.collapsible legend {
 /* Community node */
 .page-node:not(.admin-menu) .node-community-form #edit-delete {
   display: none;
+}
+
+.node-photo .field-name-field-your-photo-file .field-items {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.node-photo .field-name-field-your-photo-file .field-items .field-item {
+  margin: 10px;
+}
+
+.node-photo .field-name-field-your-photo-file .field-items .field-item img {
+  width: auto;
+}
+
+#block-block-23 {
+  display: none;
+}
+
+#block-bean-humaint-tweets .panel-body.content {
+  max-height: 320px;
+  overflow: auto;
+  padding: 0;
 }
