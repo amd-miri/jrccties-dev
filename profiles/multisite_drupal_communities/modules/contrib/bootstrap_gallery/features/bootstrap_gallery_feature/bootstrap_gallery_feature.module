@@ -1,0 +1,7 @@
+<?php
+/**
+ * @file
+ * Code for the Bootstrap Gallery Feature feature.
+ */
+
+include_once 'bootstrap_gallery_feature.features.inc';

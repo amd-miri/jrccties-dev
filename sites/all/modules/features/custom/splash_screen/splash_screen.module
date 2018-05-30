@@ -1,0 +1,119 @@
+<?php
+
+/**
+ * @file
+ * Code for the Splash_screen feature.
+ */
+
+/*
+ * Implements hook_init().
+ */
+function splash_screen_init() {
+  if (php_sapi_name() == 'cli') return;
+  $cookie_name = variable_get('language_cookie_param', 'language');
+  $splash_screen_url = variable_get('splash_screen_url');
+  $front = variable_get('site_frontpage', 'node');
+  //Cases where users save site_frontpage's path io of alias.
+  $front = drupal_get_path_alias($front);
+  $current = drupal_get_path_alias();
+
+  if (($front == $current) && !isset($_COOKIE[$cookie_name]) && ($GLOBALS['language']->provider == 'language-default')) {
+    $lg_default = language_default();
+    language_cookie_set($lg_default->language);
+    drupal_goto($splash_screen_url);
+  }
+}
+
+/**
+ * Implements hook_menu().
+ */
+function splash_screen_menu() {
+  $items['admin/config/splash_screen'] = array(
+    'title' => 'Splash screen settings',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('form_splash_screen_settings'),
+    'access arguments' => array('administer splash screen'),
+  );
+  $items['admin/config/splash_screen/settings'] = array(
+    'title' => 'Splash screen settings',
+    'description' => 'Configure the splash screen module',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('form_splash_screen_settings'),
+    'access arguments' => array('administer splash screen'),
+  );
+  $items['splash'] = array(
+    'title' => 'Please select your language',
+    'page callback' => 'theme',
+    'page arguments' => array('splash'),
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+  return $items;
+}
+
+/**
+ *
+ */
+function form_splash_screen_settings($form, &$form_state) {
+  $form['messages'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Message settings'),
+  );
+  $form['messages']['splash_screen_language_msg'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Choose language'),
+    '#default_value' => variable_get('splash_screen_language_msg'),
+  );
+
+  return system_settings_form($form);
+}
+
+/**
+ * Implements hook_theme().
+ */
+function splash_screen_theme($existing, $type, $theme, $path) {
+  return array(
+    'splash' => array(
+      'template' => 'splash',
+      'path' => $path . '/theme',
+      'variables' => array(
+        'languages_list' => '',
+      ),
+    ),
+  );
+}
+
+/**
+ * Implements hook_preprocess().
+ */
+function splash_screen_preprocess_splash(&$vars) {
+  global $language;
+  global $base_url;
+  $languages = language_list('enabled');
+  $html = '';
+  foreach ($languages[1] as $lang) {
+    //add enabled languages
+    $html .= '<li><a href="' . $base_url . '/' . $lang->prefix;
+    if (empty($_COOKIE)) $html .= '?cookie=no';
+    $html .= '" data-label="('
+           . $lang->prefix . ') ' . t('Please choose a language', array(), array('langcode' => $lang->language)) . '"><span>'
+           . $lang->language . '</span>' . $lang->native . '</a></li>';
+  }
+  $vars['languages_list'] = $html;
+  $vars['base_url'] = $base_url;
+  $vars['site_name'] = variable_get('site_name');
+
+  drupal_add_js(drupal_get_path('module', 'splash_screen') . '/splash_screen.js');
+}
+
+/**
+ * Implements hook_permission().
+ */
+function splash_screen_permission() {
+  return array(
+    'administer splash screen' => array(
+      'title' => t('Administer splash screen'),
+      'description' => t('Administrer full settings of the splash screen module.'),
+    ),
+  );
+}

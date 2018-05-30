@@ -1,0 +1,10 @@
+
+FB Like Button 7.x-2.x, xxxx-xx-xx
+-----------------------------
+by lliss: make config array generation into a single funciton and fix issue on the admin page for static button language selection.
+#1437354 by kbemelmans and jonhattan - Adding display suite integration.
+by lliss: Add better help text for localization options to the config pages.
+#1668256 by goye2cz: Fixed the broken language setting on the dynamic fblike button.
+by lliss make the send attribute explicit. See iframe code generated at http://developers.facebook.com/docs/reference/plugins/like/ for more info.
+#1570374 by jgtrescazes, Stakcreativa: Fixes the display issue caused by the iframe having 'px' string after the width and height values. Also makes the language parameter optional.
+#1664410 by lliss: Fixed the display failure of the fb button by changing the show_faces options that are stored as drupal variables to booleans and then outputting 'true' and 'false' text when generating the ifrome.

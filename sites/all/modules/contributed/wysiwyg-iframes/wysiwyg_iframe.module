@@ -1,0 +1,16 @@
+<?php
+
+function wysiwyg_iframe_wysiwyg_plugin($editor, $version) {
+  switch($editor) {
+    case 'ckeditor':
+      return array(
+        'iframe' => array(
+          'extensions' => array('iframe' => t('Iframe Fix')),
+          'extended_valid_elements' =>
+            array('iframe[src|width|height|frameborder|scrolling]'),
+          'load' => FALSE,
+          'internal' => TRUE,
+          ),
+      );
+  }
+}

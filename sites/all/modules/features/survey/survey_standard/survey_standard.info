@@ -1,0 +1,8 @@
+name = Survey standard
+description = Overrides survey_core
+package = Multisite Standard Features
+core = 7.x
+dependencies[] = survey_core
+features[features_api][] = api:2
+features[context][] = survey_posts
+features[ctools][] = context:context:3

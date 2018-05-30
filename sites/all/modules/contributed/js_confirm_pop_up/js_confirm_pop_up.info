@@ -1,0 +1,11 @@
+name = JS confirmation Pop Up
+description = Protect the user against navigating away from a form before saving their changes.
+core = 7.x
+configure = admin/config/user-interface/jsconfirmpopup
+
+; Information added by Drupal.org packaging script on 2016-10-17
+version = "7.x-1.3"
+core = "7.x"
+project = "js_confirm_pop_up"
+datestamp = "1476688140"
+

@@ -1,0 +1,17 @@
+name = Tableau
+description = Exposes Tableau components as Drupal entities.
+core = 7.x
+files[] = tableau.theme.inc
+files[] = views/tableau.views.inc
+files[] = views/handlers/tableau_views_handler_field_static.inc
+files[] = views/handlers/tableau_views_handler_field_thumbnail.inc
+files[] = views/handlers/tableau_views_handler_field_view_tags.inc
+files[] = views/plugins/tableau_views_plugin_argument_validate_tableau_access.inc
+files[] = views/plugins/tableau_views_plugin_row_tableau_view.inc
+
+; Information added by Drupal.org packaging script on 2013-12-19
+version = "7.x-1.2"
+core = "7.x"
+project = "tableau"
+datestamp = "1387476809"
+

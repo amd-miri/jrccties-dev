@@ -1,0 +1,90 @@
+<?php
+
+/**
+ * @file
+ * Statistics Counter
+ */
+
+function statistics_counter_schema_alter(&$schema) {
+  $schema['node_counter']['fields']['weekcount'] = array(
+    'type' => 'int',
+    'not null' => TRUE,
+    'unsigned' => TRUE,
+    'default' => 0,
+    'description' => 'The total number of times the {node} has been viewed this week.',
+  );
+  $schema['node_counter']['fields']['monthcount'] = array(
+    'type' => 'int',
+    'not null' => TRUE,
+    'unsigned' => TRUE,
+    'default' => 0,
+    'description' => 'The total number of times the {node} has been viewed this month.',
+  );
+  $schema['node_counter']['fields']['yearcount'] = array(
+    'type' => 'int',
+    'not null' => TRUE,
+    'unsigned' => TRUE,
+    'default' => 0,
+    'description' => 'The total number of times the {node} has been viewed this year.',
+  );
+}
+
+/**
+ * Implements hook_install().
+ */
+function statistics_counter_install() {
+  $t = get_t();
+  $transaction = db_transaction();
+
+  try {
+    $schema = drupal_get_schema('node_counter');
+    db_add_field('node_counter', 'weekcount', $schema['fields']['weekcount']);
+    db_add_field('node_counter', 'monthcount', $schema['fields']['monthcount']);
+    db_add_field('node_counter', 'yearcount', $schema['fields']['yearcount']);
+
+    // Ignore slave server temporarily to give time for the
+    // saved block to be propagated to the slave.
+    db_ignore_slave();
+  }
+  catch (Exception $e) {
+    $transaction->rollback();
+    watchdog_exception('php', $e);
+    drupal_set_message($t('Cannot create new fields'), 'error');
+  }
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function statistics_counter_uninstall() {
+  $t = get_t();
+  $transaction = db_transaction();
+
+  try {
+    db_drop_field('node_counter', 'weekcount');
+    db_drop_field('node_counter', 'monthcount');
+    db_drop_field('node_counter', 'yearcount');
+    // Ignore slave server temporarily to give time for the
+    // saved block to be propagated to the slave.
+    db_ignore_slave();
+  }
+  catch (Exception $e) {
+    $transaction->rollback();
+    watchdog_exception('php', $e);
+    drupal_set_message($t('Cannot drop fields'), 'error');
+  }
+}
+
+/**
+ * Implements hook_enable().
+ */
+function statistics_counter_enable() {
+  $query = '
+    UPDATE  {node_counter}
+    SET     weekcount = daycount,
+            monthcount = daycount,
+            yearcount = daycount
+  ';
+
+  db_query($query);
+}

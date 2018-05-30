@@ -1,0 +1,10 @@
+name = Splash screen
+description = Provide a homepage to choose language and store language in cookie.
+core = 7.x
+package = Multisite Features
+version = 7.x-2.0
+project = splash_screen
+features[features_api][] = api:2
+features[user_permission][] = administer splash screen
+features[variable][] = splash_screen_blacklist
+features[variable][] = splash_screen_home_page

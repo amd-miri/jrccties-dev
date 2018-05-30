@@ -1,0 +1,104 @@
+<?php
+/**
+ * @file
+ * token insert module.
+ */
+function token_insert_text_element_info_alter(&$types) {
+  if (user_access('use token insert')) {
+    $types['textarea']['#post_render'][] = 'token_insert_text_post_render';
+    $types['textfield']['#post_render'][] = 'token_insert_text_post_render';
+  }
+}
+
+
+function token_insert_text_form_alter(&$form, &$form_state, $form_id) {
+  if ($form_id == 'field_ui_field_edit_form' && user_access('administer token insert settings')) {
+    $entity = $form['#instance']['entity_type'];
+    $bundle = $form['#instance']['bundle'];
+    $field = $form['#instance']['field_name'];
+    $form['token_insert'] = array(
+      '#title' => t('Token Insert'),
+      '#type' => 'fieldset',
+      '#collapsible' => FALSE,
+    );
+
+    $form['token_insert']['use_for_token_insert'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Use Token Insert for this field'),
+      //variable_get('token_insert_content_type_*typename*_*fieldname*, 0)
+      '#default_value' => variable_get('token_insert_' . $entity . '_' . $bundle . '_' . $field, 0),
+      '#description' => t('If selected Token Insert will be available for this field'),
+    );
+
+    $form['#submit'][] = 'token_insert_text_add_bundle';
+
+  }
+}
+
+function token_insert_text_add_bundle($form, &$form_state) {
+  $entity = $form['#instance']['entity_type'];
+  $bundle = $form['#instance']['bundle'];
+  $field = $form['#instance']['field_name'];
+  variable_set('token_insert_' . $entity . '_' . $bundle . '_' . $field,  $form_state['values']['use_for_token_insert']);
+}
+
+function token_insert_text_post_render($content, $element) {
+  if (isset($element['#entity_type']) && isset($element['#bundle'])) {
+    if (variable_get('token_insert_' . $element['#entity_type'] . '_' . $element['#bundle'] . '_' . $element['#field_name'], 0) == 1) {
+      $content = _token_insert_add_token_insert($content, $element);
+    }
+  }
+  if (isset($element['#token_insert']) && $element['#token_insert']) {
+    $content = _token_insert_add_token_insert($content, $element);
+  }
+
+  return $content;
+}
+
+function _token_insert_add_token_insert($content, $element) {
+  $contentarray = token_insert_text_table($element);
+  $content .= drupal_render($contentarray);
+  return $content;
+}
+
+function token_insert_text_table($element) {
+  $form = array();
+  if (isset($element['#title'])) {
+    $name = md5(print_r($element, TRUE));
+    $table_id = drupal_html_id("token-insert-text-table-$name");
+    $name = md5(print_r($element, TRUE));
+    $settings = array(
+      'token_insert' => array(
+        'tables' => array(
+          $table_id => $element['#id'],
+        ),
+      ),
+    );
+    $form['token_insert_text_table_wrapper'] = array(
+      '#type' => 'container',
+      '#attributes' => array(
+        'id' => $table_id,
+        'class' => array('token-insert-text-table'),
+      ),
+      '#attached' => array(
+        'js' => array(
+          array(
+            'data' => $settings,
+            'type' => 'setting',
+          ),
+          array(
+            'data' => drupal_get_path('module', 'token_insert') . '/token_insert.js',
+          ),
+          array(
+            'data' => drupal_get_path('module', 'token_insert_text') . '/token_insert_text.js',
+          )
+        ),
+      ),
+    );
+    $form['token_insert_text_table_wrapper']['token_insert_text_table'] = array(
+      '#theme' => 'token_insert_tree',
+    );
+  }
+  return $form;
+
+}

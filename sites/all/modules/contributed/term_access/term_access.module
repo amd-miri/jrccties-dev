@@ -1,0 +1,163 @@
+<?php
+/**
+ * @file term_access.module 
+ * Module for controlling node access based on the taxonomy terms assigned to user and node.
+ */
+
+define('TERM_ACCESS_VIEW', 1);
+define('TERM_ACCESS_UPDATE', 2);
+define('TERM_ACCESS_DELETE', 3);
+
+/**
+ * Implementation of hook_help().
+ */
+function term_access_help($section) {
+  switch ($section) {
+    case 'admin/structure/taxonomy/term_access':
+      $output = '<p>' . t('This module controls node access based on taxonomy term fields. When the nodes taxonomy terms and the user taxonomy terms match, the user is awarded certain permissions.') . '</p>';
+			$output .= '<h2>' . t('Example usage') . '</h2>';
+      $output .= '<p>' . t('The best way to explain how to set up this module correctly is by an example.') . '</p>';
+			$output .= '<p>' . t('Let\'s say we have a video game tournament website where there exists a <strong>Tournament</strong> node type. Tournament nodes will be tagged with Game and/or Platform terms. We have a lot of tournaments so we decide to hire some new volunteers to become tournament administrators. However, each volunteer only wants to administor tournaments for games they actually play.') . '</p>';
+      $output .= '<ol>';
+      $output .= '<li>' . t('Create a <strong>Games</strong> vocabulary with terms <strong>Mario Kart</strong> and <strong>Zelda</strong>.') . '</li>';
+			$output .= '<li>' . t('Create a <strong>Platforms</strong> vocabulary with terms <strong>Nintendo Wii</strong> and <strong>Playstation 3</strong>.') . '</li>';			
+			$output .= '<li>' . t('Add <em>two</em> Term Reference field to the Tournament node type (one for each vocabulary).') . '</li>';
+			$output .= '<li>' . t('Add the <em>same</em> Term Reference fields we just created to <a href="@url">Users</a>.', array('@url' => url('admin/config/people/accounts/fields'))) . '</li>';
+			$output .= '<li>' . t('Tag our user, Yoda, with Platform term <strong>Nintendo Wii</strong> only. We want Yoda to be able to administor all Nintendo Wii tournaments, regardless of the Game title.') . '</li>';
+			$output .= '<li>' . t('Tag our user, Fred, with Platform term <strong>Nintendo Wii</strong> and Game term <strong>Mario Kart</strong>. Fred will only be able to administor Nintendo Wii Mario Kart tournaments.') . '</li>';
+			$output .= '<li>' . t('Create a new Tournament, we will call it \'Mario Kart Championship (On Nintendo Wii)\' and tag it with <strong>Nintendo Wii</strong> and <strong>Mario Kart</strong> respectively.') . '</li>';
+      $output .= '</ol>';
+      $output .= '<p>' . t('Now we have set up our Tournament platform. Let\'s set up Term Access.') . '</p>';
+			$output .= '<ol>';
+      $output .= '<li>' . t('On the Term Access <a href="@url">settings page</a>, select <strong>Manage Access</strong> for Tournament node types.', array('@url' => url('admin/structure/taxonomy/term_access'))) . '</li>';
+			$output .= '<li>' . t('We want to manage access for both of our vocabularies, Platform and Game, so check both of the Term Reference fields.') . '</li>';
+			$output .= '<li>' . t('We wanted Yoda to be able to administor his tournaments regardless of Game title. Check <strong>Ignore when empty</strong> next to our Game field.') . '</li>';
+			$output .= '<li>' . t('Set permissions to <strong>View, Update and Delete</strong> as we want our administrators to have full access.') . '</li>';
+			$output .= '</ol>';
+      $output .= '<p>' . t('So what did we just do? We gave both Yoda and Fred full access to view, update and delete the Mario Kart Championship tournament. However, if we had set the Game title to <strong>Zelda</strong> then only Yoda would have been given elevated permissions.') . '</p>';
+			$output .= '<h2>' . t('Empty Ignore') . '</h2>';
+			$output .= '<p>' . t('A little more on this topic. If <strong>Ignore when empty</strong> is checked then when the user <em>does not</em> have any terms in that field, they will still get elevated permissions if other fields match. If it is not checked then the user must have <em>all</em> of the terms that the node is tagged with in order to obtain access. It is recommended that you test out different combinations to understand the logic completely.') . '</p>';
+			$output .= '<h2>' . t('Node Lists') . '</h2>';
+			$output .= '<p>' . t('This module grants access via <a href="@hook_url">hook_node_access()</a>. If you find that large node lists ignore permissions set by this module, you must make sure the page uses a dynamic select query and addTag(\'node_access\') is <a href="@tagged_url">tagged</a> to that query.', array('@hook_url' => url('http://api.drupal.org/api/drupal/modules--node--node.api.php/function/hook_node_access/7'), '@tagged_url' => url('http://drupal.org/node/310077'))) . '</p>';			
+      return $output;
+      break;
+  }
+}
+
+/*
+ * Implements hook_theme().
+ */ 
+function term_access_theme() {
+	return array(
+		'term_access_settings_form_fields' => array(
+			'render element' => 'element',
+			'file' => 'term_access.admin.inc',
+		),
+	);
+}
+
+/*
+ * Implements hook_menu().
+ */ 
+function term_access_menu() {
+  $items = array();
+        
+  $items['admin/structure/taxonomy/term_access'] = array(
+  	'title' => 'Term Access',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('term_access_settings_form'),
+    'access arguments' => array('administer taxonomy'),
+    'type' => MENU_LOCAL_TASK,
+    'file' => 'term_access.admin.inc',
+  );
+
+  return $items;
+}
+
+/*
+ * Implements hook_node_access().
+ */ 
+function term_access_node_access($node, $op, $account) {
+  // If $node is a string, the node has not yet been created.
+  // We only care about the view/update/delete ops.
+  // We don't care about anonymous users
+  if (is_string($node) || $op == 'create' || !$account->uid) {
+    return NODE_ACCESS_IGNORE;
+  }
+	
+	// Our variable stores
+	$tas = variable_get('term_access_settings', array());
+	
+	// If the action is set to do nothing, or no action has been set, then we can ignore this hook.
+	if (!isset($tas[$node->type]['action']) || !$tas[$node->type]['action']) {
+		return NODE_ACCESS_IGNORE;
+	}
+	
+	// If no fields are set for this node type, there is nothing to test with.
+	if (empty($tas[$node->type]['manage']['fields'])) {
+		return NODE_ACCESS_IGNORE;
+	}
+	
+	// The original $account object does not seem to have field data, core bug?
+	$account = user_load($account->uid);
+
+	// Populate $node_terms and $user_terms with arrays of all of their taxonomy terms
+	$node_terms = array();
+	$user_terms = array();
+	foreach ($tas[$node->type]['manage']['fields'] as $field_name => $field) {
+		$node_fields = field_get_items('node', $node, $field_name);		
+		if (!empty($node_fields)) {
+			foreach ($node_fields as $term) {
+				$node_terms[$field_name][$term['tid']] = TRUE;
+			}
+		}
+
+		$user_fields = field_get_items('user', $account, $field_name);
+		if (!empty($user_fields)) {
+			foreach ($user_fields as $term) {
+				$user_terms[$field_name][$term['tid']] = TRUE;
+			}
+		}
+	}
+	
+	// If node or user have no terms at all there is no need to continue
+	if (empty($node_terms) || empty($user_terms)) {
+		return NODE_ACCESS_IGNORE;
+	}
+	
+	// We only care about users who own all the terms applied to the node.
+	// If a nodes term is not owned by the user then we will ignore this access check
+	foreach ($node_terms as $field_name => $terms) {
+		$ignore = $tas[$node->type]['manage']['fields'][$field_name]['ignore'];
+		
+		if (empty($user_terms[$field_name])) {
+			if (!$ignore) {
+				// Ignore was set to OFF so we should not continue 
+				return NODE_ACCESS_IGNORE;
+			}
+			// Ignore was set to ON so the empty field terms is not an issue. Let's goto the next field.
+		}
+		else {
+			foreach ($terms as $key => $value) {
+				// We do not care about the user if any term is not present
+				if (!isset($user_terms[$field_name][$key])) {
+					return NODE_ACCESS_IGNORE;
+				}
+			}
+		}
+	}
+	
+	// We got this far means that the user has all the required terms! Check permissions for this node type and return based on $op
+	if ($op == 'view' && $tas[$node->type]['manage']['permissions'][TERM_ACCESS_VIEW]) {
+		return NODE_ACCESS_ALLOW;
+	}
+	elseif ($op == 'update' && $tas[$node->type]['manage']['permissions'][TERM_ACCESS_UPDATE]) {
+		return NODE_ACCESS_ALLOW;
+	}
+	elseif ($op == 'delete' && $tas[$node->type]['manage']['permissions'][TERM_ACCESS_DELETE]) {
+		return NODE_ACCESS_ALLOW;
+	}
+	else {
+		return NODE_ACCESS_DENY;
+	}
+}

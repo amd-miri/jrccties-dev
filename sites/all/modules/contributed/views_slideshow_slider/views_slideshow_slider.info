@@ -1,0 +1,16 @@
+name = Views Slideshow: Slider
+description = Adds a jQuery UI slider bar widget to Views Slideshows.
+dependencies[] = views_slideshow
+package = Views
+
+core = 7.x
+
+files[] = views_slideshow_slider.module
+files[] = theme/views_slideshow_slider.theme.inc
+
+; Information added by drupal.org packaging script on 2011-11-13
+version = "7.x-3.0"
+core = "7.x"
+project = "views_slideshow_slider"
+datestamp = "1321205136"
+

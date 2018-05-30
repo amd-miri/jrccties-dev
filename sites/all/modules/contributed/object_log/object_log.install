@@ -1,0 +1,34 @@
+<?php
+/**
+ * Implements hook_schema().
+ *
+ * Create the log table where we store objects.
+ */
+function object_log_schema() {
+  $schema['object_log'] = array(
+    'description' => 'Stores variables for later inspection.', 
+    'fields' => array(
+      'label' => array(
+        'description' => 'Primary Key: Unique object label.', 
+        'type' => 'varchar', 
+        'length' => 255, 
+        'not null' => TRUE, 
+        'default' => '',
+      ), 
+      'data' => array(
+        'description' => 'A variable to log.', 
+        'type' => 'blob', 
+        'not null' => FALSE, 
+        'size' => 'big',
+      ), 
+      'created' => array(
+        'description' => 'A Unix timestamp indicating when the log entry was created.', 
+        'type' => 'int', 
+        'not null' => TRUE, 
+        'default' => 0,
+      ), 
+    ), 
+    'primary key' => array('label'),
+  );
+  return $schema;
+}

@@ -1,0 +1,15 @@
+name = Media WYSIWYG Embed
+description = Adds support for embedding formatted media using client-side WYSIWYG editors.
+package = Media
+core = 7.x
+dependencies[] = api_tokens
+dependencies[] = media
+dependencies[] = wysiwyg
+configure = admin/config/media/media-embed
+
+; Information added by Drupal.org packaging script on 2016-03-01
+version = "7.x-1.x-dev"
+core = "7.x"
+project = "media_embed"
+datestamp = "1456837740"
+

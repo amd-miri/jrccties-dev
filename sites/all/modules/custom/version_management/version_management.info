@@ -1,0 +1,8 @@
+name = Version Management
+description = Mark a node update as a major version. (Do not update last-modified time.)
+core = 7.x
+
+datestamp = "1425908683"
+
+dependencies[] = multisite_config
+registry_autoload[] = PSR-4

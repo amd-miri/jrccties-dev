@@ -1,0 +1,13 @@
+name = Term Access
+description = Term Access controls node access based on the taxonomy terms assigned to user and node.
+core = 7.x
+version = 7.x-1.x-dev
+package = Node Access
+
+dependencies[] = taxonomy
+; Information added by drupal.org packaging script on 2013-10-19
+version = "7.x-1.x-dev"
+core = "7.x"
+project = "term_access"
+datestamp = "1382146680"
+

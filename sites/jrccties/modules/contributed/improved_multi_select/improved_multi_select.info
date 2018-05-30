@@ -1,0 +1,12 @@
+name = Improved Multi Select
+description = The Improved Multi Select module replace the default multi-select boxes with two pannel list and search.
+package = Form Elements
+core = 7.x
+configure = admin/config/user-interface/improved_multi_select
+
+; Information added by drupal.org packaging script on 2012-05-11
+version = "7.x-1.2"
+core = "7.x"
+project = "improved_multi_select"
+datestamp = "1336761055"
+

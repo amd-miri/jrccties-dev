@@ -1,0 +1,177 @@
+<?php
+
+/*
+ * @file
+ * This module provides 2 voting widgets: Like and Dislike. The behaviour is
+ * similar to Facebook and other social networks, but with negative rating also.
+ */
+
+/**
+ * Implementing hook_init()
+ *
+ * Add the required javascript and CSS to the page
+ */
+function like_and_dislike_init() {
+  $module_path = drupal_get_path('module', 'like_and_dislike');
+  drupal_add_js($module_path . "/assets/javascripts/LikeDislikeService.js");
+  drupal_add_js($module_path . "/assets/javascripts/like_and_dislike.js");
+  drupal_add_js("var like_and_dislike_path = '" . $module_path . "';", "inline");
+}
+
+/**
+ * Implementing hook_permission()
+ *
+ * Defines view and vote permissions for every content type and a management 
+ * permission
+ * */
+function like_and_dislike_permission() {
+  $perms = array();
+  // Administrative
+  $perms['manage like dislike'] = array(
+    'title' => t('Manage Like/DisLike options'),
+    'description' => t('Manage administrative options of the like/dislike module.'),
+    'restrict access' => TRUE,
+  );
+  // End users
+  $entity_types = entity_get_info();
+  foreach ($entity_types as $type_name => $type_info) {
+    
+    if(!in_array($type_name, Drupal\like_and_dislike\Model\Entity::$available_entity_types)) {
+      continue;
+    }
+    switch($type_name) {
+      case 'node':
+        foreach($type_info['bundles'] as $bundle_name => $bundle) {
+          $perms['like/dislike any ' . $bundle_name . ' nodes'] = array(
+            'title' => t('Add like/dislike to any %type', array('%type' => $bundle['label'])),
+            'description' => t('Allow users to Like/Dislike nodes from %type content type.', array('%type' => $bundle['label'])),
+            'restrict access' => TRUE,
+          );
+          $perms['view likes/dislikes from every ' . $bundle_name . ' nodes'] = array(
+            'title' => t('View likes/dislikes from every %type', array('%type' => $bundle['label'])),
+            'description' => t('Allow users to view Likes/Dislikes from entities of type %type.', array('%type' => $bundle['label'])),
+            'restrict access' => TRUE,
+          );
+        }
+        break;
+      case 'comment':
+        foreach($type_info['bundles'] as $bundle_name => $bundle) {
+          $perms['like/dislike any ' . $bundle_name . ' comments'] = array(
+            'title' => t('Add like/dislike to any %type', array('%type' => $bundle['label'])),
+            'description' => t('Allow users to Like/Dislike entities from %type content type.', array('%type' => $bundle['label'])),
+            'restrict access' => TRUE,
+          );
+          $perms['view likes/dislikes from every ' . $bundle_name . ' comments'] = array(
+            'title' => t('View likes/dislikes from every %type', array('%type' => $bundle['label'])),
+            'description' => t('Allow users to view Likes/Dislikes from entities of type %type.', array('%type' => $bundle['label'])),
+            'restrict access' => TRUE,
+          );
+        }
+        break;
+    }
+  }
+  return $perms;
+}
+
+/**
+ * Implementing hook_theme().
+ *
+ * Defines the themes of the like and dislike buttons and counts
+ */
+function like_and_dislike_theme() {
+  return array(
+    'like' => array(
+      'template' => 'templates/like',
+    ),
+    'dislike' => array(
+      'template' => 'templates/dislike',
+    ),
+  );
+}
+
+/**
+ * Implementing hook_entity_load()
+ * 
+ * Loads the like/dislike information to the entity object
+ */
+function like_and_dislike_entity_load($entities, $entity_type) {
+  global $user;
+  foreach ($entities as $entity_id => $entity) {
+    
+    $Entity = new \Drupal\like_and_dislike\Model\Entity($entity);
+    
+    if ($Entity->voteIsAvailable()) {
+      $can_vote = $Entity->userCanVote($user);
+
+      // Check the voting status based on the permission and if already voted for like or dislike as he can't repeat vote
+      if ($user->uid == 0) {
+        $ip = ip_address();
+        $likestatus = $can_vote ? $Entity->getLikesAmount($user->uid, $ip) : 1;
+        $dislikestatus = $can_vote ? $Entity->getDislikesAmount($user->uid, $ip) : 1;
+      }
+      else {
+        $likestatus = $can_vote ? $Entity->getLikesAmount($user->uid) : 1;
+        $dislikestatus = $can_vote ? $Entity->getDislikesAmount($user->uid) : 1;
+      }
+
+      // Add the themed buttons for like/dislike
+      $entity->like = theme('like', array(
+        'entity_id' => $entity_id,
+        'likes' => $Entity->getLikesAmount(),
+        'likestatus' => $likestatus,
+        'entity_type' => $entity_type,
+      ));
+      $entity->dislike = theme('dislike', array(
+        'entity_id' => $entity_id,
+        'dislikes' => $Entity->getDislikesAmount(),
+        'dislikestatus' => $dislikestatus,
+        'entity_type' => $entity_type,
+      ));
+    }
+  }
+}
+
+/**
+ * Renders the like/dislike buttons if the user has permission to see it
+ */
+function like_and_dislike_entity_view($entity, $type, $view_mode, $langcode) {
+  
+  $Entity = new \Drupal\like_and_dislike\Model\Entity($entity);
+  
+  // Don't display the like/dislike if has no permissions to view
+  if ($Entity->userCanVote() || $Entity->userCanViewVotes()) {
+    if (isset($entity->like) && isset($entity->dislike)) {
+      $entity->content['like'] = array(
+        '#markup' => $entity->like,
+        '#weight' => 10,
+      );
+      $entity->content['dislike'] = array(
+        '#markup' => $entity->dislike,
+        '#weight' => 11,
+      );
+    }
+  }
+  return $entity;
+}
+
+/**
+ * Implements hook_votingapi_metadata_alter().
+ */
+function like_and_dislike_votingapi_metadata_alter(&$data) {
+  // Document several custom tags for rating restaurants and meals.
+  $data['tags']['like'] = array(
+    'name' => t('Like'),
+    'description' => t('A like vote, for positive reviews.'),
+  );
+  $data['tags']['dislike'] = array(
+    'name' => t('Dislike'),
+    'description' => t('A dislike vote, for negative reviews.'),
+  );
+}
+
+/**
+ * Implements hook_views_api().
+ */
+function like_and_dislike_views_api() {
+  return array('api' => 3);
+}

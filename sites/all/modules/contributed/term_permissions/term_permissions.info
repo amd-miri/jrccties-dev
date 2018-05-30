@@ -1,0 +1,11 @@
+name = Taxonomy Term Permissions
+description = Allows limiting the selection of specific taxonomy terms by user or role.
+core = 7.x
+dependencies[] = taxonomy
+
+; Information added by Drupal.org packaging script on 2016-03-25
+version = "7.x-1.0"
+core = "7.x"
+project = "term_permissions"
+datestamp = "1458931442"
+

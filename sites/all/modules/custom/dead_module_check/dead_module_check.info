@@ -1,0 +1,7 @@
+name = dead_module_check
+core = 7.x
+package = "dead_module_check"
+description = "Check dead modules online"
+
+version = "7.x-1.0"
+project = "dead_module_check"

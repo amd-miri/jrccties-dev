@@ -1,0 +1,296 @@
+<?php
+/**
+ * @file
+ * Main file for the CKEditor LITE module.
+ */
+
+/**
+ * Implements hook_permission().
+ */
+function ckeditor_lite_permission() {
+  $permissions = array(
+    'administer ckeditor_lite' => array(
+      'title' => t('Administer CKEditor LITE'),
+      'description' => t('Administer CKEditor LITE settings.'),
+    ),
+    'ckeditor_lite highlight changes' => array(
+      'title' => t('Use Highlight changes block'),
+      'description' => t('Access the highlight changes block and see tracked changes on the content.'),
+    ),
+  );
+  return $permissions;
+}
+
+/**
+ * Implements hook_menu().
+ */
+function ckeditor_lite_menu() {
+  $items = array(
+    'admin/config/content/ckeditor_lite' => array(
+      'title' => 'CKEditor LITE',
+      'description' => 'Configure CKEditor LITE plugin.',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('ckeditor_lite_settings_form'),
+      'access arguments' => array('administer ckeditor_lite'),
+      'file' => 'ckeditor_lite.admin.inc',
+      'type' => MENU_NORMAL_ITEM,
+    ),
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_entity_view_alter().
+ */
+function ckeditor_lite_entity_view_alter(&$build, $type) {
+  $build['#post_render'][] = '_ckeditor_lite_entity_post_render';
+}
+
+/**
+ * Remove tracked inserts and deletes if user doesn't have access to see them.
+ */
+function _ckeditor_lite_entity_post_render($output, $element) {
+  if (!user_access('ckeditor_lite highlight changes')) {
+    $pattern = array(
+      // Remove tracked inserts - spans with "ice-ins" class.
+      '/(.*)<span[^>]+class="[^"]*ice-ins[^>]+>(.*)<\/span>(.*)/U',
+      // Remove wrapping spans with "ice-del" class.
+      '/(.*)<span[^>]+class="[^"]*ice-del[^>]+>(.*)<\/span>(.*)/U',
+    );
+    $replacement = array(
+      '$1$3',
+      '$1$2$3'
+    );
+    $output = preg_replace($pattern, $replacement, $output);
+  }
+  return $output;
+}
+
+/**
+ * Implements hook_block_info().
+ */
+function ckeditor_lite_block_info() {
+  $blocks['ckeditor_lite'] = array(
+    'info' => t('Highlight changes (LITE)'),
+    'cache' => DRUPAL_CACHE_GLOBAL,
+  );
+
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function ckeditor_lite_block_view($delta = '') {
+  // if ($delta == 'ckeditor_lite' && menu_get_object()) { // Only for nodes.
+  if ($delta == 'ckeditor_lite' && user_access('ckeditor_lite highlight changes')) {
+    $path = drupal_get_path('module', 'ckeditor_lite');
+    $block = array();
+    $block['subject'] = t('Highlight changes');
+    $block['content'] = array(
+      'show_with_changes_button' => array(
+        '#type' => 'button',
+        '#value' => t('Show with changes'),
+        '#attributes' => array(
+          'class' => array('show-with-changes-button'),
+        ),
+      ),
+      'show_without_changes_button' => array(
+        '#type' => 'button',
+        '#value' => t('Show without changes'),
+        '#attributes' => array(
+          'class' => array('show-without-changes-button'),
+        ),
+      ),
+      'show_changes_button' => array(
+        '#type' => 'button',
+        '#value' => t('Show tracked changes'),
+        '#attributes' => array(
+          'class' => array('show-changes-button'),
+        ),
+      ),
+      'hide_changes_button' => array(
+        '#type' => 'button',
+        '#value' => t('Hide tracked changes'),
+        '#attributes' => array(
+          'class' => array('hide-changes-button'),
+        ),
+      ),
+      '#attached' => array(
+        'js' => array(
+          $path . '/js/ckeditor_lite.js',
+          array(
+            'data' => array(
+              'ckeditor_lite' => array(
+                'show_with_changes' => 0,
+              ),
+            ),
+            'type' => 'setting',
+          ),
+        ),
+        'css' => array(
+          $path . '/css/ckeditor_lite.css',
+        ),
+      ),
+    );
+
+    return $block;
+  }
+}
+
+/**
+ * Implements hook_ckeditor_plugin().
+ */
+function ckeditor_lite_ckeditor_plugin() {
+  $config = _ckeditor_lite_config();
+
+  return array(
+    'lite' => array(
+      'name' => 'lite',
+      'desc' => t('LITE: LoopIndex Tracking Enhancement'),
+      'path' => _ckeditor_lite_plugin_path(),
+      'buttons' => array(
+        $config['buttons']['accept_all'] => array(
+          'label' => 'Accept all changes',
+          'icon' => $config['icons']['accept_all'],
+        ),
+        $config['buttons']['reject_all'] => array(
+          'label' => 'Reject all changes',
+          'icon' => $config['icons']['reject_all'],
+        ),
+        $config['buttons']['accept_one'] => array(
+          'label' => 'Accept change',
+          'icon' => $config['icons']['accept_one'],
+        ),
+        $config['buttons']['reject_one'] => array(
+          'label' => 'Reject change',
+          'icon' => $config['icons']['reject_one'],
+        ),
+        $config['buttons']['toggle_show'] => array(
+          'label' => 'Show/hide tracked changes',
+          'icon' => $config['icons']['toggle_show'],
+        ),
+        $config['buttons']['toggle_tracking'] => array(
+          'label' => 'Start/stop tracking changes',
+          'icon' => $config['icons']['toggle_tracking'],
+        ),
+      ),
+    ),
+  );
+}
+
+/**
+ * Implements hook_ckeditor_settings_alter().
+ */
+function ckeditor_lite_ckeditor_settings_alter(&$settings, $conf) {
+  _ckeditor_lite_settings_alter($settings);
+}
+
+/**
+ * Implements hook_wysiwyg_plugin().
+ */
+function ckeditor_lite_wysiwyg_plugin($editor, $version) {
+  if ($editor == 'ckeditor') {
+    $config = _ckeditor_lite_config();
+    return array(
+      'lite' => array(
+        'url' => 'http://drupal.org/project/ckeditor_lite',
+        // 'path' => _ckeditor_lite_plugin_path(),
+        // 'file' => 'plugin.js',
+        'buttons' => array(
+          $config['buttons']['accept_all'] => t('Accept all changes'),
+          $config['buttons']['reject_all'] => t('Reject all changes'),
+          $config['buttons']['accept_one'] => t('Accept change'),
+          $config['buttons']['reject_one'] => t('Reject changes'),
+          $config['buttons']['toggle_show'] => t('Show/hide tracked changes'),
+          $config['buttons']['toggle_tracking'] => t('Start/stop tracking changes'),
+        ),
+        'load' => TRUE,
+        'internal' => TRUE,
+      ),
+    );
+  }
+}
+
+/**
+ * Implements hook_wysiwyg_editor_settings_alter().
+ */
+function ckeditor_lite_wysiwyg_editor_settings_alter(&$settings, $context) {
+  // if ($context['editor']['name'] == 'ckeditor') {
+  if ($context['profile']->editor == 'ckeditor') {
+    _ckeditor_lite_settings_alter($settings);
+  }
+}
+
+/**
+ * Helper function to alter editor settings.
+ */
+function _ckeditor_lite_settings_alter(&$settings) {
+  global $user;
+
+  $settings['lite'] = array(
+    'userName' => check_plain(format_username($user)),
+    'userId' => $user->uid,
+    'isTracking' => variable_get('ckeditor_lite_istracking', 1) ? TRUE : FALSE,
+  );
+}
+
+/**
+ * Helper function to determine plugin path.
+ */
+function _ckeditor_lite_plugin_path() {
+  $path = 'sites/all/libraries/ckeditor/plugins/lite/';
+  if (module_exists('libraries')) {
+    $path = libraries_get_path('ckeditor') . '/plugins/lite/';
+  }
+  return $path;
+}
+
+/**
+ * Helper function to CKEditor LITE plugin config.
+ */
+function _ckeditor_lite_config() {
+  $config = array(
+    'buttons' => array(
+      'accept_all' => 'lite_AcceptAll',
+      'reject_all' => 'lite_RejectAll',
+      'accept_one' => 'lite_AcceptOne',
+      'reject_one' => 'lite_RejectOne',
+      'toggle_show' => 'lite_ToggleShow',
+      'toggle_tracking' => 'lite_ToggleTracking',
+    ),
+    'icons' => array(
+      'accept_all' => 'icons/accept_all.png',
+      'reject_all' => 'icons/reject_all.png',
+      'accept_one' => 'icons/accept_one.png',
+      'reject_one' => 'icons/reject_one.png',
+      'toggle_show' => 'icons/show_hide.png',
+      'toggle_tracking' => 'icons/track_changes_on_off.png',
+    ),
+  );
+
+  $path = _ckeditor_lite_plugin_path();
+  if (!file_exists($path . 'icons/accept_all.png') && file_exists($path . 'icons/lite-acceptall.png')) {
+    $config = array(
+      'buttons' => array(
+        'accept_all' => 'lite-acceptall',
+        'reject_all' => 'lite-rejectall',
+        'accept_one' => 'lite-acceptone',
+        'reject_one' => 'lite-rejectone',
+        'toggle_show' => 'lite-toggleshow',
+        'toggle_tracking' => 'lite-toggletracking',
+      ),
+      'icons' => array(
+        'accept_all' => 'icons/lite-acceptall.png',
+        'reject_all' => 'icons/lite-rejectall.png',
+        'accept_one' => 'icons/lite-acceptone.png',
+        'reject_one' => 'icons/lite-rejectone.png',
+        'toggle_show' => 'icons/lite-toggleshow.png',
+        'toggle_tracking' => 'icons/lite-toggletracking.png',
+      ),
+    );
+  }
+
+  return $config;
+}

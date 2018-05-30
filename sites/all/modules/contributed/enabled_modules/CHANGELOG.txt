@@ -1,0 +1,28 @@
+Enabled Modules Changelog
+
+All commits are added to the top of this file, at the time of commit.
+
+7.x-1.0-beta4:
+- Issue #1067362 by juliangb: Tests for basic Enabled Modules page.
+- Issue #2255375 by juliangb: Improve coding style.
+- Issue #1419696 by juliangb | Pasqualle: The admin report is not visible in 
+  admin_menu.
+
+7.x-1.0-beta3:
+- Task #1262052 by juliangb: Use views_system to provide the backend of 
+  enabled_modules
+
+7.x-1.0-beta2:
+- Bug #1182362 by juliangb | Eric_A: Fixed description column not long enough.
+- Bug #1071148 by juliangb: Fixed Permission doesn't work (fails safe).
+
+7.x-1.0-beta1:
+- Bug #1037496 by juliangb | torstenzenk: Fixed Massive Errors when clicking 
+  admin/reports/enabled_modules() link in navigation block.
+- Bug #995078 by pillarsdotnet: Fixed Undefined array index error (E_ALL 
+  compliance).
+- Bug #790310 by juliangb: Fixed PHP warning - install fails.
+- Bug #768276 by juliangb: Partially fixed 'Key Site Modules' block not shown 
+  on D7.
+
+Changelog starts at 7.x-1.0-alpha1.

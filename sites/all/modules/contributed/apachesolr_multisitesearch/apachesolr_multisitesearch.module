@@ -1,0 +1,354 @@
+<?php
+
+/**
+ * @file
+ *   Provides a multi-site search implementation for use with the Apache Solr module
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function apachesolr_multisitesearch_menu() {
+  $items = array();
+  $items['admin/config/search/apachesolr/multisite-filters'] = array(
+    'title' => 'Multisite',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('apachesolr_multisitesearch_settings'),
+    'weight' => -8,
+    'access arguments' => array('administer search'),
+    'file' => 'apachesolr_multisitesearch.admin.inc',
+    'type' => MENU_LOCAL_TASK,
+  );
+  return $items;
+}
+
+/**
+ * Implements hook_facetapi_facet_info().
+ *
+ * Maps the hash label in Apache Solr to a facet
+ * @param type $searcher_info
+ * @return type
+ */
+function apachesolr_multisitesearch_facetapi_facet_info($searcher_info) {
+  $facets = array();
+  $facets['hash'] = array(
+    'label' => t('Site'),
+    'description' => t('Filter by Site (Multisite).'),
+    'field' => 'hash',
+    'map callback' => 'apachesolr_multisitesearch_map_hash',
+  );
+  // Create a multisite bundle name field
+  $facets['bundle_name'] = array(
+    'label' => t('Content Type'),
+    'description' => t('Filter by content type (Multisite).'),
+    'field' => 'bundle_name',
+  );
+  // Create a multisite facet field
+  $facets['sm_vid_tags'] = array(
+    'label' => t('Tags'),
+    'description' => t('Filter by Tags (Multisite).'),
+    'field' => 'sm_vid_Tags',
+  );
+  // Create a multisite facet field
+  $facets['ss_name'] = array(
+    'label' => t('User name'),
+    'description' => t('Filter by user name (Multisite).'),
+    'field' => 'ss_name',
+    'map callback' => 'apachesolr_multisitesearch_map_username',
+  );
+  return $facets;
+}
+
+function apachesolr_multisitesearch_map_username($facets, $options) {
+  $map = array();
+  foreach ($facets as $key) {
+    // @see https://drupal.org/node/2050747
+    if ($key == '0' || $key == '_empty_') {
+      $map[$key]['#markup'] = variable_get('anonymous', t('Anonymous'));
+    }
+    else {
+      $map[$key]['#markup'] = $key;
+    }
+  }
+  return $map;
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Adds a "make multisite" option in the settings of any environment
+ */
+function apachesolr_multisitesearch_form_apachesolr_environment_edit_form_alter(&$form, &$form_state, $form_id) {
+  $environment = reset($form_state['build_info']['args']);
+
+  $form['make_multisite'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Make this Solr search environment multisite capable'),
+    '#default_value' => apachesolr_environment_variable_get($environment['env_id'], 'multisitesearch', FALSE),
+  );
+
+  $options = apachesolr_multisitesearch_get_site_options();
+  $form['multisitesearch_sites'] = array(
+    '#type' => 'select',
+    '#title' => t('Limit searching to the following sites:'),
+    '#description' => t('If no sites are selected, searches will be performed across all sites on the index.'),
+    '#multiple' => TRUE,
+    '#options' => $options,
+    '#default_value' => apachesolr_environment_variable_get($environment['env_id'], 'multisitesearch_sites', array()),
+    '#states' => array(
+      'visible' => array(
+        ':input[name="make_multisite"]' => array('checked' => TRUE),
+      ),
+    ),
+    '#access' => !empty($options),
+  );
+
+  $form['actions']['save']['#submit'][] = 'apachesolr_multisitesearch_environment_edit_submit';
+}
+
+/**
+ * Submit callback for saving an environment to make it multisite capabe
+ */
+function apachesolr_multisitesearch_environment_edit_submit($form, &$form_state) {
+  // Enable or disable multisite
+  apachesolr_environment_variable_set($form_state['values']['env_id'], 'multisitesearch', $form_state['values']['make_multisite']);
+  apachesolr_environment_variable_set($form_state['values']['env_id'], 'multisitesearch_sites', $form_state['values']['multisitesearch_sites']);
+}
+
+/**
+ * Return an array of multisite search sites keyed by hash.
+ */
+function apachesolr_multisitesearch_get_site_options() {
+  $options = &drupal_static(__FUNCTION__);
+
+  if (!isset($options)) {
+    $site_hash = apachesolr_site_hash();
+    module_load_include('inc', 'apachesolr_multisitesearch', 'apachesolr_multisitesearch.index');
+    $metadata = variable_get('apachesolr_multisitesearch_metadata', array());
+    $hashes = apachesolr_multisitesearch_get_site_hashes();
+
+    $options = array();
+    foreach ($hashes as $hash => $count) {
+      if ($hash == $site_hash) {
+        $options[$hash] = t('This site (!site, !count documents)', array('!site' => variable_get('site_name', 'Drupal'), '!count' => $count));
+      }
+      elseif (!empty($metadata[$hash])) {
+        $options[$hash] = $metadata[$hash]['site'] . ' ' . t('(!count documents)', array('!count' => $count));
+      }
+      else {
+        $options[$hash] = $hash . ' ' . t('(!count documents)', array('!count' => $count));
+      }
+    }
+
+    // This site should always be in the list of options.
+    if (!isset($options[$site_hash])) {
+      $options[$site_hash] = t('This site (!site)', array('!site' => variable_get('site_name', 'Drupal')));
+    }
+  }
+
+  return $options;
+}
+
+/**
+ * callback for mapping hashes to sites
+ * @return array $data
+ */
+function apachesolr_multisitesearch_map_hash() {
+  $data = variable_get('apachesolr_multisitesearch_metadata', array());
+  foreach ($data as $key => $value) {
+    $data[$key] = $value['ss_multisite_meta_sitename'];
+  }
+  return $data;
+}
+
+/**
+ * Implements hook_apachesolr_process_results().
+ *
+ * Changes the links from results that come out of another index
+ * @param array $results
+ * @param DrupalSolrQueryInterface $query
+ */
+function apachesolr_multisitesearch_apachesolr_process_results(&$results, DrupalSolrQueryInterface $query) {
+  $env_id = $query->solr('getId');
+  $multisite = apachesolr_environment_variable_get($env_id, 'multisitesearch');
+  if (!empty($multisite)) {
+    foreach ($results as $id => $result) {
+      $results[$id]['extra']['hash'] = theme('apachesolr_multisitesearch_breadcrumb_hash', array('hash' => $results[$id]['fields']['hash']));
+      // Fix up results from remote sites.
+      if ($results[$id]['fields']['hash'] != apachesolr_site_hash()) {
+        $results[$id]['link'] = $results[$id]['fields']['url'];
+        if (isset($results[$id]['user']) && !empty($results[$id]['fields']['name'])) {
+          $results[$id]['user'] = check_plain($results[$id]['fields']['name']);
+        }
+      }
+    }
+  }
+}
+
+/**
+* Returns available bundle names.
+*
+* @return array
+*  An array listing all of the bundle names for content types.
+*
+*  TODO: Separate content types by site, and allow for exclusions by site.
+*/
+function apachesolr_multisitesearch_query_bundles() {
+  $query_bundle_names = array();
+
+  // Check variables for the metadata which contains the bundles and bundle
+  // names.
+  $sites = variable_get('apachesolr_multisitesearch_metadata', array());
+  if (isset($sites) && !empty($sites)) {
+    // Iterates for each site available in the multi-site search
+    foreach ($sites as $key => $value) {
+      // Grabs all of the bundle names and save them.
+      foreach ($value['sm_multisite_meta_bundles'] as $bundle_name) {
+        $query_bundle_names[] = $bundle_name;
+      }
+    }
+    // Sort the bundle names for user readability. Sorting is done here so
+    // mapping keys to values later happens properly.
+    sort($query_bundle_names);
+  }
+  $query_bundle_names = array_unique($query_bundle_names);
+  return $query_bundle_names;
+}
+
+/**
+ * Create a Solr query for a multisite search from an environment's settings.
+ *
+ * @param string $env_id
+ *   An Apache Solr environment ID.
+ *
+ * @return DrupalSolrQueryInterface|bool
+ *   A subquery object to apply, or FALSE if there were no filters to apply.
+ */
+function apachesolr_multisitesearch_build_site_subquery($env_id) {
+  $subquery = apachesolr_drupal_subquery();
+
+  if (!apachesolr_environment_variable_get($env_id, 'multisitesearch', FALSE)) {
+    // Limit single site searchs via the site hash.
+    $subquery->addFilter('hash', apachesolr_site_hash());
+  }
+  elseif ($sites = apachesolr_environment_variable_get($env_id, 'multisitesearch_sites', array())) {
+    foreach ($sites as $site) {
+      $subquery->addFilter('hash', $site);
+    }
+  }
+
+  return $subquery->getFilters() ? $subquery : FALSE;
+}
+
+/**
+ * Implements hook_apachesolr_query_alter().
+ *
+ * Verifies if the environment is multisite enabled, and if so, returns
+ * results from the while index. Otherwise it only returns results from
+ * the current site.
+ * @param DrupalSolrQueryInterface $query
+ */
+function apachesolr_multisitesearch_apachesolr_query_alter(DrupalSolrQueryInterface $query) {
+  if (empty($query->multisite)) {
+    // Add hash and site to our fields to retrieve
+    $query->addParam('fl', 'hash');
+    $query->addParam('fl', 'site');
+
+    // Restrict the query to certain sites.
+    if ($subquery = apachesolr_multisitesearch_build_site_subquery($query->solr('getId'))) {
+      $query->addFilterSubQuery($subquery);
+    }
+  }
+
+  // Get the variable which contains the query exclusion keys.
+  $excluded_bundles = variable_get('apachesolr_multisitesearch_query_exclusions', array());
+  if (isset($excluded_bundles) && !empty($excluded_bundles)) {
+    // Get all of the bundle names which can be excluded.
+    $query_exclusion_options = apachesolr_multisitesearch_query_bundles();
+    // Map the excluded bundle keys to their values and bundle names.
+    foreach ($excluded_bundles as $key) {
+      $excluded_bundles[$key] = $query_exclusion_options[$key];
+    }
+    // Create filters for the flagged keys and exclude them from search.
+    foreach ($excluded_bundles as $filtered_content) {
+      $query->addFilter('bundle_name', $filtered_content, TRUE);
+    }
+  }
+}
+
+/**
+ * Implements hook_apachesolr_delete_by_query_alter().
+ *
+ * Allows a module to modify the delete query.
+ * @param string $query
+ *   Defaults to *:*
+ */
+function apachesolr_multisitesearch_apachesolr_delete_by_query_alter(&$query) {
+  // use the site hash so that you only delete this site's content
+  if ($query == '*:*') {
+    $query = 'hash:' . apachesolr_site_hash();
+  }
+  else {
+    $query = "($query) AND hash:" . apachesolr_site_hash();
+  }
+}
+
+/**
+ * Implements hook_cron().
+ */
+function apachesolr_multisitesearch_cron() {
+  module_load_include('inc', 'apachesolr_multisitesearch', 'apachesolr_multisitesearch.index');
+  apachesolr_multisitesearch_refresh_metadata();
+}
+
+/**
+ * Implements hook_theme().
+ */
+function apachesolr_multisitesearch_theme() {
+  return array(
+    'apachesolr_multisitesearch_breadcrumb_hash' => array(
+      'variables' => array('hash' => NULL, 'exclude' => FALSE),
+    ),
+  );
+}
+
+function theme_apachesolr_multisitesearch_breadcrumb_hash($variables) {
+  $hash = $variables['hash'];
+  static $meta;
+  if (!isset($meta)) {
+    $meta = variable_get('apachesolr_multisitesearch_metadata', array());
+  }
+  if ($hash == apachesolr_site_hash()) {
+    return t('This site (!site)', array('!site' => variable_get('site_name', 'Drupal')));
+  }
+  elseif (isset($meta[$hash]['ss_multisite_meta_sitename'])) {
+    return $meta[$hash]['ss_multisite_meta_sitename'];
+  }
+  return $hash;
+}
+
+/**
+ * Implements hook_form_alter().
+ *
+ * @see apachesolr_settings()
+ */
+function apachesolr_multisitesearch_form_apachesolr_settings_alter(&$form, &$form_state) {
+  $form['multisite'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Multisite'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+  $form['multisite']['apachesolr_multisitesearch_metadata_update_interval'] = array(
+    '#type' => 'select',
+    '#title' => t('How often to push metadata updates from this site and commit them to Solr'),
+    '#options' => drupal_map_assoc(array(300, 900, 1800, 3600, 10800, 21600, 43200, 86400, 604800, 1209600, 2592000), 'format_interval'),
+    '#default_value' => variable_get('apachesolr_multisitesearch_metadata_update_interval', 3600),
+  );
+  $form['multisite']['apachesolr_multisitesearch_metadata_fetch_interval'] = array(
+    '#type' => 'select',
+    '#title' => t('How often to fetch metadata data from the index'),
+    '#options' => drupal_map_assoc(array(300, 900, 1800, 3600, 10800, 21600, 43200, 86400, 604800), 'format_interval'),
+    '#default_value' => variable_get('apachesolr_multisitesearch_metadata_fetch_interval', 300),
+  );
+}

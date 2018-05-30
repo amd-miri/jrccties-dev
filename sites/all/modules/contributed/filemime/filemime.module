@@ -1,0 +1,66 @@
+<?php
+
+/**
+ * @file
+ * Rewrite the MIME type for each file upload based on a server-side mime.types file and/or custom settings.
+ */
+
+/**
+ * Implementation of hook_menu().
+ */
+function filemime_menu() {
+  $items['admin/config/media/filemime'] = array(
+    'title' => 'File MIME',
+    'description' => 'Configure the MIME type mapping for uploaded files.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('filemime_settings'),
+    'access arguments' => array('administer site configuration'),
+    'file' => 'filemime.admin.inc',
+  );
+  $items['admin/config/media/filemime/config'] = array(
+    'title' => 'Configure',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+  );
+  $items['admin/config/media/filemime/apply'] = array(
+    'title' => 'Apply',
+    'description' => 'Apply the MIME type mapping to all previously uploaded files.',
+    'page arguments' => array('filemime_apply'),
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 1,
+  );
+  return $items;
+}
+
+/**
+ * Alter the MIME type mapping based on the mime.types file and/or string.
+ */
+function filemime_file_mimetype_mapping_alter(&$mapping) {
+  // Build an array of MIME types from the configured file and string.
+  $file = variable_get('filemime_file', '');
+  $mimetypes = array_merge(
+    is_readable($file) ? file($file) : array(),
+    explode("\n", variable_get('filemime_types', ''))
+  );
+  // Split each MIME type into tokens by whitespace.
+  foreach ($mimetypes as $mimetype) {
+    $tokens = preg_split('/[\s]+/', $mimetype, -1, PREG_SPLIT_NO_EMPTY);
+    foreach ($tokens as $index => $token) {
+      // If this token starts with #, consider it a comment and break to the
+      // next MIME type.
+      if (substr($token, 0, 1) == '#') {
+        break;
+      }
+      // If this is not the first token, it must be an extension. Add it to the
+      // extensions array.
+      if ($index) {
+        $mapping['extensions'][$token] = $tokens[0];
+      }
+      // If this is the first token, it must be a MIME type. If it has at least
+      // one extension, add it to the MIME types array.
+      elseif (isset($tokens[1])) {
+        $mapping['mimetypes'][$token] = $token;        
+      }
+    }
+  }
+}

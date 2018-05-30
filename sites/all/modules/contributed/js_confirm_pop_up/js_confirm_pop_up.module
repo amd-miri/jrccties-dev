@@ -1,0 +1,56 @@
+<?php
+
+/**
+ * @file
+ * Use to create configuration form.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function js_confirm_pop_up_menu() {
+  $items = array();
+  $items['admin/config/user-interface/jsconfirmpopup'] = array(
+    'title' => 'Js confirm pop up settings',
+    'description' => 'Js confrim pop up settings',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('js_confirm_pop_up_settings'),
+    'access arguments' => array('js confirm pop up'),
+    'file' => 'js_confirm_pop_up.admin.inc',
+    'type' => MENU_NORMAL_ITEM,
+  );
+  return $items;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function js_confirm_pop_up_permission() {
+  return array(
+    'js confirm pop up' => array(
+      'title' => t('Administer JS confirm pop up'),
+      'description' => t('Perform administration tasks JS confirm pop up.'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function js_confirm_pop_up_form_alter(&$form, &$form_state, $form_id) {
+  dpm("1");	
+  $form_ids = variable_get('js_confirm_pop_up_actual_form_id');
+  dpm($form_id); 
+  dpm($form_ids);
+  $form_ids_arr = explode(',', $form_ids);
+  if (!empty($form_ids_arr)) {
+    foreach ($form_ids_arr as $value) {
+      if ($form_id == $value) {
+        $form['#attributes']['class'][] = 'js-confirm-pop-up';
+        $form['#attached']['js'] = array(
+          drupal_get_path('module', 'js_confirm_pop_up') . '/js/js_confirm_pop_up.js',
+        );
+      }
+    }
+  }
+}

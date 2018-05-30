@@ -1,0 +1,26 @@
+#object_log_objects {
+}
+
+#object_log_objects .object_wrapper {
+  float: left;
+  width: 100%;
+}
+
+#object_log_objects.object-count-2 .object_wrapper {
+  width: 50%;
+}
+
+#object_log_objects.object-count-3 .object_wrapper {
+  width: 33%;
+}
+
+#object_log_objects.object-count-4 .object_wrapper {
+  width: 25%;
+}
+
+#object_log_objects.object-count-5 .object_wrapper {
+  width: 20%;
+}
+
+#object_log_objects .object {
+}

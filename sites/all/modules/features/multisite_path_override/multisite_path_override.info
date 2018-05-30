@@ -1,0 +1,5 @@
+name = Multisite Path override
+description = Enriches path module to allow replacing punctuation with a string
+core = 7.x
+package = Multisite Features
+dependencies[] = pathauto

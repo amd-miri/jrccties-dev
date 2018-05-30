@@ -1,0 +1,649 @@
+<?php
+/**
+ * @file
+ * Code for the NextEuropa Multilingual feature.
+ */
+
+/**
+ * @file
+ * Nexteuropa_multilingual module file.
+ */
+
+include_once 'nexteuropa_multilingual.features.inc';
+include_once 'nexteuropa_multilingual.tokens.inc';
+
+/**
+ * Implements hook_theme().
+ */
+function nexteuropa_multilingual_theme($existing, $type, $theme, $path) {
+  return array(
+    'nexteuropa_multilingual_language_list' => array(
+      'path' => $path . '/theme',
+    ),
+    'nexteuropa_multilingual_language_icon' => array(
+      'path' => $path . '/theme',
+    ),
+    'nexteuropa_multilingual_message' => array(
+      'variables' => array(
+        'message' => NULL,
+        'message_attributes' => NULL,
+      ),
+      'template' => 'nexteuropa-multilingual-message',
+      'path' => $path . '/theme',
+    ),
+  );
+}
+
+/**
+ * Returns HTML for a list of languages.
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - languages: An array of languages which should be shown in the list.
+ *   - path: The path to which the user should be directed after clicking on a
+ *     language.
+ *   - options: Options to pass to the l() function when generating the link to
+ *     the given path (optional).
+ *   - title: Title for the language list (optional).
+ *   - type: The type of list (optional). Can be either 'ol' or 'ul'. Defaults
+ *     to 'ol'.
+ *   - attributes: Attributes to apply to the item list (optional).
+ *
+ * @return string
+ *   The HTML for the language list.
+ *
+ * @ingroup themeable
+ */
+function theme_nexteuropa_multilingual_language_list(array $variables) {
+  // Provide defaults.
+  $options = !empty($variables['options']) ? $variables['options'] : [];
+  $title = !empty($variables['title']) ? $variables['title'] : '';
+  $type = !empty($variables['type']) ? $variables['type'] : 'ol';
+  $attributes = !empty($variables['attributes']) ? $variables['attributes'] : [];
+
+  $languages = [];
+  foreach ($variables['languages'] as $language) {
+    $options['attributes']['lang'] = $language->language;
+    $options['attributes']['hreflang'] = $language->language;
+    $options['language'] = $language;
+    $languages[] = l($language->native, $variables['path'], $options);
+  }
+
+  return theme('item_list', [
+    'items' => $languages,
+    'title' => $title,
+    'type' => $type,
+    'attributes' => $attributes,
+  ]);
+}
+
+/**
+ * Returns HTML for a language icon.
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - width: Optional width of the icon, in pixels. Defaults to 60.
+ *   - height: Optional height of the icon, in pixels. Defaults to 60.
+ *   - alt: Optional alternative text for text-based browsers. Defaults to
+ *     'Language icon'.
+ *   - title: Optional title text which is displayed when the image is hovered
+ *     in some popular browsers. Defaults to 'Language icon'.
+ *
+ * @return string
+ *   The HTML for the language icon.
+ *
+ * @ingroup themeable
+ */
+function theme_nexteuropa_multilingual_language_icon(array $variables) {
+  // Provide default values.
+  $width = !empty($variables['width']) ? $variables['width'] : 60;
+  $height = !empty($variables['height']) ? $variables['height'] : 60;
+  $alt = !empty($variables['alt']) ? $variables['alt'] : t('Language icon');
+  $title = !empty($variables['title']) ? $variables['title'] : t('Language icon');
+
+  return theme('image', [
+    'path' => drupal_get_path('module', 'nexteuropa_multilingual') . '/theme/language-icon.png',
+    'width' => $width,
+    'height' => $height,
+    'alt' => $alt,
+    'title' => $title,
+  ]);
+}
+
+/**
+ * Implements hook_module_implements_alter().
+ */
+function nexteuropa_multilingual_module_implements_alter(&$implementations, $hook) {
+  // Make the following hooks exposed by nexteuropa_multilingual ran as last.
+  $hooks = array(
+    'language_switch_links_alter',
+    'form_alter',
+  );
+  // isset($implementations['nexteuropa_multilingual']) is needed for
+  // the specificity of alter hooks.
+  // see hook_module_implements_alter() documentation.
+  if (in_array($hook, $hooks) && isset($implementations['nexteuropa_multilingual'])) {
+    $group = $implementations['nexteuropa_multilingual'];
+    unset($implementations['nexteuropa_multilingual']);
+    $implementations['nexteuropa_multilingual'] = $group;
+  }
+}
+
+/**
+ * Implements hook_language_switch_links_alter().
+ */
+function nexteuropa_multilingual_language_switch_links_alter(array &$links, $type, $path) {
+
+  // Implement language switcher behavior as per NEXTEUROPA-20.
+  if (($node = menu_get_object('node'))) {
+    $handler = entity_translation_get_handler('node', $node);
+    $translations = $handler->getTranslations();
+    foreach ($links as $key => $link) {
+      if (!isset($translations->data[$key])) {
+        unset($links[$key]);
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_language_negotiation_info().
+ */
+function nexteuropa_multilingual_language_negotiation_info() {
+  $file = drupal_get_path('module', 'nexteuropa_multilingual') . '/nexteuropa_multilingual.callbacks.inc';
+  $providers = array();
+  $providers['nexteuropa_multilingual_url_suffix'] = array(
+    'types' => array(
+      LANGUAGE_TYPE_CONTENT,
+      LANGUAGE_TYPE_INTERFACE,
+      LANGUAGE_TYPE_URL,
+    ),
+    'callbacks' => array(
+      'language' => 'nexteuropa_multilingual_language_negotiation_provider_callback',
+      'url_rewrite' => 'nexteuropa_multilingual_language_negotiation_url_rewrite_callback',
+      'switcher' => 'nexteuropa_multilingual_language_negotiation_switcher_url',
+    ),
+    'file' => $file,
+    'weight' => -8,
+    'name' => t('NextEuropa URL suffix'),
+    'description' => t('Determine the language from the URL path suffix.'),
+    'config' => 'admin/config/regional/language/configure/nexteuropa-url-suffix',
+  );
+  return $providers;
+}
+
+
+/**
+ * Implements hook_menu().
+ */
+function nexteuropa_multilingual_menu() {
+  $items['admin/config/regional/language/configure/nexteuropa-url-suffix'] = array(
+    'title' => 'NextEuropa Language suffix delimiter',
+    'description' => 'Settings to choose the language suffix delimiter in the url',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('nexteuropa_multilingual_form'),
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_LOCAL_TASK,
+  );
+  return $items;
+}
+
+/**
+ * Form callback.
+ *
+ * @see: nexteuropa_multilingual_menu()
+ */
+function nexteuropa_multilingual_form($form, &$form_state) {
+  $form['nexteuropa_multilingual_language_suffix_delimiter'] = array(
+    '#type' => 'textfield',
+    '#maxlength' => 3,
+    '#title' => t('Language suffix delimiter'),
+    '#default_value' => variable_get('nexteuropa_multilingual_language_suffix_delimiter', '_'),
+    '#description' => t('A character that separates language suffix from the actual URL, for example an underscore or a hyphen.'),
+  );
+  return system_settings_form($form);
+}
+
+/**
+ * Implements hook_language_types_info_alter().
+ */
+function nexteuropa_multilingual_language_types_info_alter(&$language_types) {
+  $defined_providers = language_negotiation_info();
+  if (isset($defined_providers['nexteuropa_multilingual_url_suffix'])) {
+    // Put the locale-url-suffix as priority provider for language type url.
+    array_unshift($language_types[LANGUAGE_TYPE_URL]['fixed'], 'nexteuropa_multilingual_url_suffix');
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function nexteuropa_multilingual_form_locale_languages_configure_form_alter(&$form, &$form_state, $form_id) {
+  $language_negotiation = variable_get('language_negotiation_language');
+  // Disable URL method if URL-suffix method is enabled.
+  if (isset($language_negotiation['nexteuropa_multilingual_url_suffix'])) {
+    $form['language']['enabled']['locale-url']['#disabled'] = TRUE;
+    $form['language_content']['enabled']['locale-url']['#disabled'] = TRUE;
+  }
+}
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter().
+ */
+function nexteuropa_multilingual_form_node_form_alter(&$form, &$form_state, $form_id) {
+  $node = $form_state['node'];
+  _nexteuropa_multilingual_warning_message($form, $node);
+  _nexteuropa_multilingual_alias_node_form_alter($form, $form_state);
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function nexteuropa_multilingual_form_workbench_moderation_moderate_form_alter(&$form, &$form_state, $form_id) {
+  _nexteuropa_multilingual_warning_message($form, $form_state['build_info']['args'][0]);
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function nexteuropa_multilingual_form_workbench_moderation_node_unpublish_form_alter(&$form, &$form_state, $form_id) {
+  _nexteuropa_multilingual_warning_message($form, $form_state['build_info']['args'][0]);
+}
+
+/**
+ * Updates fields of URL alias tab in the node edit form.
+ */
+function _nexteuropa_multilingual_alias_node_form_alter(&$form, &$form_state) {
+  if (isset($form['path'])) {
+    $node = $form_state['node'];
+    list($nid, , $bundle) = entity_extract_ids('node', $node);
+    $set_translation_mechanism = variable_get('language_content_type_' . $bundle, 0);
+    // First we need which translation mechanism is used because
+    // the logic to implement is only for entity translation.
+    if ($set_translation_mechanism == ENTITY_TRANSLATION_ENABLED) {
+      // 1. If pathauto deactivated, defining the right default value.
+      // reproduction of the default behavior but with the LANGUAGE_NONE alias.
+      if ($nid) {
+        $und_alias_info = _nexteuropa_multilingual_get_und_entity_alias_info($node, 'node');
+        if (!$und_alias_info['pathauto']) {
+          $form['path']['alias']['#default_value'] = $und_alias_info['alias'];
+        }
+      }
+      // 2. Add new warning message to URL alias field.
+      $custom_alias_description = $form['path']['alias']['#description'];
+      $message = t('This URL alias will be used for ALL translations of this content.');
+      $variables = array(
+        'message' => $message,
+        'message_attributes' => array('id' => 'nexteuropa-multilingual-alias-message'),
+      );
+      $custom_alias_description .= theme('nexteuropa_multilingual_message', $variables);
+      $form['path']['alias']['#description'] = $custom_alias_description;
+    }
+  }
+}
+
+/**
+ * Gets alias info for the entity and LANGUAGE_NONE langcode.
+ *
+ * @param object $entity
+ *   The entity for which data are needed.
+ * @param string $entity_type
+ *   The entity type.
+ *
+ * @return bool|array
+ *   FALSE if nothing is found; otherwise an associative array with
+ *   LANGUAGE_NONE data on the node alias.
+ *   The data contained in the associative array have the following keys:
+ *   - pid: The pid of the LANGUAGE_NONE alias of the node.
+ *   - alias: The the LANGUAGE_NONE alias.
+ *   - pathauto: The flag indicating if pathauto is activated for the node.
+ */
+function _nexteuropa_multilingual_get_und_entity_alias_info($entity, $entity_type) {
+  // This function only support entity translation for now.
+  list(, , $bundle) = entity_extract_ids($entity_type, $entity);
+  $pattern = pathauto_pattern_load_by_entity($entity_type, $bundle, LANGUAGE_NONE);
+  if (empty($pattern)) {
+    return FALSE;
+  }
+  // Get the corresponding LANGUAGE_NONE alias.
+  $entity_uri = $entity->path['source'];
+  $language_none_path = path_load(array('source' => $entity_uri, 'language' => LANGUAGE_NONE));
+  $language_none_alias = $language_none_path['alias'];
+
+  // Check if pathauto is activtedin LANGUAGE_NONE case.
+  // Logic is taken from Pathauto itself.
+  // @see pathauto_entity_presave() & pathauto_field_attach_form().
+  module_load_include('inc', 'pathauto');
+  $pathauto_alias = pathauto_create_alias($entity_type, 'return', $entity_uri, array($entity_type => $entity), $bundle, LANGUAGE_NONE);
+  $pathauto = ($language_none_alias != $entity_uri && $language_none_alias == $pathauto_alias);
+
+  if (isset($entity_uri->workbench_moderation) && isset($entity_uri->workbench_moderation['published'])) {
+    $pathauto = FALSE;
+  }
+
+  return array(
+    'pid' => $language_none_path['pid'],
+    'alias' => $language_none_alias,
+    'pathauto' => $pathauto,
+    'language' => $language_none_path['language'],
+  );
+}
+
+/**
+ * Updates form with a warning message.
+ */
+function _nexteuropa_multilingual_warning_message(&$form, $node) {
+  $translatable = variable_get('language_content_type_' . $node->type, 0);
+  $warning_message_languages = variable_get('nexteuropa_multilingual_warning_message_languages');
+  if (!empty($warning_message_languages) && $translatable !== '0') {
+    $message = token_replace($warning_message_languages, array('node' => $node));
+    $variables = array(
+      'message' => $message,
+      'message_attributes' => array('id' => 'nexteuropa-multilingual-warning-message-languages'),
+    );
+    $warning_message = theme('nexteuropa_multilingual_message', $variables);
+
+    $form['warning_languages_message'] = array(
+      '#markup' => $warning_message,
+      '#weight' => 105,
+      '#attached' => array(
+        'css' => array(drupal_get_path('module', 'nexteuropa_multilingual') . '/nexteuropa_multilingual.css'),
+      ),
+    );
+  }
+}
+
+/**
+ * Implements hook_tokens_alter().
+ */
+function nexteuropa_multilingual_tokens_alter(array &$replacements, array $context) {
+  if ($context['type'] == 'node' && !empty($context['data']['node'])) {
+    $node = $context['data']['node'];
+    // IPG url rules : only the default language (should be english) title
+    // must be used to generate the content url even for non translated content.
+    $wrapper = entity_metadata_wrapper('node', $node);
+    $original_language = $node->translations->original;
+    $entity_properties = $wrapper->getPropertyInfo();
+    // Check if the title module is used to manage the title as a field.
+    if (isset($entity_properties['title_field'])) {
+      $replacements['[node:source:title]'] = $wrapper->language($original_language)->title_field->raw();
+    }
+    else {
+      $replacements['[node:source:title]'] = $wrapper->language($original_language)
+        ->label();
+    }
+  }
+}
+
+/**
+ * Implements hook_language_fallback_candidates_alter().
+ *
+ * Change the language fallback order.
+ */
+function nexteuropa_multilingual_language_fallback_candidates_alter(array &$fallback_candidates) {
+  // First we get our url parameters.
+  $parameters = drupal_get_query_parameters();
+
+  // Add the default language as first fallback.
+  $language_default = language_default();
+  $array_key = array_search($language_default->language, $fallback_candidates);
+  if ($array_key !== FALSE) {
+    unset($fallback_candidates[$array_key]);
+  }
+  array_unshift($fallback_candidates, $language_default->language);
+
+  // Add the 2nd language as first fallback.
+  if (isset($parameters['2nd-language'])) {
+    $array_key = array_search($parameters['2nd-language'], $fallback_candidates);
+    if ($array_key !== FALSE) {
+      unset($fallback_candidates[$array_key]);
+    }
+    array_unshift($fallback_candidates, $parameters['2nd-language']);
+  }
+}
+
+/**
+ * Implements hook_path_insert().
+ */
+function nexteuropa_multilingual_path_insert($path) {
+  _nexteuropa_multilingual_path_und_sync($path);
+}
+
+/**
+ * Implements hook_path_update().
+ */
+function nexteuropa_multilingual_path_update($path) {
+  _nexteuropa_multilingual_path_und_sync($path);
+}
+
+/**
+ * Force the path to have a language neutral alias.
+ *
+ * If entity is a node using entity translation,
+ * force the path to have a language neutral alias even if it is custom.
+ *
+ * @param array $path
+ *   An associative array containing the following keys:
+ *     - source: The internal system path.
+ *     - alias: The URL alias.
+ *     - pid: Unique path alias identifier.
+ *     - language: The language of the alias.
+ */
+function _nexteuropa_multilingual_path_und_sync($path) {
+
+  // Only apply this logic to nodes that don't have
+  // a translation mechanism different from entity translation.
+  $node = menu_get_object("node", 1, $path['source']);
+  if (isset($node->type)) {
+    $translation_mechanism = variable_get('language_content_type_' . $node->type, 0);
+  }
+  if (!isset($translation_mechanism) || $translation_mechanism != ENTITY_TRANSLATION_ENABLED) {
+    return;
+  }
+
+  if ($path['language'] != LANGUAGE_NONE) {
+    // We synchronize the alias to force all aliases to be saved as
+    // language neutral.
+    $query = db_select('url_alias', 'ua')->condition('source', $path['source']);
+    $query->fields('ua', array('pid', 'language', 'alias'));
+    $existing_paths = $query->execute()->fetchAll();
+    $count = count($existing_paths);
+
+    switch ($count) {
+      case 1:
+        // Creation with custom alias (we update the record only).
+        $path['language'] = LANGUAGE_NONE;
+        drupal_write_record('url_alias', $path, array('pid'));
+        break;
+
+      default:
+        // Update with custom alias
+        // (We update the 'und' value and delete the others).
+        $language_none_exist = FALSE;
+        foreach ($existing_paths as $existing_path) {
+          if ($existing_path->language == LANGUAGE_NONE) {
+            $existing_path->alias = $path['alias'];
+            drupal_write_record('url_alias', $existing_path, array('pid'));
+            $language_none_exist = TRUE;
+            break;
+          }
+        }
+        module_load_include('inc', 'pathauto');
+        $is_old_alias_to_delete = variable_get('pathauto_update_action', PATHAUTO_UPDATE_ACTION_DELETE);
+        // Special case: If the 'und' value exists, the current treated path
+        // becomes the LANGUAGE_NONE value.
+        if (!$language_none_exist) {
+          $path['language'] = LANGUAGE_NONE;
+          drupal_write_record('url_alias', $path, array('pid'));
+          if (!$is_old_alias_to_delete) {
+            // We keep the Path normal process.
+            break;
+          }
+
+        }
+
+        // If we have 2, that means we still in the creation case and then
+        // we delete the unwanted alias record to force to only have the
+        // LANGUAGE_NONE alias.
+        // If we have more than 2, that means we face an entity created before
+        // the implementation of this hook and we need to take into account of
+        // the Path/Pathauto config.
+        if (($count == 2) || $is_old_alias_to_delete) {
+          db_delete('url_alias')->condition('source', $path['source'])
+            ->condition('language', LANGUAGE_NONE, '<>')
+            ->execute();
+        }
+        break;
+    }
+  }
+}
+
+/**
+ * Implements hook_path_delete().
+ */
+function nexteuropa_multilingual_path_delete($path) {
+  // Force to delete all aliases related to this path.
+  // Need to do so because of Path module implementation.
+  db_delete('url_alias')->condition('source', $path['source'])->execute();
+}
+
+/**
+ * Implements hook_pathauto_alias_alter().
+ *
+ * If entity has entity translation enabled,
+ * force all aliases to be saved as language neutral.
+ * All content translations will have a unique alias.
+ */
+function nexteuropa_multilingual_pathauto_alias_alter(&$alias, array &$context) {
+
+  $translation_mechanism = variable_get('language_content_type_' . $context['type'], 0);
+
+  if ($translation_mechanism == ENTITY_TRANSLATION_ENABLED) {
+    $context['language'] = LANGUAGE_NONE;
+  }
+}
+
+/**
+ * Process variables for nexteuropa-multilingual-message.tpl.php.
+ *
+ * @param array $variables
+ *   An associative array containing template variables:
+ *     - message: the message text.
+ *     - message_attributes: The HTML attributes of the message text.
+ */
+function template_preprocess_nexteuropa_multilingual_message(&$variables) {
+  $message_attributes = array(
+    'class' => array('alert', 'alert-warning'),
+    'role'  => array('alert'),
+  );
+  $variables['message_attributes'] = $message_attributes;
+}
+
+/**
+ * Implements hook_preprocess_field().
+ *
+ * The field language property respects the IPG language fallback,
+ * but not its label and its value (for select list field).
+ * It not works natively due to entity_translation and the 2nd language
+ * parameters.
+ *
+ * This should not apply to content neutral fields.
+ */
+function nexteuropa_multilingual_preprocess_field(&$variables) {
+  $element = $variables['element'];
+  if (isset($element['#object']) &&
+      isset($element['#language']) &&
+      $element['#language'] != LANGUAGE_NONE
+  ) {
+    // Get the field object and the field instance.
+    $instance = field_info_instance($element['#entity_type'], $element['#field_name'], $element['#bundle']);
+    $field = field_info_field($element['#field_name']);
+    // Get entity language (content language).
+    $lang = entity_translation_get_existing_language($element['#entity_type'], $element['#object']);
+
+    // Translate label.
+    if (!empty($variables['label'])) {
+      $variables['label'] = i18n_field_translate_property($instance, 'label', $lang);
+    }
+    // Translate field value (for select list field).
+    if ($field['type'] == 'list_text' && $translated_value = i18n_field_translate_allowed_values($field, $lang)) {
+      foreach ($variables['items'] as $key => $item) {
+        // Get key of the value.
+        $key_value = $element['#items'][$key]['value'];
+        // Get translated field value.
+        $variables['items'][$key]['#markup'] = $translated_value[$key_value];
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_field_group_pre_render().
+ *
+ * Define the label language of field groups.
+ */
+function nexteuropa_multilingual_field_group_pre_render(&$element, &$group, & $form) {
+  $entity = NULL;
+  // Map between entity type name and key name on the $form array.
+  $entity_map = array('user' => 'account', 'taxonomy_term' => 'term');
+  $entity_type = $form['#entity_type'];
+
+  // Try to retrive entity from $form.
+  if (isset($form['#' . $entity_type])) {
+    $entity = $form['#' . $entity_type];
+  }
+  elseif (isset($entity_map[$entity_type]) && isset($form['#' . $entity_map[$entity_type]])) {
+    $entity = $form['#' . $entity_map[$entity_type]];
+  }
+  // Bean => entity.
+  elseif (isset($form['#entity'])) {
+    $entity = $form['#entity'];
+  }
+
+  if (!empty($entity)) {
+    $language_fallback = entity_translation_get_existing_language($entity_type, (object) $entity);
+    $group->label_language = $language_fallback;
+  }
+}
+
+/**
+ * Implements hook_field_language_alter().
+ *
+ * Does, as a last resort, some additional checks. This hook will make sure that
+ * when you are viewing an unpublished translation, you will not see the
+ * fallback for that field.
+ */
+function nexteuropa_multilingual_field_language_alter(&$display_language, $context) {
+  $handler = entity_translation_get_handler($context['entity_type'], $context['entity']);
+  $translations = $handler->getTranslations();
+  if (isset($translations->data) && isset($translations->data[$context['language']]) && !entity_translation_access($context['entity_type'], $translations->data[$context['language']])) {
+    foreach ($display_language as $field => &$language) {
+      if ($language == $context['language']) {
+        $language = isset($translations->data[$context['language']]['source']) ? $translations->data[$context['language']]['source'] : LANGUAGE_NONE;
+      }
+    }
+  }
+  else {
+    // The user has access to the requested language, we only need to filter out
+    // the fallbacks that are not our original.
+    $allowed_languages = array(
+      $context['language'],
+      $translations->original,
+    );
+
+    // Check if we have the 2nd-language parameter,
+    // because then that language is also allowed.
+    $parameters = drupal_get_query_parameters();
+    if (isset($parameters['2nd-language'])) {
+      $allowed_languages[] = $parameters['2nd-language'];
+    }
+
+    // Loop over, if we have a field that is using a teritary language, we set
+    // it to undefined.
+    foreach ($display_language as $field => &$language) {
+      if (!in_array($language, $allowed_languages)) {
+        $language = LANGUAGE_NONE;
+      }
+    }
+  }
+}

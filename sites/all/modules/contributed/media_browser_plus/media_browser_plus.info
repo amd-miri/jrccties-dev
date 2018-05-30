@@ -1,0 +1,24 @@
+name = Media Browser Plus for Media 2.x
+description = Provides enhanced UX and addtional features for Media.
+package = "Media"
+core = 7.x
+
+dependencies[] = media
+dependencies[] = taxonomy
+dependencies[] = views_tree
+dependencies[] = views_bulk_operations
+dependencies[] = multiform
+
+files[] = views/media_browser_plus_views_plugin_style_media_browser.inc
+files[] = views/media_browser_plus_views_handler_field_preview.inc
+files[] = views/media_browser_plus_views_handler_field_preview_vbo.inc
+files[] = views/media_browser_plus_views_handler_area_actions.inc
+files[] = views/media_browser_plus_views_handler_area_basket.inc
+files[] = views/media_browser_plus_views_handler_area_navigation.inc
+
+; Information added by Drupal.org packaging script on 2014-05-20
+version = "7.x-3.0-beta3"
+core = "7.x"
+project = "media_browser_plus"
+datestamp = "1400584428"
+

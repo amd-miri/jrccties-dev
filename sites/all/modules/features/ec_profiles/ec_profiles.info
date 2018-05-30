@@ -1,0 +1,8 @@
+name = EC Profiles
+package = Multisite Features
+core = 7.x
+dependencies[] = user_field_privacy
+description = Provides a page listing users.
+features[ctools][] = views:views_default:3.0
+features[views_view][] = people
+features[features_api][] = api:2

@@ -1,0 +1,52 @@
+<?php
+
+/**
+ * @file
+ * Install file.
+ */
+
+  /**
+   * Implements hook_install().
+   */
+function jrc_d2d_import_modif_install() {
+  // Override the UI-generated "content" node migration's class.
+  db_update('migrate_status')
+    ->fields(array('class_name' => 'D2DModifierMigration'))
+    ->condition(db_or()->condition('machine_name', '71582fc13Nodeaction', '=')
+                       ->condition('machine_name', '71582fc13Nodecarousel_item', '=')
+                       ->condition('machine_name', '71582fc13Nodeevaluation_reports', '=')
+                       ->condition('machine_name', '71582fc13Nodeevent', '=')
+                       ->condition('machine_name', '71582fc13Nodefaq', '=')
+                       ->condition('machine_name', '71582fc13Nodeimage_gallery', '=')
+                       ->condition('machine_name', '71582fc13Nodeinterlaboratory_comparisons', '=')
+                       ->condition('machine_name', '71582fc13Nodejrc_staff', '=')
+                       ->condition('machine_name', '71582fc13Nodenetwork_bureau', '=')
+                       ->condition('machine_name', '71582fc13Nodenews', '=')
+                       ->condition('machine_name', '71582fc13Nodepage', '=')
+                       ->condition('machine_name', '71582fc13Nodepatent', '=')
+                       ->condition('machine_name', '71582fc13Nodepress_release', '=')
+                       ->condition('machine_name', '71582fc13Noderesearch_area', '=')
+                       ->condition('machine_name', '71582fc13Noderesearch_facility', '=')
+                       ->condition('machine_name', '71582fc13Noderm_application_notes', '=')
+                       ->condition('machine_name', '71582fc13Noderm_releases', '=')
+                       ->condition('machine_name', '71582fc13Nodescientific_tool', '=')
+                       ->condition('machine_name', '71582fc13Nodetopic', '=')
+                       ->condition('machine_name', '71582fc13Nodetraining_programme', '=')
+                       ->condition('machine_name', '71582fc13Nodevideo_gallery', '=')
+    )
+    ->execute();
+}
+
+/**
+ * Implements hook_enable().
+ */
+function jrc_d2d_import_modif_enable() {
+  drupal_set_message(t('The JRC D2D import modifier migration module is enabled. You can now run the import.'), $type = 'status');
+}
+
+/**
+ * Implements hook_disable().
+ */
+function jrc_d2d_import_modif_disable() {
+  drupal_set_message(t('The JRC D2D import modifier migration module is disabled.'), $type = 'status');
+}

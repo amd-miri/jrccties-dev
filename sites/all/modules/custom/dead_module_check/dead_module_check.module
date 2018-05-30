@@ -1,0 +1,28 @@
+<?php
+
+function dead_module_check_menu() {
+	$items['admin/dead_module_check'] = array(
+      'page callback' => 'dead_module_check_detect',
+      'access arguments' => array('access administration pages'), 
+      'type' => MENU_NORMAL_ITEM,
+    );
+    return $items;
+}
+
+function dead_module_check_detect() {
+	//dpm("ok");
+    $o = '<p>Vérification des modules morts ...</p>';
+    $result = db_select('system')->fields('system', array('filename'))->condition('status', '1', '=')->execute();
+      $n = 1;
+      $m = 0;
+    foreach ($result as $node) {
+      $path = DRUPAL_ROOT.'/'.$node->filename;
+      If (!file_exists($path)) { 
+          $o .= "#$n $path<br>";
+          $m++;
+      }
+      $n++;
+    }
+    $o .= "$n Modules actifs dans la DB. $m Problèmes.<br>";
+    return $o;
+}

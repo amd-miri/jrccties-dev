@@ -1,0 +1,56 @@
+<?php
+
+/**
+ * @file
+ * Adds entity field value as context condiction
+ */
+
+/**
+ * Implements hook_ctools_plugin_api().
+ */
+function context_entity_field_ctools_plugin_api($module, $api) {
+  if ($module == 'context' && $api == 'plugins') {
+    return array('version' => 3);
+  }
+}
+
+/**
+ * Implements hook_context_plugins().
+ */
+function context_entity_field_context_plugins() {
+  $plugins = array();
+  $plugins['context_condition_entity_field'] = array(
+    'handler' => array(
+      'path'   => drupal_get_path('module', 'context_entity_field') . '/plugins',
+      'file'   => 'context_condition_entity_field.inc',
+      'class'  => 'context_condition_entity_field',
+      'parent' => 'context_condition',
+    ),
+  );
+
+  return $plugins;
+}
+
+/**
+ * Implements hook_context_registry().
+ */
+function context_entity_field_context_registry() {
+  $registry['conditions'] = array(
+    'entity_field' => array(
+      'title'       => t('Entity field'),
+      'description' => t('Set context based on the entity field value'),
+      'plugin'      => 'context_condition_entity_field',
+    ),
+  );
+
+  return $registry;
+}
+
+/**
+ * Implements of hook_entity_view().
+ */
+function context_entity_field_entity_view($entity, $type, $view_mode, $langcode) {
+  if ($plugin = context_get_plugin('condition', 'entity_field')) {
+    $plugin->execute($type, $entity);
+  }
+}

@@ -1,0 +1,8 @@
+name = Text Collapse
+description = Contributors can create collapsible text blocks in CKEditor
+core = 7.x
+package = Multisite Features
+dependencies[] = collapse_text
+dependencies[] = wysiwyg
+dependencies[] = filter
+features[features_api][] = api:2

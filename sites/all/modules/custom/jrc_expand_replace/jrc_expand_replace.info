@@ -1,0 +1,10 @@
+name = JRC expand replace
+description = Replace the START_EXPAND/END_EXPAND by multisite collapase tags
+core = 7.x
+package = JRC
+php = 5.2.4
+project = jrc_expand_replace
+version = 7.x-1.0
+multisite_version = 2.1
+features[features_api][] = api:2
+features[user_permission][] = content administration

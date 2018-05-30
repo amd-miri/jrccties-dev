@@ -1,0 +1,20 @@
+<?php
+
+/**
+ * @file
+ * Install file.
+ */
+
+ /**
+  * Implements hook_enable().
+  */
+function jrc_missing_files_import_enable() {
+  drupal_set_message(t('The JRC missing file migration module is enabled. You can now run the import.'), $type = 'status');
+}
+
+/**
+ * Implements hook_disable().
+ */
+function jrc_missing_files_import_disable() {
+  drupal_set_message(t('The JRC missing file migration module is disabled.'), $type = 'status');
+}

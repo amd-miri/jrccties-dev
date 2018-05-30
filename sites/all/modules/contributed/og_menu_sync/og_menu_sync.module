@@ -1,0 +1,197 @@
+<?php
+
+/**
+ * Implements hook_menu_link_insert().
+ */
+function og_menu_sync_menu_link_insert($link) {
+  if ($node = og_menu_sync_get_group_content($link)) {
+    _og_menu_sync_add_to_menu_groups($node, $link);
+  }
+}
+
+/**
+ * Implements hook_menu_link_update().
+ */
+function og_menu_sync_menu_link_update($link) {
+  if ($node = og_menu_sync_get_group_content($link)) {
+    // We remove the content from all groups then optionally add it back
+    // according to the menu parents.
+    // We need to remember from which groups it where removed to correctly
+    // handle the permissions to edit vs create in group.
+    $gids = _og_menu_sync_remove_from_groups($node);
+    _og_menu_sync_add_to_menu_groups($node, $link, $gids);
+  }
+  // The menu link parent may have been changed. We need to reprocess
+  // recursively the children menu links.
+  $result = db_select('menu_links')->fields('menu_links', array('mlid'))->condition('plid', $link['mlid'])->execute()->fetchCol();
+  foreach($result as $clid) {
+    if ($child = menu_link_load($clid)) {
+      og_menu_sync_menu_link_update($child);
+    }
+  }
+}
+
+/**
+ * Implements hook_menu_link_delete().
+ */
+function og_menu_sync_menu_link_delete($link) {
+  if ($node = og_menu_sync_get_group_content($link)) {
+    _og_menu_sync_remove_from_groups($node);
+  }
+}
+
+/**
+ * Implements hook_field_access().
+ * Hide all audience fields, as audience is set from menu.
+ */
+function og_menu_sync_field_access($op, $field, $entity_type, $entity, $account) {
+  if ($op == 'edit' && $entity_type == 'node' && og_is_group_audience_field($field['field_name'])) {
+    return FALSE;
+  }
+}
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter().
+ * Remove groups in which the user can't add/edit from available menu parents.
+ * @see menu_form_node_form_alter()
+ */
+function og_menu_sync_form_node_form_alter(&$form, $form_state) {
+  if (isset($form['menu']['link']['parent']['#options'])) {
+    $options = &$form['menu']['link']['parent']['#options'];
+    $node = $form['#node'];
+    $removed_mlids = array();
+    foreach ($options as $key => $v) {
+      list($menu_name, $mlid) = explode(':', $key);
+      $link = menu_link_load($mlid);
+      if (in_array($link['plid'], $removed_mlids)) {
+        unset($options[$key]);
+        $removed_mlids[] = $mlid;
+      }
+      if ($group = og_menu_sync_get_group($link)) {
+        $groups = og_get_entity_groups('node', $node);
+        $previous_gids = isset($groups['node']) ? $groups['node'] : array();
+        if (!_og_menu_sync_og_access($node->type, $group, $previous_gids)) {
+          unset($options[$key]);
+          $removed_mlids[] = $mlid;
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ * Remove groups in which the user can't add/edit from editable menu links.
+ */
+function og_menu_sync_form_menu_overview_form_alter(&$form, $form_state) {
+  $removed_mlids = array();
+  foreach ($form as $key => $element) {
+    if (strpos($key, 'mlid:') === 0) {
+      list($v, $mlid) = explode(':', $key);
+      $link = menu_link_load($mlid);
+      if (in_array($link['plid'], $removed_mlids)) {
+        $form[$key]['#access'] = FALSE;
+        // @see theme_menu_overview_form().
+        unset($form[$key]['hidden']);
+        $removed_mlids[] = $mlid;
+      }
+      if ($group = og_menu_sync_get_group($link)) {
+        $previous_gids = array();
+        // We can't know which node menu link will be moved, so we remove access
+        // if at least one group content type can't be added to the group.
+        $group_content_bundles = og_get_all_group_content_bundle();
+        $group_content_types = array_keys($group_content_bundles['node']);
+        foreach ($group_content_types as $type) {
+          if (!_og_menu_sync_og_access($type, $group, $previous_gids)) {
+            $form[$key]['#access'] = FALSE;
+            unset($form[$key]['hidden']);
+            $removed_mlids[] = $mlid;
+            break;
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Return the node of the menu link if it's a group content.
+ */
+function og_menu_sync_get_group_content($link) {
+  // We cannot call menu_get_item() because it would lead to an infinite loop.
+  if ($link['router_path'] == 'node/%') {
+    $parts = explode('/', $link['link_path']);
+    $nid = end($parts);
+    if ($node = node_load($nid)) {
+      if (og_is_group_content_type('node', $node->type)) {
+        return $node;
+      }
+    }
+  }
+}
+
+/**
+ * Return the node of the menu link if it's a group.
+ */
+function og_menu_sync_get_group($link) {
+  // We cannot call menu_get_item() because it would lead to an infinite loop.
+  if ($link['router_path'] == 'node/%') {
+    $parts = explode('/', $link['link_path']);
+    $nid = end($parts);
+    if ($node = node_load($nid)) {
+      if (og_is_group('node', $node)) {
+        return $node;
+      }
+    }
+  }
+}
+
+function _og_menu_sync_remove_from_groups($node) {
+  $groups = og_get_entity_groups('node', $node);
+  $gids = $groups['node'];
+  foreach ($gids as $gid) {
+    og_ungroup('node', $gid, 'node', $node->nid);
+  }
+  return $gids;
+}
+
+function _og_menu_sync_add_to_menu_groups($node, $link, $previous_gids = array()) {
+  $current_link = $link;
+  while ($current_link['plid']) {
+    if ($current_link = menu_link_load($current_link['plid'])) {
+      if ($group = og_menu_sync_get_group($current_link)) {
+        // We won't check OG access in og_get_best_group_audience_field()
+        // because sometimes you can be allowed to edit in a group but not
+        // create. So we need to implement our own check.
+        if (_og_menu_sync_og_access($node->type, $group, $previous_gids)) {
+          if ($audience_field = og_get_best_group_audience_field('node', $node, 'node', $group->type, TRUE)) {
+            $values = array(
+              'entity_type' => 'node',
+              'entity' => $node,
+              'field_name' => $audience_field,
+            );
+            og_group('node', $group, $values);
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Check if the current user can save a content in this group.
+ * True if the content is already in the group, or if the user can add the
+ * content to the group.
+ */
+function _og_menu_sync_og_access($type, $group, $previous_gids) {
+  if (in_array($group->nid, $previous_gids)) {
+    // Already in the group.
+    return TRUE;
+  }
+  if (!empty($node->nid)) {
+    // The node already exists.
+    return og_user_access('node', $group->nid, "update own $type content") || og_user_access('node', $group->nid, "update any $type content");
+  }
+  // It's a node creation.
+  return og_user_access('node', $group->nid, "create $type content");
+}

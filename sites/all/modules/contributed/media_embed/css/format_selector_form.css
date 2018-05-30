@@ -1,0 +1,23 @@
+/**
+ * @file
+ * Styles for format selector form.
+ */
+
+.media-format-selector-form {
+  margin: 20px;
+}
+
+.media-format-selector-form .media-item {
+  float: left;
+  margin-right: 20px;
+}
+
+.media-format-selector-form .form-item-formatter label {
+  display: inline;
+}
+
+.media-format-selector-form .form-item-formatter,
+.media-format-selector-form #edit-settings,
+.media-format-selector-form #edit-wrapper {
+  margin-left: 132px;
+}

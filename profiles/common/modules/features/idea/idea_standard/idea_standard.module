@@ -1,0 +1,7 @@
+<?php
+/**
+ * @file
+ */
+
+include_once('idea_standard.features.inc');
+include_once('idea_standard.views_alter.inc');

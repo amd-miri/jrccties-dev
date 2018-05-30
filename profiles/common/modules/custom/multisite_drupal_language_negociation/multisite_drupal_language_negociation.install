@@ -1,0 +1,21 @@
+<?php
+
+/**
+ * @file
+ * Install, uninstall, update, enable, disable and schema hooks.
+ */
+
+/**
+ * Implements hook_enable().
+ */
+function multisite_drupal_language_negociation_enable() {
+  variable_set("language_suffix_delimiter", "_");
+}
+
+/**
+ * Implements hook_disable().
+ */
+function multisite_drupal_language_negociation_disable() {
+  variable_del("language_suffix_delimiter");
+  variable_del("language_negociation_views");
+}

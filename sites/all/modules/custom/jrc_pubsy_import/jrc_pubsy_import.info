@@ -1,0 +1,10 @@
+name = JRC Pubsy import
+description = Import data from the Pubsy external Oracle database
+core = 7.x
+package = JRC
+php = 5.2.4
+multisite_version = 2.2
+features[features_api][] = api:2
+features[user_permission][] = advanced migration information
+features[user_permission][] = migration information
+files[] = jrc_pubsy_import.migrate.inc

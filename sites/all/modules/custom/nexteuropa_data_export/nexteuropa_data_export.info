@@ -1,0 +1,7 @@
+name = NextEuropa Data Export
+description = Allows to export view data in different type of formats.
+package = NextEuropa
+core = 7.x
+
+dependencies[] = views_data_export
+dependencies[] = views_bulk_operations

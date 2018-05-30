@@ -1,0 +1,14 @@
+name = File MIME
+description = Rewrite the MIME type for each file upload based on a server-side mime.types file and/or custom settings.
+core = 7.x
+files[] = filemime.admin.inc
+files[] = filemime.module
+files[] = filemime.install
+
+
+; Information added by drupal.org packaging script on 2013-05-10
+version = "7.x-1.1"
+core = "7.x"
+project = "filemime"
+datestamp = "1368168911"
+

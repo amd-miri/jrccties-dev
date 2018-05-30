@@ -1,0 +1,8 @@
+<?php
+/**
+ * @file
+ */
+include_once 'sitemap.features.inc';
+
+
+

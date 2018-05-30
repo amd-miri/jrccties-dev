@@ -1,0 +1,675 @@
+<?php
+
+/**
+ * @file tableau.module
+ * Exposes Tableau components as Drupal entities.
+ */
+
+define('TABLEAU_SERVER', 'http://public.tableausoftware.com');
+
+/**
+ * Implements hook_permission().
+ */
+function tableau_permission() {
+  return array(
+    'administer tableau' => array(
+      'title' => t('Administer Tableau'),
+      'description' => t('Allow the user to administer Tableau settings'),
+    ),
+    'access tableau content' => array(
+      'title' => t('Access Tableau content'),
+      'description' => t('Allow users to view content from Tableau.')
+    ),
+  );
+}
+
+/**
+ * Implements hook_menu().
+ */
+function tableau_menu() {
+  $items['admin/config/tableau'] = array(
+    'title' => 'Tableau',
+    'description' => 'Allows the user to configure Tableau settings',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('tableau_admin_settings_form'),
+    'access arguments' => array('administer tableau'),
+  );
+  return $items;
+}
+
+function tableau_admin_settings_form() {
+  $form = array();
+  $form['tableau_server'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Tableau server'),
+    '#description' => t('Server in which the Tableau service is installed.'),
+    '#default_value' => variable_get('tableau_server', TABLEAU_SERVER),
+  );
+  $options = array();
+  foreach (tableau_site_load_multiple() as $site) {
+    $options[$site->id] = $site->name;
+  }
+  $form['tableau_sites'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t('Available sites'),
+    '#description' => t('Tableau sites for which content should be made available on this website.'),
+    '#options' => $options,
+    '#default_value' => variable_get('tableau_sites', array(1)),
+  );
+  $options = array(900, 1800, 3600, 21600, 43200, 86400, 518400);
+  $options = drupal_map_assoc($options, 'format_interval');
+  $options = array(CACHE_TEMPORARY => t('Never cache')) + $options + array(CACHE_PERMANENT => t('Forever'));
+  $form['tableau_cache'] = array(
+    '#type' => 'select',
+    '#title' => t('Cache expiration'),
+    '#description' => t('The length of time Tableau data should be cached.'),
+    '#options' => $options,
+    '#default_value' => variable_get('tableau_cache', CACHE_TEMPORARY),
+  );
+  $form['tableau_cache_images'] = array(
+    '#type' => 'radios',
+    '#title' => t('Cache images'),
+    '#description' => t('Select whether Drupal should cache static Tableau views locally. This option only applies when rendering a static (non-interactive) view.<br /><em>Use with caution: Enabling this option makes rendering previously loaded views much faster, but it makes rendering any new views much slower.</em>'),
+    '#options' => array(
+      0 => t('Disabled'),
+      1 => t('Enabled'),
+    ),
+    '#default_value' => variable_get('tableau_cache_images', 0),
+  );
+  $form = system_settings_form($form);
+  $form['#submit'][] = 'tableau_admin_settings_form_submit';
+  return $form;
+}
+
+/**
+ * Clear Tableau caches on admin settings form submission.
+ */
+function tableau_admin_settings_form_submit($form, &$form_state) {
+  cache_clear_all('tableau:', 'cache', TRUE);
+
+  if (module_exists('views')) {
+    // Get Tableau entity base tables
+    $tables = array();
+    foreach (tableau_entity_info() as $entity) {
+      $tables[] = $entity['base table'];
+    }
+    // Clear caches for all Tableau-bases views
+    foreach (views_get_all_views() as $view) {
+      if (in_array($view->base_table, $tables)) {
+        cache_clear_all($view->name . ':', 'cache_views_data', TRUE);
+      }
+    }
+  }
+
+  tableau_flush_caches();
+}
+
+/**
+ * Implements hook_flush_caches().
+ */
+function tableau_flush_caches() {
+  // Delete locally cached image files
+  file_unmanaged_delete_recursive(drupal_realpath('public://tableau'));
+  return array();
+}
+
+/**
+ * Implements hook_entity_info().
+ */
+function tableau_entity_info() {
+  $info = array();
+  $info['tableau_owner'] = array(
+    'label' => t('Tableau Owner'),
+    'controller class' => 'TableauEntityController',
+    'base table' => '_users',
+    'load hook' => 'tableau_owner_load',
+    'entity keys' => array(
+      'id' => 'id',
+      'label' => 'friendly_name',
+    ),
+  );
+  $info['tableau_project'] = array(
+    'label' => t('Tableau Project'),
+    'controller class' => 'TableauEntityController',
+    'base table' => '_projects',
+    'load hook' => 'tableau_project_load',
+    'entity keys' => array(
+      'id' => 'id',
+      'label' => 'name',
+    ),
+  );
+  $info['tableau_site'] = array(
+    'label' => t('Tableau Site'),
+    'controller class' => 'TableauEntityController',
+    'base table' => '_sites',
+    'load hook' => 'tableau_site_load',
+    'entity keys' => array(
+      'id' => 'id',
+      'label' => 'name',
+    ),
+  );
+  $info['tableau_tag'] = array(
+    'label' => t('Tableau Tag'),
+    'controller class' => 'TableauEntityController',
+    'base table' => '_tags',
+    'load hook' => 'tableau_tag_load',
+    'entity keys' => array(
+      'id' => 'tag_id',
+      'label' => 'tag_name',
+    ),
+  );
+  $info['tableau_view'] = array(
+    'label' => t('Tableau View'),
+    'controller class' => 'TableauEntityController',
+    'base table' => '_views',
+    'load hook' => 'tableau_view_load',
+    'entity keys' => array(
+      'id' => 'id',
+      'label' => 'name',
+    ),
+    'view modes' => array(
+      'interactive' => array(
+        'label' => t('Interactive mode'),
+        'custom settings' => TRUE,
+      ),
+      'static' => array(
+        'label' => t('Static image'),
+        'custom settings' => TRUE,
+      ),
+    ),
+  );
+  $info['tableau_workbook'] = array(
+    'label' => t('Tableau Workbook'),
+    'controller class' => 'TableauEntityController',
+    'base table' => '_workbooks',
+    'load hook' => 'tableau_workbook_load',
+    'entity keys' => array(
+      'id' => 'id',
+      'label' => 'name',
+    ),
+    'view modes' => array(
+      'list' => array(
+        'label' => t('List of views'),
+        'custom settings' => FALSE,
+      ),
+    ),
+  );
+  return $info;
+}
+
+/**
+ * Implements hook_schema_alter().
+ * Adds a non-persistent schema for Tableau entities.
+ */
+function tableau_schema_alter(&$schema) {
+  if (!isset($schema['_projects'])) {
+    $schema['_projects'] = array(
+      'description' => 'The base table for Tableau projects.',
+      'fields' => array(
+        'id' => array(),
+        'name' => array(),
+        'created_at' => array(),
+        'owner_id' => array(),
+        'site_id' => array(),
+      ),
+      'primary key' => array('id'),
+    );
+  }
+  if (!isset($schema['_sites'])) {
+    $schema['_sites'] = array(
+      'description' => 'The base table for Tableau sites.',
+      'fields' => array(
+        'id' => array(),
+        'name' => array(),
+        'url_namespace' => array(),
+        'status' => array(),
+      ),
+      'primary key' => array('id'),
+    );
+  }
+  if (!isset($schema['_tags'])) {
+    $schema['_tags'] = array(
+      'description' => 'The base table for Tableau tags.',
+      'fields' => array(
+        'tag_id' => array(),
+        'tag_name' => array(),
+        'object_type' => array(),
+        'taggable_id' => array(),
+        'object_id' => array(),
+        'user_id' => array(),
+        'site_id' => array(),
+      ),
+      'primary key' => array('tag_id', 'taggable_id'),
+    );
+  }
+  if (!isset($schema['_users'])) {
+    $schema['_users'] = array(
+      'description' => 'The base table for Tableau users.',
+      'fields' => array(
+        'id' => array(),
+        'name' => array(),
+        'login_at' => array(),
+        'friendly_name' => array(),
+        'licensing_role_id' => array(),
+        'licensing_role_name' => array(),
+        'domain_id' => array(),
+        'system_user_id' => array(),
+        'domain_name' => array(),
+        'domain_short_name' => array(),
+        'site_id' => array(),
+      ),
+      'primary key' => array('id'),
+    );
+  }
+  if (!isset($schema['_views'])) {
+    $schema['_views'] = array(
+      'description' => 'The base table for Tableau views.',
+      'fields' => array(
+        'id' => array(),
+        'name' => array(),
+        'view_url' => array(),
+        'created_at' => array(),
+        'owner_id' => array(),
+        'workbook_id' => array(),
+        'index' => array(),
+        'title' => array(),
+        'caption' => array(),
+        'site_id' => array(),
+      ),
+      'primary key' => array('id'),
+    );
+  }
+  if (!isset($schema['_workbooks'])) {
+    $schema['_workbooks'] = array(
+      'description' => 'The base table for Tableau workbooks.',
+      'fields' => array(
+        'id' => array(),
+        'name' => array(),
+        'workbook_url' => array(),
+        'created_at' => array(),
+        'updated_at' => array(),
+        'owner_id' => array(),
+        'project_id' => array(),
+        'size' => array(),
+        'view_count' => array(),
+        'site_id' => array(),
+      ),
+      'primary key' => array('id'),
+    );
+  }
+}
+
+/**
+ * Get title for Tableau entity.
+ */
+function tableau_entity_title($entity) {
+  switch ($entity->type) {
+    case 'owner':
+      $title = $entity->friendly_name;
+      break;
+    case 'tag':
+      $title = $entity->tag_name;
+      break;
+    default:
+      $title = $entity->name;
+      break;
+  }
+  return check_plain($title);
+}
+
+/**
+ * User access for Tableau entities.
+ */
+function tableau_entity_access($entity) {
+  if (!user_access('access tableau content')) {
+    return FALSE;
+  }
+  if (!property_exists($entity, 'site_id')) {
+    return FALSE;
+  }
+  $sites = variable_get('tableau_sites', array(1));
+  return in_array($entity->site_id, $sites);
+}
+
+/**
+ * Load generic Tableau entity.
+ */
+function tableau_load_entity($type, $id, $reset = FALSE) {
+  // Verify correct Tableau entity type
+  if (!in_array($type, array('owner', 'project', 'site', 'tag', 'view', 'workbook'))) {
+    return FALSE;
+  }
+  // Initialize entity array
+  if (!isset($entities)) {
+    $entities = array();
+  }
+  $entities[$type] = &drupal_static('tableau_' . $type . '_load', array(), $reset);
+  if (empty($entities[$type]) || !isset($entities[$type][$id])) {
+    $cid = "tableau:$type:$id";
+
+    // Get entity from Drupal cache
+    $db = db_set_active('default');
+    $cache = cache_get($cid);
+    db_set_active($db);
+
+    if ($cache) {
+      $entities[$type][$id] = $cache->data;
+    }
+    else {
+      // Load entity from database
+      $entity = entity_load('tableau_' . $type, array($id), array(), $reset);
+      $entities[$type][$id] = $entity ? reset($entity) : FALSE;
+      // Store entity in Drupal cache
+      $db = db_set_active('default');
+      $expire = variable_get('tableau_cache', CACHE_TEMPORARY) == CACHE_PERMANENT ? CACHE_PERMANENT : time() + variable_get('tableau_cache', CACHE_TEMPORARY);
+      cache_set($cid, $entities[$type][$id], 'cache', $expire);
+      db_set_active($db);
+    }
+  }
+  return $entities[$type][$id];
+}
+
+/**
+ * Load multiple generic Tableau entities.
+ */
+function tableau_load_entities($type, $ids = FALSE, $conditions = array(), $reset = FALSE) {
+  // Verify correct Tableau entity type
+  if (!in_array($type, array('owner', 'project', 'site', 'tag', 'view', 'workbook'))) {
+    return FALSE;
+  }
+  // Initialize entity array
+  if (!isset($entities)) {
+    $entities = array();
+  }
+  $entities[$type] = &drupal_static('tableau_' . $type . '_load', array(), $reset);
+  $return = array();
+
+  // Load by unique id
+  if (is_array($ids)) {
+    foreach ($ids as $id) {
+      $return[$id] = tableau_load_entity($type, $id);
+    }
+  }
+  else {
+    // Load by parameter combination
+    $cid = array();
+    foreach ($conditions as $param => $value) {
+      $cid[] = $param . ':' . $value;
+    }
+    $cid = "tableau:$type:" . implode(',', $cid);
+
+    // Get entities from Drupal cache
+    $db = db_set_active('default');
+    $cache = cache_get($cid);
+    db_set_active($db);
+
+    if ($cache) {
+      foreach ($cache->data as $id => $entity) {
+        $entities[$type][$id] = $entity;
+        $return[$id] = $entities[$type][$id];
+      }
+    }
+    else {
+      $return = entity_load('tableau_' . $type, $ids, $conditions, $reset);
+      // Cache all matching entities
+      $db = db_set_active('default');
+      $expire = variable_get('tableau_cache', CACHE_TEMPORARY) == CACHE_PERMANENT ? CACHE_PERMANENT : time() + variable_get('tableau_cache', CACHE_TEMPORARY);
+      cache_set($cid, $return, 'cache', $expire);
+      db_set_active($db);
+
+      // Cache individual entites
+      foreach ($return as $id => $entity) {
+        $entities[$type][$id] = $entity;
+        $db = db_set_active('default');
+        cache_set("tableau:$type:$id", $entity, 'cache', $expire);
+        db_set_active($db);
+      }
+    }
+  }
+
+  return $return;
+}
+
+/**
+ * Load Tableau user entity.
+ */
+function tableau_owner_load($id, $reset = FALSE) {
+  return tableau_load_entity('owner', $id, $reset);
+}
+
+/**
+ * Load multiple Tableau user entities.
+ */
+function tableau_owner_load_multiple($ids = FALSE, $conditions = array(), $reset = FALSE) {
+  return tableau_load_entities('owner', $ids, $conditions, $reset);
+}
+
+/**
+ * Implements hook_tableau_owner_load().
+ */
+function tableau_tableau_owner_load($owners) {
+  foreach ($owners as $id => $owner) {
+    $owners[$id]->type = 'owner';
+    $owners[$id]->site = tableau_site_load($owner->site_id);
+  }
+}
+
+/**
+ * Load Tableau project entity.
+ */
+function tableau_project_load($id, $reset = FALSE) {
+  return tableau_load_entity('project', $id, $reset);
+}
+
+/**
+ * Load multiple Tableau project entities.
+ */
+function tableau_project_load_multiple($ids = FALSE, $conditions = array(), $reset = FALSE) {
+  return tableau_load_entities('project', $ids, $conditions, $reset);
+}
+
+/**
+ * Implements hook_tableau_project_load().
+ */
+function tableau_tableau_project_load($projects) {
+  foreach ($projects as $id => $project) {
+    $projects[$id]->type = 'project';
+    $projects[$id]->owner = tableau_owner_load($project->owner_id);
+    $projects[$id]->site = tableau_site_load($project->site_id);
+  }
+}
+
+/**
+ * Load Tableau site entity.
+ */
+function tableau_site_load($id, $reset = FALSE) {
+  return tableau_load_entity('site', $id, $reset);
+}
+
+/**
+ * Load multiple Tableau site entities.
+ */
+function tableau_site_load_multiple($ids = FALSE, $conditions = array(), $reset = FALSE) {
+  return tableau_load_entities('site', $ids, $conditions, $reset);
+}
+
+/**
+ * Implements hook_tableau_site_load().
+ */
+function tableau_tableau_site_load($sites) {
+  foreach ($sites as $id => $site) {
+    $sites[$id]->type = 'site';
+  }
+}
+
+/**
+ * Load Tableau tag entity.
+ */
+function tableau_tag_load($id, $reset = FALSE) {
+  return tableau_load_entity('tag', $id, $reset);
+}
+
+/**
+ * Load multiple Tableau tag entities.
+ */
+function tableau_tag_load_multiple($ids = FALSE, $conditions = array(), $reset = FALSE) {
+  return tableau_load_entities('tag', $ids, $conditions, $reset);
+}
+
+/**
+ * Implements hook_tableau_tag_load().
+ */
+function tableau_tableau_tag_load($tags) {
+  foreach ($tags as $id => $tag) {
+    $tags[$id]->type = 'tag';
+  }
+}
+
+/**
+ * Load Tableau view entity.
+ */
+function tableau_view_load($id, $reset = FALSE) {
+  return tableau_load_entity('view', $id, $reset);
+}
+
+/**
+ * Load multiple Tableau view entities.
+ */
+function tableau_view_load_multiple($ids = FALSE, $conditions = array(), $reset = FALSE) {
+  return tableau_load_entities('view', $ids, $conditions, $reset);
+}
+
+/**
+ * Implements hook_tableau_view_load().
+ */
+function tableau_tableau_view_load($views) {
+  foreach ($views as $id => $view) {
+    $views[$id]->type = 'view';
+    $views[$id]->owner = tableau_owner_load($view->owner_id);
+    $views[$id]->workbook = tableau_workbook_load($view->workbook_id);
+    $views[$id]->site = tableau_site_load($view->site_id);
+
+    // Determine original content path
+    $views[$id]->path = variable_get('tableau_server', TABLEAU_SERVER);
+    if ($views[$id]->site && property_exists($views[$id]->site, 'url_namespace') && $views[$id]->site->url_namespace) {
+      $views[$id]->path .= '/t/' . $views[$id]->site->url_namespace;
+    }
+    $views[$id]->thumbnail = $views[$id]->path . '/thumb/views/' . $view->view_url;
+    $views[$id]->path .= '/views/' . $view->view_url;
+  }
+}
+
+/**
+ * Load Tableau workbook entity.
+ */
+function tableau_workbook_load($id, $reset = FALSE) {
+  return tableau_load_entity('workbook', $id, $reset);
+}
+
+/**
+ * Load multiple Tableau workbook entities.
+ */
+function tableau_workbook_load_multiple($ids = FALSE, $conditions = array(), $reset = FALSE) {
+  return tableau_load_entities('workbook', $ids, $conditions, $reset);
+}
+
+/**
+ * Implements hook_tableau_workbook_load().
+ */
+function tableau_tableau_workbook_load($workbooks) {
+  foreach ($workbooks as $id => $workbook) {
+    $workbooks[$id]->type = 'workbook';
+    $workbooks[$id]->owner = tableau_owner_load($workbook->owner_id);
+    $workbooks[$id]->project = tableau_project_load($workbook->project_id);
+    $workbooks[$id]->site = tableau_site_load($workbook->site_id);
+  }
+}
+
+/**
+ * Load all views for a specific workbook.
+ */
+function tableau_load_workbook_views($workbook) {
+  if (is_object($workbook)) {
+    $workbook = $workbook->id;
+  }
+  return tableau_view_load_multiple(FALSE, array('workbook_id' => $workbook));
+}
+
+/**
+ * Implements hook_theme().
+ */
+function tableau_theme($existing, $type, $theme, $path) {
+  return array(
+    'tableau_view' => array(
+      'variables' => array('view' => NULL, 'width' => NULL, 'height' => NULL, 'tabs' => NULL, 'toolbar' => NULL, 'render' => NULL, 'render_threshold' => NULL, 'format' => NULL),
+      'file' => 'tableau.theme.inc',
+    ),
+    'tableau_view_interactive' => array(
+      'variables' => array('view' => NULL, 'width' => NULL, 'height' => NULL, 'tabs' => NULL, 'toolbar' => NULL, 'render' => NULL, 'render_threshold' => NULL),
+      'file' => 'tableau.theme.inc',
+      'template' => 'tableau-view',
+    ),
+    'tableau_view_static' => array(
+      'variables' => array('view' => NULL, 'width' => NULL, 'height' => NULL),
+      'file' => 'tableau.theme.inc',
+    ),
+    'tableau_view_thumbnail' => array(
+      'variables' => array('view' => NULL, 'width' => NULL, 'height' => NULL),
+      'file' => 'tableau.theme.inc',
+    ),
+  );
+}
+
+/**
+ * Implements hook_views_api().
+ */
+function tableau_views_api() {
+  return array(
+    'api' => '3.0',
+    'path' => drupal_get_path('module', 'tableau') . '/views',
+  );
+}
+
+/**
+ * Controller class for Tableau entities.
+ *
+ * This extends the DrupalDefaultEntityController class, adding required
+ * special handling for Tableau entities.
+ */
+class TableauEntityController extends DrupalDefaultEntityController {
+
+  /**
+   * Load data from the configured Tableau database.
+   */
+  public function load($ids = array(), $conditions = array()) {
+    $db = db_set_active('tableau');
+    $entities = parent::load($ids, $conditions);
+    db_set_active($db);
+    return $entities;
+  }
+
+  /**
+   * Restrict Tableau data to enabled sites.
+   */
+  protected function buildQuery($ids, $conditions = array(), $revision_id = FALSE) {
+    $query = parent::buildQuery($ids, $conditions, $revision_id);
+    $query->addTag('tableau_access');
+    return $query;
+  }
+
+}
+
+/**
+ * Implements hook_query_TAG_alter().
+ */
+function tableau_query_tableau_access_alter($query) {
+  $sites = variable_get('tableau_sites', array(1));
+  if (is_array($sites)) {
+    $tables = $query->getTables();
+    foreach ($tables as $table) {
+      if ($table['table'] != '_sites') {
+        $query->where($table['alias'] . '.site_id IN (:sites)', array(':sites' => array_filter($sites)));
+      }
+    }
+  }
+}

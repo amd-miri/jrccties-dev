@@ -1,0 +1,55 @@
+<?php
+/**
+ * @file
+ *   Enable group admins to send e-mail blasts to group members.
+ */
+
+ /**
+ * Implements hook_help().
+ */
+function og_email_blast_help($path, $arg) {
+  if ($path == 'admin/help#og_email_blast') {
+    $output = '';
+    $output .= '<h3>' . t('About') . '</h3>';
+    $output .= '<p>' . t('The Organic Groups E-mail Blast module enables group admins to send e-mail blasts to group members.') . '</p>';
+    $output .= '<h3>' . t('Features') . '</h3>';
+    $output .= '<ul><li>' . t('Group members&rsquo; e-mail addresses are sent in the Bcc field.') . '</li>';
+    $output .= '<li>' . t('The site&rsquo;s default e-mail address is used as the sender in order to minimize spam detection.') . '</li>';
+    $output .= '<li>' . t('The group admin&rsquo;s e-mail address is used for the Reply-To field.') . '</li>';
+    $output .= '<li>' . t('E-mail blasts are logged to the watchdog table.') . '</li></ul>';
+    $output .= '<h3>' . t('Configuration') . '</h3>';
+    $output .= '<p>' . t('There are no configuration settings necessary. This module adds a new option, &ldquo;E-mail people,&rdquo; to the &ldquo;Group&rdquo; tab on each group node. You can browse directly to the &ldquo;E-mail group members&rdquo; page at: /group/node/[group-nid]/admin/email') . '</p>';
+    return $output;
+  }
+}
+
+ /**
+ * Implements hook_menu().
+ */
+function og_email_blast_menu() {
+  $items = array();
+  $items['group/%/%/admin/email'] = array(
+    'title arguments' => array('E-mail group members of @group', 1, 2),
+    'title callback' => 'og_ui_menu_title_callback',
+    'description' => 'E-mail group members.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('og_email_blast_group', 1, 2),
+    'access callback' => 'og_user_access_by_entity',
+    'access arguments' => array('administer group', 1, 2),
+    'file' => 'og_email_blast.admin.inc',
+  );
+  return $items;
+}
+
+/**
+ * Implements hook_og_ui_get_group_admin().
+ */
+function og_email_blast_og_ui_get_group_admin($gid) {
+  $items = array();
+  $items['email_people'] = array(
+    'title' => t('E-mail people'),
+    'description' => t('E-mail group members.'),
+    'href' => "admin/email",
+  );
+  return $items;
+}

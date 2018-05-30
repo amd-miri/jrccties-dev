@@ -1,0 +1,141 @@
+<?php
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter().
+ *
+ * @see menu_form_node_form_alter()
+ */
+function node_menu_parent_select_form_node_form_alter(&$form, $form_state) {
+  if (!empty($form['menu'])) {
+    $form['menu']['link']['parent'] = node_menu_parent_select_build($form['menu']['link']['parent'], $form_state);
+  }
+}
+
+function node_menu_parent_select_build($element, &$form_state) {
+  $element['#theme'] = 'node_menu_parent_select';
+  $element['#after_build'][] = 'node_menu_parent_select_after_build';
+  foreach ($element['#options'] as $value => $title) {
+    list($menu_name, $mlid) = explode(':', $value);
+
+    $element[$value] = array(
+      '#theme' => 'node_menu_parent_select_option',
+      '#title' => $title,
+      '#value' => $value,
+    );
+
+    if ($value == $element['#default_value']) {
+      $element[$value]['#selected'] = 'selected';
+    }
+
+    // Find parents.
+    {
+      if ($mlid == 0) {
+        $depth = 0;
+        $parents = array();
+      }
+      else {
+        $dashes = explode(' ', $title, 2);
+        $new_depth = strlen($dashes[0]) / 2;
+        if ($new_depth <= $depth) {
+          array_splice($parents, -1 + ($new_depth - $depth));
+        }
+        $depth = $new_depth;
+      }
+
+      $element[$value]['#node_menu_parent'] = end($parents);
+
+      $parents[] = $value;
+    }
+  }
+  return $element;
+}
+
+function node_menu_parent_select_after_build($element, &$form_state) {
+
+  foreach (element_children($element) as $value) {
+    $is_option = isset($element['#options'][$value]);
+
+    if ($is_option) {
+
+      // Show inaccessible parents as disabled.
+      if (!empty($element[$value]['#node_menu_parent'])) {
+        $parent = $element[$value]['#node_menu_parent'];
+        while (isset($element[$parent])) {
+          if (!isset($element['#options'][$parent])) {
+            $element[$parent]['#access'] = TRUE;
+            $element[$parent]['#disabled'] = TRUE;
+          }
+          $parent = isset($element[$parent]['#node_menu_parent']) ? $element[$parent]['#node_menu_parent'] : FALSE;
+        }
+      }
+    }
+    else {
+      $element[$value]['#access'] = FALSE;
+      //unset($element[$value]);
+    }
+
+    if ((!isset($element[$value]['#access']) || !empty($element[$value]['#access'])) && !empty($element[$value]['#disabled'])) {
+      //$element['#options'][$value] = $element['#title'];
+    }
+  }
+
+  return $element;
+}
+
+/**
+ * Implements hook_theme().
+ */
+function node_menu_parent_select_theme() {
+  return array(
+    'node_menu_parent_select' => array(
+      'render element' => 'element',
+    ),
+    'node_menu_parent_select_option' => array(
+      'render element' => 'element',
+    ),
+  );
+}
+
+/**
+ * Returns HTML for the node menu select form element.
+ *
+ * @param $variables
+ *   An associative array containing:
+ *   - element: An associative array containing the properties of the element.
+ *     Properties used: #title, #value, #options, #description, #extra,
+ *     #multiple, #required, #name, #attributes, #size.
+ *
+ * @ingroup themeable
+ */
+function theme_node_menu_parent_select($variables) {
+  $element = $variables['element'];
+  element_set_attributes($element, array('id', 'name', 'size'));
+  _form_set_class($element, array('form-select'));
+
+  return '<select' . drupal_attributes($element['#attributes']) . '>' . drupal_render_children($element) . '</select>';
+}
+
+/**
+ * Returns HTML for the option elements of the node menu select form element.
+ *
+ * @param $variables
+ *   An associative array containing:
+ *   - element: An associative array containing the properties of the element.
+ *     Properties used: #id, #title, #value, #selected, #disabled, #attributes.
+ *
+ * @ingroup themeable
+ */
+function theme_node_menu_parent_select_option($variables) {
+  $element = $variables['element'];
+  element_set_attributes($element, array('id', 'value'));
+
+  if (!empty($element['#selected'])) {
+    $element['#attributes']['selected'] = 'selected';
+  }
+
+  if (!empty($element['#disabled'])) {
+    $element['#attributes']['disabled'] = 'disabled';
+  }
+
+  return '<option' . drupal_attributes($element['#attributes']) . '>' . check_plain($element['#title']) . '</option>';
+}

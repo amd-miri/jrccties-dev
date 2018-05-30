@@ -1,0 +1,11 @@
+name = API Tokens
+description = Provides an input filter that allows to replace custom parametric tokens with rendered content.
+package = Filters/Editors
+core = 7.x
+
+; Information added by Drupal.org packaging script on 2016-06-14
+version = "7.x-1.7"
+core = "7.x"
+project = "api_tokens"
+datestamp = "1465905541"
+

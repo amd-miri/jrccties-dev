@@ -1,0 +1,98 @@
+<?php
+
+/**
+ * @file
+ * This module enables a context reaction to alter the active theme.
+ *
+ * See README file for full credits.
+ */
+
+/**
+ * Implements hook_custom_theme().
+ *
+ * Test a few of the context conditions and execute the plugin if it is matched.
+ *
+ * @return string | null
+ *   String of the theme to
+ *
+ * @see hook_custom_theme()
+ */
+function context_reaction_theme_custom_theme() {
+  // Initiate core conditions here to trigger all contexts with an active_theme
+  // reaction and core conditions only.
+  if ($plugin = context_get_plugin('condition', 'path')) {
+    $plugin->execute();
+  }
+  if ($plugin = context_get_plugin('condition', 'language')) {
+    global $language;
+    $plugin->execute($language->language);
+  }
+  if ($plugin = context_get_plugin('condition', 'user')) {
+    global $user;
+    $plugin->execute($user);
+  }
+  // @todo: write a module_implements hook to allow custom conditions here?
+
+  // Check for the active theme reaction.
+  if ($plugin = context_get_plugin('reaction', 'active_theme')) {
+    if ($custom_theme = $plugin->execute()) {
+      // return the theme name!
+      return $custom_theme;
+    }
+  }
+}
+
+/**
+ * Implements hook_ctools_plugin_api().
+ *
+ * Notify CTools that we'll be using the plugin API with Context module.
+ */
+function context_reaction_theme_ctools_plugin_api($module, $api) {
+  if ($module == 'context' && $api == 'plugins') {
+    return array('version' => 3);
+  }
+}
+
+/**
+ * Implements hook_context_plugins().
+ *
+ * CTools plugin API hook for Context.
+ *
+ * @return array
+ *   Config details for each reaction.
+ *
+ * @see hook_context_plugins()
+ */
+function context_reaction_theme_context_plugins() {
+  $plugins = array();
+
+  $plugins['context_reaction_active_theme'] = array(
+    'handler' => array(
+      'path' => drupal_get_path('module', 'context_reaction_theme') . '/plugins',
+      'file' => 'context_reaction_theme.inc',
+      'class' => 'context_reaction_active_theme',
+      'parent' => 'context_reaction',
+    ),
+  );
+
+  return $plugins;
+}
+
+/**
+ * Implements hook_context_registry().
+ *
+ * Registry hook for conditions & reactions.
+ *
+ * @see hook_context_registry()
+ */
+function context_reaction_theme_context_registry() {
+  return array(
+    'reactions' => array(
+      'active_theme' => array(
+        'title' => t('Active theme'),
+        'description' => t('Change the active theme.'),
+        'plugin' => 'context_reaction_active_theme',
+      ),
+    ),
+  );
+}

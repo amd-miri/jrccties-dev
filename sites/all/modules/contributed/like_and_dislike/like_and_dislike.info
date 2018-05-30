@@ -1,0 +1,17 @@
+name = Like & Dislike
+description = Enable like and dislike widgets and statistics
+core = 7.x
+package = Voting
+
+configure = admin/config/like_and_dislike
+
+dependencies[] = cool
+dependencies[] = votingapi
+
+stylesheets[all][] = assets/stylesheets/like_and_dislike.css
+; Information added by Drupal.org packaging script on 2014-07-21
+version = "7.x-1.0-beta3"
+core = "7.x"
+project = "like_and_dislike"
+datestamp = "1405954728"
+

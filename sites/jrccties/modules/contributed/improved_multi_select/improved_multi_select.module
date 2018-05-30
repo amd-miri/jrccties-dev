@@ -1,0 +1,93 @@
+<?php
+
+/**
+ * @file
+ * The improved_multi_select module main php code.
+ */
+
+/**
+ * Implements templage_preprocess_page().
+ */
+function improved_multi_select_preprocess_page() {
+  $is_enabled = FALSE;
+
+  if (variable_get('improved_multi_select:isall', 0)) {
+    $is_enabled = TRUE;
+  }
+  else {
+    $url = variable_get('improved_multi_select:url');
+    if (drupal_match_path(request_path(), $url)) {
+      $is_enabled = TRUE;
+    }
+  }
+
+  if ($is_enabled) {
+    $selectors = improved_multi_select_load_selectors();
+    drupal_add_css(drupal_get_path('module', 'improved_multi_select') . '/improved_multi_select.css');
+    drupal_add_js(drupal_get_path('module', 'improved_multi_select') . '/improved_multi_select.js');
+    drupal_add_js(array('improved_multi_select' => array('selectors' => $selectors)), 'setting');
+  }
+}
+
+/**
+ * Implements hook_menu().
+ */
+function improved_multi_select_menu() {
+
+  $items = array();
+
+  $items['admin/config/user-interface/improved_multi_select'] = array(
+    'title' => 'Improved Multi Select',
+    'description' => 'Configure Improved Multi Select module.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('improved_multi_select_admin'),
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  return $items;
+}
+
+/**
+ * Administration settings page.
+ */
+function improved_multi_select_admin($form) {
+
+  $form['improved_multi_select:isall'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Replace all multi-select lists'),
+    '#default_value' => variable_get('improved_multi_select:isall', 0),
+  );
+
+  $form['improved_multi_select:url'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Replace multi-select lists on specific pages'),
+    '#description' => t("Specify pages by using their paths. Enter one path per line. The '*' character is a wildcard. Example paths are %blog for the blog page and %blog-wildcard for every personal blog. %front is the front page.", array('%blog' => 'blog', '%blog-wildcard' => 'blog/*', '%front' => '<front>')),
+    '#default_value' => variable_get('improved_multi_select:url'),
+  );
+
+  $form['improved_multi_select:selectors'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Replace multi-select with specified selectors'),
+    '#description' => t('Enter jQuery selectors (one selector per line). Example: select[multiple]'),
+    '#default_value' => variable_get('improved_multi_select:selectors'),
+  );
+
+  return system_settings_form($form);
+}
+
+/**
+ * Return array with selectors.
+ */
+function improved_multi_select_load_selectors() {
+  $selectors = variable_get('improved_multi_select:selectors');
+  $output = array();
+  $replace_all = variable_get('improved_multi_select:isall', 0);
+  if ($selectors && !$replace_all) {
+    $selectors = explode("\r\n", $selectors);
+    foreach ($selectors as $selector) {
+      $output[] = trim($selector);
+    }
+  }
+  return $output ? $output : array('select[multiple]');
+}

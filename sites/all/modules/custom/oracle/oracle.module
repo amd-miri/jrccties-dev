@@ -1,0 +1,126 @@
+<?php
+// $Id
+
+function oracle_perm() {
+  return array(
+    'configure oracle settings'
+  );
+}
+
+function oracle_menu ()
+{
+  $items = array();
+
+  $items['admin/config/development/oracle'] = array(
+    'title' => 'Oracle',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('oracle_admin_settings'),
+    'description' => 'Configure Oracle settings',
+    'access arguments' => array('configure oracle settings'),
+    'file' => 'oracle.admin.inc',
+  );
+  $items['admin/config/development/oracle/configure'] = array(
+    'title' => 'Settings',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+  );
+
+  $items['admin/config/development/oracle/performance'] = array(
+    'title' => 'Performance',
+    'page callback' => 'oracle_admin_performance',
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 1,
+    'access arguments' => array('configure oracle settings'),
+    'file' => 'oracle.admin.inc',
+  );
+
+  $items['admin/config/development/oracle/performance/sql/%'] = array(
+    'title' => 'Performance',
+    'page callback' => 'oracle_admin_performance_sql',
+    'page arguments' => array(6),
+    'type' => MENU_CALLBACK,
+    'access arguments' => array('configure oracle settings'),
+    'file' => 'oracle.admin.inc',
+  );
+
+  $items['admin/config/development/oracle/translate'] = array(
+    'title' => 'Translate statements',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('oracle_admin_translate'),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 2,
+    'access arguments' => array('configure oracle settings'),
+    'file' => 'oracle.admin.inc',
+  );
+
+  $items['admin/config/development/oracle/add/translation'] = array(
+    'title' => 'Add statement translation',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('oracle_admin_translation', 3),
+    'type' => MENU_CALLBACK,
+    'access arguments' => array('configure oracle settings'),
+    'file' => 'oracle.admin.inc',
+  );
+  $items['admin/config/development/oracle/edit/translation'] = array(
+    'title' => 'Edit statement translation',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('oracle_admin_translation', 3, 4),
+    'type' => MENU_CALLBACK,
+    'access arguments' => array('configure oracle settings'),
+    'file' => 'oracle.admin.inc',
+  );
+  $items['admin/config/development/oracle/delete/translation'] = array(
+    'title' => 'Delete statement translation',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('oracle_delete_translation', 4),
+    'type' => MENU_CALLBACK,
+    'access arguments' => array('configure oracle settings'),
+    'file' => 'oracle.admin.inc',
+  );
+
+  $items['admin/config/development/oracle/longid'] = array(
+    'title' => 'Long identifiers',
+    'page callback' => 'oracle_admin_longid',
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 3,
+    'access arguments' => array('configure oracle settings'),
+    'file' => 'oracle.admin.inc',
+  );
+
+  $items['admin/config/development/oracle/delete/longid'] = array(
+    'title' => 'Delete statement translation',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('oracle_delete_longid', 4),
+    'type' => MENU_CALLBACK,
+    'access arguments' => array('configure oracle settings'),
+    'file' => 'oracle.admin.inc',
+  );
+    
+  $items['admin/config/development/oracle/blob'] = array(
+    'title' => 'Blob',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('oracle_admin_blob'),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 4,
+    'access arguments' => array('configure oracle settings'),
+    'file' => 'oracle.admin.inc',
+  );
+
+  if (preg_match('/11g/',Database::getConnection()->version()))
+  {
+      /* TODO: select pool name  / new pool
+               configure pool params
+               start / stop pool
+               enable pool
+               wait statistics on free server (to tune min-max size) 
+       */
+      $items['admin/config/development/oracle/drcp'] = array(
+        'title' => 'DRCP',
+        'page callback' => 'oracle_admin_drcp',
+        'type' => MENU_LOCAL_TASK,
+        'weight' => 5,
+        'access arguments' => array('configure oracle settings'),
+        'file' => 'oracle.admin.inc',
+      );
+  }
+  return $items;
+}

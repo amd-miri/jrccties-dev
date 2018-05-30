@@ -1,0 +1,16 @@
+name = "Token insert UI"
+description = "Allows you to insert tokens in a textfield or wysiwyg field."
+core = 7.x
+package = Token insert
+dependencies[] = token
+files[] = token_insert.inc
+files[] = token_insert.module
+files[] = token_insert.js
+configure = admin/config/content/formats
+
+; Information added by Drupal.org packaging script on 2014-07-02
+version = "7.x-2.4"
+core = "7.x"
+project = "token_insert"
+datestamp = "1404308328"
+

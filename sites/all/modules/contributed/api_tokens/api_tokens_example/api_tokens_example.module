@@ -1,0 +1,81 @@
+<?php
+
+/**
+ * @file
+ * The API Tokens Example module
+ */
+
+
+/**
+ * Implements hook_api_tokens_info().
+ */
+function api_tokens_example_api_tokens_info() {
+  // Token: [api:date/]
+  $tokens['date'] = array(
+    'title' => t('Date'),
+    // No sense to cache lightweight or dynamic handlers.
+  );
+
+  // Token: [api:user-link/]
+  $tokens['user-link'] = array(
+    'title' => t('User Link'),
+    'handler' => 'api_tokens_example_handle_user_link',
+    'inc' => 'includes/api_tokens',
+    'cache' => DRUPAL_CACHE_PER_USER,
+  );
+
+  // Token: [api:block["module", "delta"]/].
+  $tokens['block'] = array(
+    'title' => t('Block'),
+    'description' => t('Renders a block by module name and delta.'),
+  );
+
+  // Token: [api:view["view", "display"]/]
+  // OR [api:view["view", "display", [1, 2, 3]]/].
+  $tokens['view'] = array(
+    'title' => t('View'),
+    'description' => t('Renders a view by view name and display ID.'),
+    // Don't set caching for this token. Will use views' caching.
+  );
+
+  // Token: [api:node-list["article"]/] OR [api:node-list/].
+  $tokens['node-list'] = array(
+    'title' => t('Node List'),
+    'handler' => 'api_tokens_example_handle_node_list',
+    'inc' => 'includes/api_tokens',
+    'cache' => DRUPAL_CACHE_GLOBAL,
+    // 5 minutes.
+    'cache_expire' => 300,
+  );
+
+  return $tokens;
+}
+
+
+/**
+ * Defines date API Token handler.
+ */
+function api_tokens_example_apitoken_date() {
+  $output = '<strong>' . date('c') . '</strong>';
+
+  return $output;
+}
+
+
+/**
+ * Defines "block" API Token handler.
+ */
+function api_tokens_example_apitoken_block($module, $delta) {
+  $block = block_load($module, $delta);
+  $block = _block_get_renderable_array(_block_render_blocks(array($block)));
+  return drupal_render($block);
+}
+
+
+/**
+ * Defines "views" API Token handler.
+ */
+function api_tokens_example_apitoken_view($name, $display_id = 'default', $args = NULL) {
+  $result = $args ? views_embed_view($name, $display_id) : views_embed_view($name, $display_id, $args);
+  return $result;
+}

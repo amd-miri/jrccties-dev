@@ -1,0 +1,1 @@
+Only works with node groups and group contents.

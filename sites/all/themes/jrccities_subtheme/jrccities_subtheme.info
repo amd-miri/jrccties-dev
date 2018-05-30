@@ -1,0 +1,37 @@
+name = JRC Communities subtheme
+description = Subtheme for JRC Communities site
+package = Fpfis_cms_theme
+multisite_version = 2.3
+core = 7.x
+base theme = ec_resp
+php = 5.2.4
+
+stylesheets[all][] = "css/jrccities_subtheme.css"
+stylesheets[all][] = "css/jrccities_communities_requests.css"
+scripts[] = "js/jrccities_private_messages.js"
+scripts[] = "js/jrccities_dropdown_click.js"
+scripts[] = "js/jrccities_private_pdf_download_link.js"
+
+regions[header_top] = "Header Top"
+regions[header_right] = "Header Right"
+
+regions[featured] = "Featured"
+regions[tools] = "Tools"
+regions[help] = "Help"
+
+regions[sidebar_left] = "Sidebar Left"
+regions[sidebar_right] = "Sidebar Right"
+
+regions[landing_page_banner] = "Homepage banner"
+regions[landing_page_banner_text] = "Homepage banner text"
+
+regions[page_header] = "Page Header"
+
+regions[content_top] = "Content Top"
+regions[content] = "Content"
+regions[content_right] = "Content Right"
+regions[content_bottom] = "Content Bottom"
+
+regions[footer] = "Footer"
+
+settings[shortcut_module_link] = 0

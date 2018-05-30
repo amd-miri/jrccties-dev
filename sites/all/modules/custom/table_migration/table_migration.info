@@ -1,0 +1,15 @@
+name = "table migration"
+description = "Migrate content from table to table"
+core = 7.x
+
+dependencies[] = migrate
+dependencies[] = migrate_d2d
+
+files[] = table_migration.migrate.inc
+
+; Information added by Drupal.org packaging script on 2015-01-23
+version = "7.x-1.x-dev"
+core = "7.x"
+project = "table_migration"
+datestamp = "1421983981"
+

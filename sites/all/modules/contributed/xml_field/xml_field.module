@@ -1,0 +1,909 @@
+<?php
+/**
+ * @file
+ * Defines the xml field type
+ *
+ * Comparison of API Functions:
+ *
+ * When you want a string back use: xml_field_format()
+ * When you want a xmlFieldXMLElement object back: use xml_field_xml()
+ * When you want a node value from XML use: xml_field()
+ * When you want to output to browser use: xml_field_output()
+ *
+ * @ingroup xml_field XML Field
+ * @{
+ */
+
+/**
+ * @var XML_FIELD_BOOLEAN_FALSE_STRINGS_LIST
+ *
+ * A pipe (|) seperated list of strings that should be considered FALSE, e.g.
+   false|no
+ */
+define('XML_FIELD_BOOLEAN_FALSE_STRINGS_LIST', 'false|no');
+
+/**
+ * @var XML_FIELD_PRESERVE_WHITESPACE
+ *
+ * This is the default setting for $conf['xml_field_preserve_whitespace']. This
+   affects how xml_field_output renders xml, if it strips tabs and linebreaks.
+ */
+define('XML_FIELD_PRESERVE_WHITESPACE', TRUE);
+
+/**
+ * Create XML or return the xml object from: entities, fields, objects, strings
+ *
+ * This is an example on how to compose xml:
+ * @code
+ *  // Define your root element first
+ *  $xml = xml_field_xml('<config/>');
+ *  // Add some children (See xmlFieldXMLElement for methods to use.)
+ *  $xml->addChild('language', $language);
+ *  $xml->addChild('error', t('Language (@lang) configuration not found.', array(
+ *    '@lang' => $language,
+ *  )));
+ * @endcode
+ *
+ * This are examples of extracting XML. All of the following are valid input
+   sources and will yield the same result, it is your preference how you'd like
+   to use this powerful function (take into account what will happen if an
+   entity has more than one xml field or an entity is translated into multiple
+   languages; this is where $callback_multiple comes in).
+ *
+ * @code
+ *    $xml = $node->field_xml_metadata['und'][0]['xml'];
+ *    $xml = $node->field_xml_metadata;
+ *    $xml = $node;
+ *    $xml_string = xml_field_xml($xml)
+ * @endcode
+ *
+ * @param mixed $input
+ *   See code example above
+ *
+ * @param string $callback_multiple
+     A function name to apply if there is more than one xml intance in $input,
+     e.g. array_pop, array_unshift, etc. Set to empty for the entire array to be
+     returned.
+ *
+ * @return xmlFieldXMLElement, array of xmlFieldXMLElements, or FALSE
+ *   You can use the method ::asXML() on any of the returned objects to get
+     their string equivalent, or send the returned objects through
+     xml_field_format();
+ *
+ * @see xml_field_format()
+ *
+ */
+function xml_field_xml($input, $callback_multiple = 'array_shift') {
+  // Object
+  if ($input instanceof xmlFieldXMLElement) {
+    return $input;
+  }
+
+  // String
+  if (($xml = xml_field_load_string($input)) !== FALSE) {
+    return $xml;
+  }
+
+  $fields = xml_field_xml_fields();
+  $xml = array();
+
+  // Array e.g. $node->field_xml
+  if (is_array($input)) {
+    foreach (array_keys($input) as $language) {
+      foreach (array_keys($input[$language]) as $delta) {
+        if (!empty($input[$language][$delta]['xml'])) {
+          $xml[$language . '][' . $delta] = xml_field_load_string($input[$language][$delta]['xml']);
+        }
+      }
+    }
+  }
+
+  // Entity
+  elseif (is_object($input)) {
+    foreach (array_keys($fields) as $field_name) {
+      if (!empty($input->{$field_name})) {
+        foreach (array_keys($input->{$field_name}) as $language) {
+          foreach (array_keys($input->{$field_name}[$language]) as $delta) {
+            if (!empty($input->{$field_name}[$language][$delta]['xml'])) {
+              $xml[$field_name . '][' . $language . '][' . $delta] = xml_field_load_string($input->{$field_name}[$language][$delta]['xml']);
+            }
+          }
+        }
+      }
+    }
+  }
+  if ($count = count($xml)) {
+    if ($count == 1) {
+      $xml = current($xml);
+    }
+    elseif ($callback_multiple) {
+      $xml = $callback_multiple($xml);
+    }
+    return $xml;
+  }
+  return FALSE;
+}
+
+/**
+ * Return the sanitized value of an xml value or attribute
+ *
+ * @code
+ *   $xml = xml_field_xml('<xml><book id="1">The Bible</book></xml>');
+ *   $id = xml_field($xml, 'book', 'id');
+ *   $title = xml_field($xml, 'book', NULL, 'The Good Book');
+ * @endcode
+ *
+ * @param string or xmlFieldXMLElement $xml
+ *   e.g. $xml->page->title
+ * @param string $attribute
+ *   Optional, include this to grab the attribute of the element, if it exists
+ * @param mixed $default
+ *   Include this for a default value to return if the xml field is empty. You
+     should send this as raw text because the $callback will be used for this
+     value too; ergo do not wrap this in t() in the function call:
+     INCORRECT: xml_field($node, 'book', NULL, t('The Good Book'));
+     CORRECT: xml_field($node, 'book', NULL, 'The Good Book');
+ * @param string or array $callback
+ *   Name of a function or an array where the first element is the function
+     name, and additional array elements are the arguments. The xml value is
+     pushed onto the arguments array before being passed to the function.
+     Here's an example...
+   @code
+     $callback = array('check_markup', 1);
+   @endcode
+ *
+ * @return string or $default
+ */
+function xml_field($xml, $selector = NULL, $attribute = NULL, $default = '', $callback = 'check_plain') {
+  $value = NULL;
+  // This is the default value
+  if (!($xml = xml_field_xml($xml))) {
+    $value = $default;
+  }
+  // Or, we have actual XML
+  //elseif (!empty($selector)) {
+  else {
+    $node = $xml;
+    if (!empty($selector)) {
+      foreach (explode('>', (string) $selector) as $child) {
+        if (preg_match('/(\w+)\[(\d+)\]/', $child, $found) && !empty($node->{$found[1]}[$found[2]])) {
+          $node = $node->{$found[1]}[$found[2]];
+        }
+        elseif (!empty($node->{$child})) {
+          $node = $node->{$child};
+        }
+        else {
+          $node = NULL;
+        }
+      }
+    }
+    else {
+      // No selector so they want the whole object
+      $node = $node->asXML();
+    }
+    if ($attribute) {
+      $value = method_exists($node, 'attributes') &&
+      ($attributes = $node->attributes()) &&
+      property_exists($attributes, $attribute) ? (string) $attributes->{$attribute} : $default ;
+    }
+    else {
+      $value = empty($node) ? $default : (string) $node;
+      // Swap out for the cdata if it exists and remove the cdata
+      if (($cdata = $xml->cdata($value))) {
+        $value = preg_match('/\<\!\[CDATA\[(.*)\]\]\>/', $cdata, $found) ? $found[1] : $value;
+      }
+    }
+  }
+  // Now process callback
+  if ($callback) {
+    $args = (array) $callback;
+    $function = array_shift($args);
+    $value = call_user_func_array($function, array_merge(array($value), $args));
+  }
+  return $value;
+}
+
+/**
+ * Return the boolean value of an xml value or attribute
+ *
+ * Parses a string and converts 'false' and 'no' to FALSE; empty strings are
+   FALSE and all other strings are TRUE
+ *
+ * @param ...
+ *
+ * @return bool
+ *
+ * @see xml_field()
+ */
+function xml_field_boolean($xml, $selector = NULL, $attribute = NULL, $default = '', $callback = 'check_plain') {
+  $value = (string) strtolower(xml_field($xml, $selector, $attribute, $default, $callback));
+  if (empty($value)) {
+    return FALSE;
+  }
+  else {
+    return !in_array($value, explode('|', variable_get('xml_field_boolean_false_strings_list', XML_FIELD_BOOLEAN_FALSE_STRINGS_LIST)));
+  }
+}
+
+/**
+ * Returns formatted or sanitized XML string
+ *
+ * @param mixed $xml
+ *   Anythign allowed by xml_field_xml()
+ * @param array $options
+ * - htmlentities: bool: convert to html entities or not?
+ * - break: char to use for line breaks
+ * - tab: char to use for tabs
+ * @param FALSE or array $header
+ *   If you wish the xml header to appear include an array of attributes here,
+     this defaults to array('version' => '1.0'). If you do not want the header
+     set this to FALSE
+ *
+ * @return string
+ *   With tabs and line breaks added
+ *
+ * @see http://recursive-design.com/blog/2007/04/05/format-xml-with-php/
+ */
+function xml_field_format($xml, $options = array(), $header = array()) {
+  if (($xml = xml_field_xml($xml)) !== FALSE) {
+    $xml = $xml->asXML();
+  }
+  else {
+    return '';
+  }
+
+  // strip whitespace from all lines so we get consistent tabs
+  $lines = explode("\n", $xml);
+  array_walk($lines, create_function('&$line', '$line = trim($line);'));
+  $xml = implode("\n", $lines);
+
+  // Version needs always to be present and let's put it first
+  $header = array(
+    'version' => empty($header['version']) ? '1.0' : $header['version'],
+  ) + (array) $header;
+  $options = (array) $options;
+  if (!empty($options['htmlentities'])) {
+    $options += array(
+      'tab' => '&nbsp;&nbsp;&nbsp;&nbsp;',
+      'break' => '<br />',
+    );
+  }
+  else {
+    $options += array(
+      'tab' => ' ',
+      'break' => "\n",
+    );
+  }
+
+  // add marker linefeeds to aid the pretty-tokeniser (adds a linefeed between all tag-end boundaries)
+  $xml = preg_replace('/(>)(<)(\/*)/', "$1\n$2$3", $xml);
+
+  // now indent the tags
+  $token      = strtok($xml, "\n");
+  $result     = ''; // holds formatted version as it is built
+  $pad        = 0; // initial indent
+  $matches    = array(); // returns from preg_matches()
+
+  // scan each line and adjust indent based on opening/closing tags
+  while ($token !== FALSE) :
+
+    // test for the various tag states
+
+    // 1. open and closing tags on same line - no change
+    if (preg_match('/.+<\/\w[^>]*>$/', $token, $matches)) :
+      $indent=0;
+    // 2. closing tag - outdent now
+    elseif (preg_match('/^<\/\w/', $token, $matches)) :
+      $pad--;
+    // 3. opening tag - don't pad this one, only subsequent tags
+    elseif (preg_match('/^<[^>]*[^\/]>.*$/', $token, $matches)) :
+      $indent=1;
+    // 4. no indentation needed
+    else :
+      $indent = 0;
+    endif;
+
+    // pad the line with the required number of leading spaces
+    $line    = str_pad($token, strlen($token) + $pad, ' ', STR_PAD_LEFT);
+    $result .= $line . "\n"; // add to the cumulative result, with linefeed
+    $token   = strtok("\n"); // get the next token
+    $pad    += $indent; // update the pad size for subsequent lines
+  endwhile;
+
+  // Remove then add correct header, if called for
+  $result = preg_replace('/^<\?.*?\?>\s*/', '', $result);
+  if ($header !== FALSE) {
+    $result = '<?xml' . drupal_attributes($header) . '?>' ."\n" . $result;
+  }
+
+  $lines = explode("\n", $result);
+  foreach (array_keys($lines) as $key) {
+    if (!empty($options['htmlentities'])) {
+      $lines[$key] = check_plain($lines[$key]);
+    }
+    if (preg_match('/^\s+/', $lines[$key], $tab_spaces) && ($tab_spaces = strlen($tab_spaces[0]))) {
+      $lines[$key] =  str_repeat($options['tab'], $tab_spaces) . trim($lines[$key]);
+    }
+  }
+  $result = implode($options['break'], $lines);
+  return trim($result);
+}
+
+/**
+ * Returns data in XML format.
+ *
+ * Use this when serving XML as it sets the header for XML output.
+ *
+ * @param mixed $xml
+ *   (optional) If set, the variable will be run through xml_field_format and
+     output. Anythign allowed by xml_field_xml()
+ * @param array $options
+ * - htmlentities: bool: convert to html entities or not?
+ * - break: char to use for line breaks
+ * - tab: char to use for tabs
+ * @param FALSE or array $header
+ *   If you wish the xml header to appear include an array of attributes here,
+     this defaults to array('version' => '1.0'). If you do not want the header
+     set this to FALSE
+
+   @see xml_field_format()
+ */
+function xml_field_output($xml = NULL, $options = array(), $header = array()) {
+  // We are returning XML, so tell the browser.
+  drupal_add_http_header('Content-Type', 'text/xml');
+
+  if (!variable_get('xml_field_preserve_whitespace', XML_FIELD_PRESERVE_WHITESPACE)) {
+    $options += array(
+      'tab' => '',
+      'break' => '',
+      'htmlentities' => FALSE,
+    );
+  }
+
+  if (isset($xml)) {
+    echo xml_field_format($xml, $options, $header);
+  }
+}
+
+/**
+ * Parse an xml string and return the xmlFieldXMLElement object
+ *
+ * In most cases it is better to use xml_field_xml() instead
+ *
+ * This is important to use instead of simplexml_load_string because you want an
+   instance of xmlFieldXMLElement not simpleXMLElement. You may also do the
+   following to obtain the correct object:
+   @code
+   simplexml_load_string($xml, 'xmlFieldXMLElement');
+   @endcode
+ *
+ * @param string $xml
+ *
+ * @return xmlFieldXMLElement or FALSE
+ *   FALSE if the string is invalid XML
+ *
+ * @code
+ *   <sample>
+ *     <parent>
+ *       <child_with_attr weight="1">Adam</child_with_attr>
+ *     </parent>
+ *     <parent>
+ *       <child_with_attr weight="2">Eve</child_with_attr>
+ *     </parent>
+ *   </sample>
+ * @endcode
+ *
+ * Given the above code, here is how you would access the data returned from
+   this function.
+ *
+ * @code
+ *   $adam = $eve = array();
+ *   $adam['weight']   = (int) $parsed->parent[0]->child_with_attr->attributes()->weight;
+ *   $adam['name']     = (string) $parsed->parent[0]->child_with_attr;
+ *   $eve['weight']    = (int) $parsed->parent[1]->child_with_attr->attributes()->weight;
+ *   $eve['name']      = (string) $parsed->parent[1]->child_with_attr;
+ * @endcode
+ *
+ * @see http://php.net/manual/en/class.xmlFieldXMLElement.php
+ */
+function xml_field_load_string($xml) {
+  $parsed = is_string($xml) ? @simplexml_load_string($xml, 'xmlFieldXMLElement') : FALSE;
+  return $parsed instanceof xmlFieldXMLElement ? $parsed : FALSE;
+}
+
+/**
+ * Determine if a string is valid XML
+ *
+ * @param string $xml
+ *
+ * @return bool
+ */
+function xml_field_is_valid_xml_string($xml) {
+  return xml_field_load_string($xml) === FALSE ? FALSE : TRUE;
+}
+
+/**
+ * Append content to the inside of an xml node at the end
+ *
+ * $append_xml will be added as a child to $element_xml at the end.
+ *
+ * @code
+ * $grandparent= xml_field_xml('<grandpa/>');
+ *
+ * e.g.
+ * <grandpa/>
+ *
+ * $parent_with_children = xml_field_xml('<dad/>');
+ * $parent_with_children->addChild('child', 'Jack');
+ * $parent_with_children->addChild('child', 'Jill');
+ *
+ * e.g.
+ * <dad>
+ *   <child>Jack</child>
+ *   <child>Jill</child>
+ * </dad>
+ *
+ * $xml = xml_field_append($grandparent, $parent_with_children);
+ *
+ * e.g.
+ * <grandpa>
+ *   <dad>
+ *     <child>Jack</child>
+ *     <child>Jill</child>
+ *   </dad>
+ * </grandpa>
+ *
+ * @endcode
+ *
+ * @param mixed $element_xml
+ * @param mixed $append_xml
+ *
+ * @return mixed
+ *
+ * @see xml_field_format()
+ */
+function xml_field_append($element_xml, $append_xml) {
+  $merge1 = xml_field_format($element_xml);
+  $merge2 = xml_field_format($append_xml, NULL, FALSE);
+  if (preg_match('/<\/?([^>\/]+)(\/?)>$/', $merge1, $found)) {
+    // Expand self closing tag
+    $close = "</$found[1]>";
+    if ($found[2]) {
+      $merge1 = str_replace($found[0], "<$found[1]>$close", $merge1);
+    }
+    $merge1 = str_replace($close, $merge2 . $close, $merge1);
+  }
+  if (is_string($element_xml)) {
+    return xml_field_format($merge1);
+  }
+  return xml_field_xml($merge1);
+}
+
+/**
+ * Return a map of bundles, entities and fields, which have xml_field_xml type
+   fields.
+
+   @param bool $include_bundles_and_entity_types
+     Just return an array of fields. Set to FALSE and the full array with
+     bundles and entity_types will be returned.
+ *
+ * @return array
+ *   if $include_bundles_and_entity_types = FALSE then:
+ *   - keys: field_names
+ *   - values: field_definitions as per field_info_field();
+ *
+ *   if $include_bundles_and_entity_types = TRUE then:
+ *     -keys: bundle types
+ *     -values: entity types
+ *       -keys: entity type
+ *       -values: field definitions
+ *         -keys: field name
+ *         -value: field definition
+ *
+ * @see xml_field_node_load()
+ */
+function xml_field_xml_fields($include_bundles_and_entity_types = FALSE) {
+  $fields = field_info_fields();
+  $entities = array();
+  $field_list = array();
+  foreach ($fields as $data) {
+    if ($data['type'] == 'xml_field_xml') {
+      foreach (array_keys($data['bundles']) as $bundle_type) {
+        foreach ($data['bundles'][$bundle_type] as $entity_type) {
+          $entities[$bundle_type][$entity_type][$data['field_name']] = $data;
+          $field_list[$data['field_name']] = $data;
+        }
+      }
+    }
+  }
+  return $include_bundles_and_entity_types ? $entities : $field_list;
+}
+
+/**
+ * Implements hook_node_load().
+ */
+function xml_field_node_load($nodes, $types) {
+  // Load the defaults (from hook) for a node if needed
+  $xml_fields = xml_field_xml_fields(TRUE);
+  $xml_fields = $xml_fields['node'];
+  $xml_types = array_keys($xml_fields);
+  if (!array_intersect($xml_types, $types) ||
+      !($modules = module_implements('xml_field_defaults'))) {
+    return;
+  }
+  $defaults = array();
+  foreach ($modules as $module) {
+    $defaults = module_invoke($module, 'xml_field_defaults') + $defaults;
+  }
+  if (empty($defaults)) {
+    return;
+  }
+  foreach ($nodes as $node) {
+    if (empty($defaults[$node->nid])) {
+      continue;
+    }
+    foreach ($defaults[$node->nid] as $fieldname => $default) {
+      if (!xml_field_xml($node->{$fieldname})) {
+        $node->{$fieldname} = $default;
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_field_info().
+ *
+ * Provides the description of the field.
+ */
+function xml_field_field_info() {
+  return array(
+    // We name our field as the associative name of the array.
+    'xml_field_xml' => array(
+      'label' => t('XML'),
+      'description' => t('A field containing XML data.'),
+      'default_widget' => 'text_textarea',
+      'default_formatter' => 'xml_field_safe',
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_is_empty().
+ *
+ * hook_field_is_emtpy() is where Drupal asks us if this field is empty.
+ * Return TRUE if it does not contain data, FALSE if it does. This lets
+ * the form API flag an error when required fields are empty.
+ */
+function xml_field_field_is_empty($item, $field) {
+  return empty($item['xml']);
+}
+
+/**
+ * Implements hook_field_formatter_info().
+ *
+ * We need to tell Drupal that we have two different types of formatters
+ * for this field. One will change the text color, and the other will
+ * change the background color.
+ *
+ * @see xml_field_field_formatter_view()
+ */
+function xml_field_field_formatter_info() {
+  $info = array();
+  $info['xml_field_safe'] = array(
+    'label' => t('Escaped XML for display'),
+    'field types' => array('xml_field_xml'),
+  );
+  $info['xml_field_raw'] = array(
+    'label' => t('Raw XML (Security Implications!)'),
+    'field types' => array('xml_field_xml'),
+  );
+  return $info;
+}
+
+/**
+ * Implements hook_field_formatter_view().
+ *
+ * @see xml_field_field_formatter_info()
+ */
+function xml_field_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
+  $element = array();
+
+  switch ($display['type']) {
+    // This formatter simply outputs the field as text and with a color.
+    case 'xml_field_raw':
+      foreach ($items as $delta => $item) {
+        $element[$delta] = array(
+          '#type' => 'markup',
+          '#markup' => $item['xml'],
+        );
+      }
+      break;
+
+    case 'xml_field_safe':
+      foreach ($items as $delta => $item) {
+        //@todo Add ability to set $options as instance options
+        $element[$delta] = array(
+          '#theme' => 'xml',
+          '#xml' => $item['xml'],
+          '#options' => array(
+            'htmlentities' => TRUE,
+          ),
+        );
+      }
+      break;
+  }
+
+  return $element;
+}
+
+/**
+ * Implements hook_field_widget_info().
+ *
+ * These widget types will eventually show up in hook_field_widget_form,
+ * where we will have to flesh them out.
+ *
+ * @see xml_field_field_widget_form()
+ */
+function xml_field_field_widget_info() {
+  return array(
+    'xml_field_text' => array(
+      'label' => t('XML'),
+      'field types' => array('xml_field_xml'),
+    ),
+
+    //@todo can we implement this: http://codemirror.net/doc/manual.html?
+  );
+}
+
+/**
+ * Implements hook_field_widget_form().
+ *
+ * hook_widget_form() is where Drupal tells us to create form elements for
+ * our field's widget.
+ */
+function xml_field_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+  $value = isset($items[$delta]['xml']) ? $items[$delta]['xml'] : '';
+  $widget = $element;
+  $widget['#delta'] = $delta;
+
+  switch ($instance['widget']['type']) {
+    case 'xml_field_text':
+      $widget += array(
+        '#type' => 'xmltext',
+        '#default_value' => $value,
+        '#rows' => 10,
+      );
+      break;
+  }
+
+  $element['xml'] = $widget;
+  return $element;
+}
+
+/**
+ * Implements hook_field_widget_error().
+ *
+ * hook_field_widget_error() lets us figure out what to do with errors
+ * we might have generated in hook_field_validate(). Generally, we'll just
+ * call form_error().
+ *
+ * @see xml_field_field_validate()
+ * @see form_error()
+ */
+function xml_field_field_widget_error($element, $error, $form, &$form_state) {
+  switch ($error['error']) {
+    case 'xml_field_invalid':
+      form_error($element, $error['message']);
+      break;
+  }
+}
+
+/**
+ * Implements hook_element_info().
+ */
+function xml_field_element_info() {
+  $info = array(
+    'xmltext' => array(
+      '#input' => TRUE,
+      '#cols' => 60,
+      '#rows' => 8,
+      '#resizable' => TRUE,
+      '#element_validate' => array('xml_field_element_validate'),
+      '#theme' => 'xmltext',
+      '#theme_wrappers' => array('form_element'),
+    ),
+  );
+  return $info;
+}
+
+/**
+ * Validates an xml form element
+ */
+function xml_field_element_validate(&$element, &$form_state) {
+  if (!empty($element['#value']) && !xml_field_is_valid_xml_string($element['#value'])) {
+    form_error($element, t('@title is not <a href="@url" onclick="window.open(this.href); return false;">valid XML</a>', array(
+      '@title' => strip_tags($element['#title']),
+      '@url' => 'http://www.w3schools.com/xml/xml_syntax.asp',
+    )));
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function xml_field_theme($existing, $type, $theme, $path) {
+  return array(
+    'xmltext' => array(
+      'render element' => 'element',
+    ),
+    'xml' => array(
+      'variables' => array(
+        'xml' => NULL,
+        'attributes' => array(),
+        'options' => array(
+          'htmlentites' => TRUE,
+          'break' => '<br />',
+          'tab' => '&nbsp;&nbsp;&nbsp;&nbsp;',
+        ),
+        'header' => array(
+          'version' => '1.0',
+        ),
+      ),
+    ),
+  );
+}
+
+/**
+ * Formats xml.
+ *
+ * @param array $vars
+ * - xml: anything valid for xml_field_format()
+ * - attributes: array
+ * - options: array
+ *   - break: string: line break char
+ *   - tab: string: tab char
+ *   - htmlentities: bool: convert xml tags to htmlentities or not
+ * - header: array or FALSE
+ *   - FALSE: the xml header will not be printed
+ *   - array():  Attributes to apply to the xml header
+ *
+ * @return string
+ *
+ * @ingroup themeable
+ *
+ * @see xml_field_format()
+ */
+function theme_xml($vars) {
+  $output = '';
+  if (!empty($vars['xml'])) {
+    $output .= xml_field_format($vars['xml'], $vars['options'], $vars['header']) . "\n";
+  }
+  $output = '<code' . drupal_attributes($vars['attributes']) . '>' . $output . '</code>';
+  return $output;
+}
+/**
+ * Formats an xml form element.
+ *
+ * @param array $vars
+ *
+ * @return string
+ *
+ * @ingroup themeable
+ */
+function theme_xmltext($vars) {
+  drupal_add_css(drupal_get_path('module', 'xml_field') . '/xmltext.css');
+  $element = $vars['element'];
+  element_set_attributes($element, array('id', 'name', 'cols', 'rows'));
+  _form_set_class($element, array('form-xmltext'));
+
+  $wrapper_attributes = array(
+    'class' => array('form-textarea-wrapper', 'form-xmltext-wrapper'),
+  );
+
+  // Add resizable behavior.
+  if (!empty($element['#resizable'])) {
+    drupal_add_library('system', 'drupal.textarea');
+    $wrapper_attributes['class'][] = 'resizable';
+  }
+
+  $output = '<div' . drupal_attributes($wrapper_attributes) . '>';
+  $output .= '<textarea' . drupal_attributes($element['#attributes']) . '>' . check_plain($element['#value']) . '</textarea>';
+  $output .= '</div>';
+  return $output;
+}
+
+/*
+ * Class xmlFieldXMLElement
+ *
+ * Allows for proper formatting of CDATA
+ */
+class xmlFieldXMLElement extends simpleXMLElement {
+
+  public static $cdata_storage = array();
+
+
+  /**
+   * Return the actual cdata value; by $key if desired
+   *
+   * @param string $key
+   *   E.g. [CDATA[0]] or just: 0
+   */
+  public function cdata($key = NULL) {
+    if (empty(self::$cdata_storage) || $key === NULL) {
+      return (array)self::$cdata_storage;
+    }
+    $key = is_numeric($key) ? "[CDATA[$key]]" : $key;
+    return array_key_exists((string)$key, (array)self::$cdata_storage) ? self::$cdata_storage[$key] : NULL;
+  }
+
+  /**
+   * Add a child element; this corrects CDATA issues
+   */
+  public function addChild($name, $value = NULL, $namespace = NULL) {
+    // Move CDATA values to $cdata_storage and replace with token
+    if (strpos($value, '<![CDATA[') === 0) {
+      $id = count(self::$cdata_storage);
+      $id = "[CDATA[$id]]";
+      self::$cdata_storage[$id] = $value;
+      $value = $id;
+    }
+    switch (func_num_args()) {
+      case 1:
+        return parent::addChild($name);
+      case 2:
+        return parent::addChild($name, $value);
+      case 3:
+        return parent::addChild($name, $value, $namespace);
+    }
+    //$parent = new ReflectionObject($this);
+    //$parent_class = $parent->getParentClass();
+    //$ref = new ReflectionMethod($parent_class, 'addChild');
+    //$ref->invoke(new)
+
+    // This broke in 5.2.x so the above is wonky but works - aklump
+    // 02/08/2012 10:41:08
+    //return call_user_func_array('parent::addChild', $args);
+  }
+
+  /**
+   * Extends to allow chaining of add attribute
+   *
+   * e.g. $xml->addAttribute('size', 'large')->addAttribute('color', 'blue')
+   */
+  public function addAttribute($name, $value = NULL, $namespace = NULL) {
+    switch (func_num_args()) {
+      case 1:
+        parent::addAttribute($name);
+        break;
+      case 2:
+        parent::addAttribute($name, $value);
+        break;
+      case 3:
+        parent::addAttribute($name, $value, $namespace);
+        break;
+    }
+    return $this;
+  }
+
+  /**
+   * Renders to xml, counterpart to the CDATA issue
+   */
+  public function asXML($filename = NULL) {
+    switch (func_num_args()) {
+      case 0:
+        $string = parent::asXML();
+        break;
+      case 1:
+        $string = parent::asXML($filename);
+        break;
+    }
+    // Restore the cdata
+    if (count(self::$cdata_storage) && preg_match_all('/\[CDATA\[(\d+)\]\]/', $string, $found)) {
+      foreach ($found[0] as $id) {
+        $string = str_replace($id, self::$cdata_storage[$id], $string);
+      }
+    }
+    return $string;
+  }
+}
+/** @} */ //end of group xml_field

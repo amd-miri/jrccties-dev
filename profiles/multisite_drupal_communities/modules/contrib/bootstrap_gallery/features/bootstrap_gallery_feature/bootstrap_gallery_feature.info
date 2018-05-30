@@ -1,0 +1,42 @@
+name = Bootstrap Gallery Feature
+description = Sample boostrap gallery feature.
+core = 7.x
+package = bootstrap
+version = 7.x-3.0
+project = bootstrap_gallery_feature
+dependencies[] = bootstrap_gallery
+dependencies[] = features
+dependencies[] = image
+dependencies[] = strongarm
+dependencies[] = text
+dependencies[] = views
+features[ctools][] = strongarm:strongarm:1
+features[ctools][] = views:views_default:3.0
+features[features_api][] = api:2
+features[field_base][] = body
+features[field_base][] = field_gallery_image
+features[field_instance][] = node-gallery_image-body
+features[field_instance][] = node-gallery_image-field_gallery_image
+features[node][] = gallery_image
+features[variable][] = comment_anonymous_gallery_image
+features[variable][] = comment_default_mode_gallery_image
+features[variable][] = comment_default_per_page_gallery_image
+features[variable][] = comment_form_location_gallery_image
+features[variable][] = comment_gallery_image
+features[variable][] = comment_preview_gallery_image
+features[variable][] = comment_subject_field_gallery_image
+features[variable][] = field_bundle_settings_node__gallery_image
+features[variable][] = menu_options_gallery_image
+features[variable][] = menu_parent_gallery_image
+features[variable][] = node_options_gallery_image
+features[variable][] = node_preview_gallery_image
+features[variable][] = node_submitted_gallery_image
+features[views_view][] = bootstrap_gallery
+features_exclude[dependencies][ctools] = ctools
+
+; Information added by Drupal.org packaging script on 2015-02-12
+version = "7.x-3.1"
+core = "7.x"
+project = "bootstrap_gallery"
+datestamp = "1423712648"
+

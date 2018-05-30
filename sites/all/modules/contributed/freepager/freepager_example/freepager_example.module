@@ -1,0 +1,7 @@
+<?php
+/**
+ * @file
+ * Code for the Free pager: term browsing example feature.
+ */
+
+include_once 'freepager_example.features.inc';

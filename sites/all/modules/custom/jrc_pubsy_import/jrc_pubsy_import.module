@@ -1,0 +1,61 @@
+<?php
+
+/**
+ * @file
+ * Custom functions of the module.
+ */
+
+ /**
+  * Converts uppercase names in Oracle columns to lowercase.
+  *
+  * @param object $record
+  *   An object containg all records of a query.
+  *
+  * @return object $record
+  *   An object with lowercase keys.
+  */
+function _jrc_pubsy_import_lowercase(&$record) {
+  if (!is_object($record)) {
+    return FALSE;
+  }
+  foreach (get_object_vars($record) as $key => $value) {
+    $lkey = drupal_strtolower($key);
+    unset($record->$key);
+    $record->$lkey = $value;
+  }
+  return $record;
+}
+
+/**
+ * Notifies an error message on the page and log the data via watchdog.
+ *
+ * @param string $message
+ *   A text message.
+ * @param string $category
+ *   The category of the message.
+ */
+function _jrc_pubsy_import_notify_error($message, $category = "Oracle error") {
+  drupal_set_message("$category: '$message'.", 'error');
+  $log = date('Y-m-d H:i:s') . "=>\t$category: $message\n";
+  watchdog("Pubsy import", $log, array(), WATCHDOG_NOTICE);
+}
+
+/**
+ * Get row image field FID.
+ *
+ * @param string $filename
+ *   Name of a file.
+ *
+ * @return string $fid
+ *   The fid of the file.
+ */
+function _jrc_pubsy_import_get_row_file_fid($filename) {
+  $fid = "";
+  $file_efq = new EntityFieldQuery();
+  $file_efq->entityCondition('entity_type', 'file')->propertyCondition('filename', $filename);
+  $file_efq_result = $file_efq->execute();
+  if (isset($file_efq_result['file'])) {
+    $fid = array_pop($file_efq_result['file'])->fid;
+  }
+  return $fid;
+}

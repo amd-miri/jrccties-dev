@@ -1,0 +1,7 @@
+name = Multisite Maxlength
+description = Customize 'Maxlength' contributed module.
+package = Multisite Features
+core = 7.x
+dependencies[] = features
+dependencies[] = maxlength
+features[features_api][] = api:2

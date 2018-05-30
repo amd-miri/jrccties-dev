@@ -1,0 +1,11 @@
+name = Contact form
+description = Let user contact support
+core = 7.x
+package = Multisite Features
+version = 7.x-1.0
+project = contact_form
+php = 5.2.4
+features[features_api][] = api:1
+dependencies[] = features
+dependencies[] = contact
+files[] = tests/contact_form.test

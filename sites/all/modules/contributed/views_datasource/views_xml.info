@@ -1,0 +1,14 @@
+name = Views XML
+description = Views style plugin to render node content as XML.
+package = Views
+core = 7.x
+dependencies[] = views
+
+files[] = views/plugins/views_plugin_style_xml.inc
+
+
+; Information added by drush on 2014-11-24
+version = "6e9b6b980fc2826b09391ae1c2ec0c5a85c6c24a"
+project = "views_datasource"
+datestamp = "1416834422"
+

@@ -1,0 +1,11 @@
+name = Organic groups menu synchronization
+description = "Update OG audience according to menu parents"
+package = "Organic groups"
+dependencies[] = og
+core = 7.x
+; Information added by Drupal.org packaging script on 2015-01-19
+version = "7.x-1.0-beta1"
+core = "7.x"
+project = "og_menu_sync"
+datestamp = "1421666286"
+

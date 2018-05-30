@@ -1,0 +1,148 @@
+<?php
+
+/**
+ * @file
+ *  Common Object Oriented Library module
+ *
+ * This module enhances the Drupal DX through classes and helpers
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function cool_menu() {
+  $items = array();
+  $classes = \Drupal\cool\Loader::mapImplementationsAvailable('PageControllers', '\Drupal\cool\Controllers\PageController');
+  foreach ($classes as $class_name) {
+    if (method_exists($class_name, 'getDefinition')) {
+      if (!method_exists($class_name, 'pageCallback')) {
+        throw new Exception(t('Class @classname do not have the pageCallback method', array('@classname' => $class_name)));
+      }
+      $items[$class_name::getPath()] = array_merge(
+          array(
+        'page callback' => $class_name . '::pageCallback',
+        'access callback' => 'cool_default_page_access_callback',
+        'access arguments' => array($class_name),
+          ), $class_name::getDefinition()
+      );
+    }
+  }
+  return $items;
+}
+
+/**
+ * Default function to call the page access callback from page controller classes
+ * @param string $class_name
+ */
+function cool_default_page_access_callback($class_name) {
+  return $class_name::accessCallback();
+}
+
+/**
+ * Implements hook_block_info()
+ */
+function cool_block_info() {
+  $blocks = array();
+  $classes = \Drupal\cool\Loader::mapImplementationsAvailable('BlockControllers', '\Drupal\cool\Controllers\BlockController');
+  unset($classes['Drupal\\cool\\BaseBlock']);
+  foreach ($classes as $class_name) {
+    if (method_exists($class_name, 'getAdminTitle')) {
+      if (!method_exists($class_name, 'getContent')) {
+        throw new Exception(t('Class @classname do not have the getContent method', array('@classname' => $class_name)));
+      }
+      $blocks[$class_name::getId()] = array_merge(
+        array(
+          'info' => $class_name::getAdminTitle(),
+          'cache' => DRUPAL_NO_CACHE,
+        ),
+        $class_name::getDefinition()
+      );
+    }
+  }
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_configure()
+ */
+function cool_block_configure($delta = '') {
+  $classes = \Drupal\cool\Loader::mapImplementationsAvailable('BlockControllers', '\Drupal\cool\Controllers\BlockController');
+  unset($classes['Drupal\\cool\\BaseBlock']);
+  $block = array();
+  foreach ($classes as $class_name) {
+    if($class_name::getId() == $delta) {
+      $form = $class_name::getConfiguration();
+    }
+  }
+  return $form;
+}
+
+/**
+ * Implements hook_block_save()
+ */
+function cool_block_save($delta = '', $edit = array()) {
+  $classes = \Drupal\cool\Loader::mapImplementationsAvailable('BlockControllers', '\Drupal\cool\Controllers\BlockController');
+  unset($classes['Drupal\\cool\\BaseBlock']);
+  foreach ($classes as $class_name) {
+    if($class_name::getId() == $delta) {
+      return $class_name::saveConfiguration($edit);
+    }
+  }
+}
+
+/**
+ * Implements hook_block_view()
+ */
+function cool_block_view($delta = '') {
+  $classes = \Drupal\cool\Loader::mapImplementationsAvailable('BlockControllers', '\Drupal\cool\Controllers\BlockController');
+  unset($classes['Drupal\\cool\\BaseBlock']);
+  $block = array();
+  foreach ($classes as $class_name) {
+    if($class_name::getId() == $delta) {
+      $block['subject'] = $class_name::getSubject();
+      $block['content'] = $class_name::getContent();
+    }
+  }
+  return $block;
+}
+
+/**
+ * Implements hook_forms()
+ */
+function cool_forms($form_id, $args) {
+  $classes = \Drupal\cool\Loader::mapImplementationsAvailable('FormControllers', '\Drupal\cool\Controllers\FormController');
+  unset($classes['Drupal\\cool\\BaseForm']);
+  unset($classes['Drupal\\cool\\BaseSettingsForm']);
+  $forms = array();
+  foreach ($classes as $class_name) {
+    $forms[$class_name::getId()] = array(
+      'callback' => 'cool_default_form_callback',
+      'callback arguments' => array($class_name),
+    );
+  }
+  return $forms;  
+}
+
+/**
+ * Default callback to build forms through FormController
+ */
+function cool_default_form_callback($form, &$form_state, $class_name) {
+  $args = array_slice(func_get_args(), 3);
+  return call_user_func_array($class_name . '::build', array_merge(array($form, $form_state), $args));
+}
+
+/**
+ * Default submit() callback for FormController
+ */
+function cool_default_form_validate($form, &$form_state) {
+  $class_name = $form_state['values']['cool_class_name'];
+  $class_name::validate($form, $form_state);
+}
+
+/**
+ * Default submit() callback for FormController
+ */
+function cool_default_form_submit($form, &$form_state) {
+  $class_name = $form_state['values']['cool_class_name'];
+  $class_name::submit($form, $form_state);
+}

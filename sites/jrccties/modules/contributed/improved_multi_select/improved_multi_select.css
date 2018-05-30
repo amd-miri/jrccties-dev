@@ -1,0 +1,76 @@
+.improvedselect ul li {
+  padding: 0 5px;
+  display: block;
+  margin: 0;
+  cursor: pointer;
+  background: none;
+}
+.improvedselect .del_all:hover,
+.improvedselect .add_all:hover,
+.improvedselect .del:hover,
+.improvedselect .add:hover {
+  background: #ccc;
+}
+.improvedselect .improvedselect-text-wrapper {
+  border: 1px solid gray;
+  margin-bottom: 5px;
+}
+.improvedselect input.improvedselect_filter {
+  width: 96%;
+  height: 20px;
+  padding: 0 2%;
+}
+.improvedselect .add_all,
+.improvedselect .del_all,
+.improvedselect .del,
+.improvedselect .add {
+  display: block;
+  width: 80%;
+  margin: 0 auto;
+  border: 1px solid gray;
+  cursor: pointer;
+  margin: 0 0 10px 0;
+  text-align: center;
+  margin-left: 10%;
+  background: white;
+}
+.improvedselect .improvedselect_control {
+  float: left;
+  width: 18%;
+  padding-top: 30px;
+}
+.improvedselect li:hover {
+  background: #eee;
+}
+.improvedselect li.selected {
+  color: white;
+  background: #3399ff;
+}
+.improvedselect ul.improvedselect_sel,
+.improvedselect ul.improvedselect_all {
+  width: 40%;
+  height: 200px;
+  overflow: auto;
+  margin: 0;
+  padding: 0;
+  display: block;
+  border: 1px solid gray;
+  background: white;
+  list-style: none;
+  overflow: auto;
+}
+.improvedselect .improvedselect_all {
+  float: left;
+}
+.improvedselect .improvedselect_sel {
+  float: right;
+}
+.improvedselect .clear {
+  clear: both;
+}
+.improvedselect {
+  border: 1px solid gray;
+  background: #eee;
+  padding: 1%;
+  min-width: 440px;
+}

@@ -1,0 +1,12 @@
+name = UUID redirect
+description = Redirects entity URLs to the correct place on this or other sites, based on UUID.
+package = UUID
+dependencies[] = uuid
+core = 7.x
+
+; Information added by drupal.org packaging script on 2012-04-26
+version = "7.x-1.0-alpha1"
+core = "7.x"
+project = "uuid_redirect"
+datestamp = "1335464496"
+

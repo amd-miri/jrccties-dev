@@ -1,0 +1,31 @@
+<?php
+
+/**
+ * Implements hook_flush_caches().
+ */
+function table_migration_flush_caches() {
+  	
+  // Arguments common to all migrations
+  $common_arguments = array(
+    'source_connection' => 'jrc_legacy',
+    'source_version' => 7,
+    'group_name' => 'Migrate custom JRC fields',
+  );
+  	
+  table_migration_migrate_register_classes($common_arguments);
+}
+
+
+/**
+ * Register dynamic migration classes
+ */
+function table_migration_migrate_register_classes($common_arguments) {
+  	
+  $uc_addresses_arguments = $common_arguments + array(
+    'description' => t('Migration of field_data_field_file_copyright_info tables from jrc'),
+    'machine_name' => 'copyrightInfo',
+    'table_name' => 'field_data_field_file_copyright_info',
+  );
+
+  Migration::registerMigration('DrupalTableMigration', $uc_addresses_arguments['machine_name'], $uc_addresses_arguments);
+}

@@ -1,0 +1,11 @@
+name = JRC pending drafts import
+description = Import the main JRC menu from the old JRCSH to the new Multisite JRCSH via the famous Migrate Module
+package = JRC
+core = 7.x
+php = 5.2.4
+version = 7.x-1.1
+multisite_version = 2.1
+features[features_api][] = api:2
+features[user_permission][] = advanced migration information
+features[user_permission][] = migration information
+files[] = jrc_pending_drafts_import.migrate.inc

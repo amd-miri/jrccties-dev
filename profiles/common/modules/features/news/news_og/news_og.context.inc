@@ -1,0 +1,50 @@
+<?php
+/**
+ * @file
+ * news_og.context.inc
+ */
+
+/**
+ * Implements hook_context_default_contexts().
+ */
+function news_og_context_default_contexts() {
+  $export = array();
+
+  $context = new stdClass();
+  $context->disabled = FALSE; /* Edit this to true to make a default context disabled initially */
+  $context->api_version = 3;
+  $context->name = 'news_posts';
+  $context->description = 'A context to add active trail class to news posts outside community';
+  $context->tag = 'Menu items';
+  $context->conditions = array(
+    'node' => array(
+      'values' => array(
+        'news' => 'news',
+      ),
+      'options' => array(
+        'node_form' => '1',
+      ),
+    ),
+    'path' => array(
+      'values' => array(
+        '~community/*/news/*' => '~community/*/news/*',
+        'community/news/*' => 'community/news/*',
+      ),
+    ),
+  );
+  $context->reactions = array(
+    'debug' => array(
+      'debug' => 1,
+    ),
+    'menu' => 'links_public',
+  );
+  $context->condition_mode = 1;
+
+  // Translatables
+  // Included for use with string extractors like potx.
+  t('A context to add active trail class to news posts outside community');
+  t('Menu items');
+  $export['news_posts'] = $context;
+
+  return $export;
+}

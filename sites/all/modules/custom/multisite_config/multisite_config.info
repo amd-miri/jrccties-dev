@@ -1,0 +1,9 @@
+name = Multisite Configuration API
+description = Exposes API for configuration staging.
+core = 7.x
+package = Multisite
+
+dependencies[] = entity
+dependencies[] = registry_autoload
+registry_autoload[] = PSR-0
+registry_autoload[] = PSR-4

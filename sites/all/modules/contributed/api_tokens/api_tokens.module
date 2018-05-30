@@ -1,0 +1,337 @@
+<?php
+
+/**
+ * @file
+ * The API Tokens module
+ *
+ * It contains the implementation of hooks invoked by Drupal core.
+ */
+
+
+/**
+ * API tokens pattern.
+ */
+define('API_TOKENS_PATTERN', '/\[\s*api\s*:\s*([:0-9a-z_-]+)\s*(\[.*?\])?\s*\\/\s*]/i');
+
+
+/**
+ * Implements hook_menu().
+ */
+function api_tokens_menu() {
+  $items['admin/config/content/api-tokens'] = array(
+    'title' => 'API Tokens',
+    'description' => 'List of registered API tokens',
+    'page callback' => 'api_tokens_page_list',
+    'access arguments' => array('administer filters'),
+    'file' => 'includes/api_tokens.admin.inc',
+  );
+
+  return $items;
+}
+
+
+/**
+ * Implements hook_filter_info().
+ */
+function api_tokens_filter_info() {
+  $filters = array();
+
+  $filters['api_tokens'] = array(
+    'title' => t('API Tokens'),
+    'description' => t('Replace API tokens with rendered content'),
+    'process callback' => 'api_tokens_filter_tokens',
+    // Don't cache fitler result as text may contain dynamic tokens.
+    'cache' => FALSE,
+    'weight' => 100,
+  );
+
+  return $filters;
+}
+
+
+/**
+ * Populates omitted token info.
+ */
+function api_tokens_populate_defaults($token, &$token_info, $module) {
+  $token_info['key'] = $token;
+  $token_info['module'] = $module;
+  if (!isset($token_info['title'])) {
+    $token_info['title'] = $token;
+  }
+  if (!isset($token_info['description'])) {
+    $token_info['description'] = '';
+  }
+  if (!isset($token_info['handler'])) {
+    $token_info['handler'] = $module . '_apitoken_' . str_replace(array('-', ':'), '_', $token);
+  }
+  if (!isset($token_info['cache'])) {
+    $token_info['cache'] = DRUPAL_NO_CACHE;
+  }
+  if (DRUPAL_NO_CACHE != $token_info['cache']) {
+    $token_info['cache_expire'] = isset($token_info['cache_expire']) ? (int) $token_info['cache_expire'] : CACHE_TEMPORARY;
+  }
+}
+
+
+/**
+ * Collects information on all the tokens in the system.
+ */
+function api_tokens_collect_tokens() {
+  $tokens = &drupal_static(__FUNCTION__, FALSE);
+
+  if (!$tokens) {
+    $tokens = array();
+    $modules = module_implements('api_tokens_info');
+    foreach ($modules as $module) {
+      $module_tokens = module_invoke($module, 'api_tokens_info');
+      foreach ($module_tokens as $token => &$token_info) {
+        api_tokens_populate_defaults($token, $token_info, $module);
+      }
+      $tokens = array_merge($tokens, $module_tokens);
+    }
+    // Alter token definitions.
+    drupal_alter('api_tokens_info', $tokens);
+  }
+
+  return $tokens;
+}
+
+
+/**
+ * Returns parameters info of the token process function.
+ */
+function api_tokens_param_info($token, $full = FALSE) {
+  $tokens = &drupal_static('api_tokens_collect_tokens', FALSE);
+
+  $reflection = new ReflectionFunction($tokens[$token]['handler']);
+  // Number of required parameters only.
+  $data = $reflection->getNumberOfRequiredParameters();
+  $tokens[$token]['params'] = $data;
+  // Number of required parameters and parameter list.
+  if ($full) {
+    $params = array();
+    $ref_params = $reflection->getParameters();
+    foreach ($ref_params as $param) {
+      $params[] = $param->name;
+    }
+    $data = array(
+      'count' => $data,
+      'params' => $params,
+    );
+  }
+
+  return $data;
+}
+
+
+/**
+ * Prepares token process function.
+ *
+ * Includes handler file, verifies function existence.
+ */
+function api_tokens_prepare_handler($token) {
+  $tokens = &drupal_static('api_tokens_collect_tokens', FALSE);
+
+  // Checking for inc file where token process function may live.
+  if (isset($tokens[$token]['inc'])) {
+    // Trying to include.
+    $included = module_load_include('inc', $tokens[$token]['module'], $tokens[$token]['inc']);
+    if (!$included) {
+      return FALSE;
+    }
+  }
+  // Checking process function existence.
+  if (!function_exists($tokens[$token]['handler'])) {
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
+
+/**
+ * API Tokens cache_set wrapper connected to static storage.
+ */
+function api_tokens_cache_set($cid, $data, $token_info) {
+  $cache = &drupal_static('api_tokens_cache_get', FALSE);
+
+  // Storing to static.
+  $cache[$cid] = $data;
+
+  $expire = $token_info['cache_expire'];
+  // If cache isn't set to CACHE_PERMANENT (0) or CACHE_TEMPORARY (-1),
+  // adding request time to the expiration date in order to set correct
+  // expiration date.
+  if (0 < $expire) {
+    $expire += REQUEST_TIME;
+  }
+
+  cache_set($cid, $data, 'cache', $expire);
+}
+
+
+/**
+ * API Tokens cache_get wrapper connected to static storage.
+ */
+function api_tokens_cache_get($cids) {
+  $cache = &drupal_static(__FUNCTION__, FALSE);
+
+  $data = array();
+  // Checking in static storage.
+  foreach ($cids as $i => $cid) {
+    if (isset($cache[$cid])) {
+      $data[$i] = $cache[$cid];
+      unset($cids[$i]);
+    }
+  }
+  // If not all cids are found in static storage, cheching DB cache.
+  if (count($cids)) {
+    // Creating a reference to $cids and passing it to cache_get
+    // as $cids will be overriden after the call.
+    $cids_ref = $cids;
+    $cache_ext = cache_get_multiple($cids_ref);
+    foreach ($cids as $i => $cid) {
+      // Checking if DB cache exists and its expiration date.
+      if (isset($cache_ext[$cid]) && (0 >= $cache_ext[$cid]->expire
+          || 0 < $cache_ext[$cid]->expire && REQUEST_TIME <= $cache_ext[$cid]->expire)) {
+        // Storing to static.
+        $cache[$cid] = $cache_ext[$cid]->data;
+        $data[$i] = $cache[$cid];
+      }
+      else {
+        $data[$i] = FALSE;
+      }
+    }
+  }
+
+  return $data;
+}
+
+
+/**
+ * Generates token cache id in accordance with caching types.
+ */
+function api_tokens_cache_id($token, $params) {
+  global $user;
+
+  // Building token cache ID.
+  $hash = array($params);
+  DRUPAL_CACHE_PER_ROLE & $token['cache'] && $hash[1] = implode(',', $user->roles);
+  DRUPAL_CACHE_PER_USER & $token['cache'] && $hash[2] = $user->uid;
+  DRUPAL_CACHE_PER_PAGE & $token['cache'] && $hash[3] = $_GET['q'];
+  $cid = 'apitoken:' . $token['key'] . ':' . md5(serialize($hash));
+
+  return $cid;
+}
+
+
+/**
+ * Filter process callback for the API Tokens input filter.
+ */
+function api_tokens_filter_tokens($text, $filter, $format, $langcode, $cache, $cache_id) {
+  return api_tokens_render($text);
+}
+
+
+/**
+ * Processes API tokens.
+ */
+function api_tokens_render($text) {
+  static $parents = array();
+  static $reported = array();
+
+  // Finding tokens entries to process
+  // [api:token_key1[param1, param2, ...]/], [api:token_key2/].
+  $token_count = preg_match_all(API_TOKENS_PATTERN, $text, $matches);
+  // Some tokens were found.
+  if ($token_count) {
+    $replacements = $matches[0];
+    $keys = $matches[1];
+    $params = $matches[2];
+
+    // Receiving all registered tokens.
+    $tokens = api_tokens_collect_tokens();
+    // Array of rendered tokens.
+    $rendered = array();
+    // Array of token cache.
+    $cids = array();
+
+    // Loop through all the tokens.
+    for ($i = 0; $i < $token_count; ++$i) {
+      $keys[$i] = strtolower($keys[$i]);
+
+      // Checking if token is registered.
+      if (array_key_exists($keys[$i], $tokens)) {
+        $rendered[$i] = FALSE;
+        $token_info = $tokens[$keys[$i]];
+        // Parsing token parameters.
+        $params[$i] = $params[$i] ? drupal_json_decode($params[$i]) : array();
+        // Token is cacheable.
+        if (DRUPAL_NO_CACHE != $token_info['cache']) {
+          $cids[$i] = api_tokens_cache_id($token_info, $params[$i]);
+        }
+      }
+      // Cut out unregistered tokens.
+      else {
+        $rendered[$i] = '';
+      }
+    }
+
+    // There were cacheable tokens.
+    if ($cids) {
+      // We have collected all cids, so we can grab all necessary at once.
+      $cache = api_tokens_cache_get($cids);
+      foreach ($cache as $i => $data) {
+        $rendered[$i] = $data;
+      }
+    }
+
+    // Processing tokens with missing cache.
+    foreach ($rendered as $i => $was_rendered) {
+      $key = $keys[$i];
+      $param = $params[$i];
+      $token = $replacements[$i];
+      if (FALSE === $was_rendered) {
+        $token_info = $tokens[$key];
+        if (api_tokens_prepare_handler($key)) {
+          // Receiving number of required parameters.
+          $param_count = isset($token_info['params']) ? $token_info['params'] : api_tokens_param_info($key);
+          // We have enough parameters.
+          if ($param_count <= count($param)) {
+            if (in_array($token, $parents)) {
+              $rendered[$i] = '';
+              if (!isset($reported[$token])) {
+                $reported[$token] = TRUE;
+                drupal_set_message(t('API Tokens: Recursion detected while rendering %token token.', array(
+                  '%token' => $token,
+                )), 'warning');
+              }
+            }
+            else {
+              array_push($parents, $token);
+              // Call to token process function.
+              $rendered[$i] = call_user_func_array($token_info['handler'], $param);
+              array_pop($parents);
+            }
+            // Caching handler result, if token is cacheable.
+            if (DRUPAL_NO_CACHE != $token_info['cache']) {
+              api_tokens_cache_set($cids[$i], $rendered[$i], $token_info);
+            }
+          }
+        }
+      }
+      $info = array(
+        'key' => $key,
+        'params' => $param,
+        'token' => $token,
+        'parents' => $parents,
+      );
+      drupal_alter(__FUNCTION__, $rendered[$i], $info);
+    }
+
+    // Performing replacements at once to avoid recursing.
+    $text = str_replace($replacements, $rendered, $text);
+  }
+
+  return $text;
+}

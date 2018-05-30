@@ -1,0 +1,13 @@
+<?php
+
+/**
+ * @file
+ * Implements installation/uninstallation functions.
+ */
+
+/**
+ * Implements hook_uninstall().
+ */
+function version_management_uninstall() {
+  variable_del('version_management_node_types');
+}

@@ -1,0 +1,44 @@
+
+name = Views System
+description = Allows to create customized lists (pages, blocks) of modules, themes, and theme engines that are or have been installed in Drupal's file system.
+
+core = 7.x
+package = Views
+configure = admin/structure/views
+
+dependencies[] = views
+
+; Handlers
+files[] = views/handlers/views_handler_field_system_drupal_core.inc
+files[] = views/handlers/views_handler_field_system_info_basetheme.inc
+files[] = views/handlers/views_handler_field_system_info_configure.inc
+files[] = views/handlers/views_handler_field_system_info_core.inc
+files[] = views/handlers/views_handler_field_system_info_datestamp.inc
+files[] = views/handlers/views_handler_field_system_info_dependencies.inc
+files[] = views/handlers/views_handler_field_system_info_description.inc
+files[] = views/handlers/views_handler_field_system_info_engine.inc
+files[] = views/handlers/views_handler_field_system_info_features.inc
+files[] = views/handlers/views_handler_field_system_info_files.inc
+files[] = views/handlers/views_handler_field_system_info_hidden.inc
+files[] = views/handlers/views_handler_field_system_info_name.inc
+files[] = views/handlers/views_handler_field_system_info_package.inc
+files[] = views/handlers/views_handler_field_system_info_php.inc
+files[] = views/handlers/views_handler_field_system_info_project.inc
+files[] = views/handlers/views_handler_field_system_info_regions.inc
+files[] = views/handlers/views_handler_field_system_info_regions_hidden.inc
+files[] = views/handlers/views_handler_field_system_info_screenshot.inc
+files[] = views/handlers/views_handler_field_system_info_scripts.inc
+files[] = views/handlers/views_handler_field_system_info_settings.inc
+files[] = views/handlers/views_handler_field_system_info_stylesheets.inc
+files[] = views/handlers/views_handler_field_system_info_version.inc
+files[] = views/handlers/views_handler_field_system_type.inc
+files[] = views/handlers/views_handler_filter_system_drupal_core.inc
+files[] = views/handlers/views_handler_filter_system_info_hidden.inc
+files[] = views/handlers/views_handler_filter_system_status.inc
+
+; Information added by drupal.org packaging script on 2011-07-27
+version = "7.x-3.2"
+core = "7.x"
+project = "views_system"
+datestamp = "1311756733"
+

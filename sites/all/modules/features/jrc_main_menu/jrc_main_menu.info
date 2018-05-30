@@ -1,0 +1,8 @@
+name = JRC main menu
+description = JRC Science Hub Main Menu
+core = 7.x
+package = JRCSH
+version = 7.x-1.0
+dependencies[] = features
+dependencies[] = menu
+features[features_api][] = api:2

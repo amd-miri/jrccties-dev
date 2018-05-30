@@ -1,0 +1,542 @@
+<?php
+
+/**
+ * @file
+ * Code for the Media Embed module.
+ */
+
+
+include_once 'includes/media_embed.file_usage.inc';
+
+
+/**
+ * Media embed token pattern.
+ */
+define('MEDIA_EMBED_TOKEN_PATTERN', '\[api:media-embed\[([0-9]+),"([_a-z]+)"(,(.*?))?\]\/\]');
+
+
+/**
+ * Implements hook_menu().
+ */
+function media_embed_menu() {
+  $items['admin/config/media/media-embed'] = array(
+    'title' => 'Media embed settings',
+    'description' => 'Configure Media Embed plugin.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('media_embed_settings_form'),
+    'access arguments' => array('administer media embed'),
+    'file' => 'includes/media_embed.admin.inc',
+  );
+
+  $items['media/%file/format-selector'] = array(
+    'title' => 'Format Selector',
+    'description' => 'Choose a format for a piece of media',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('media_embed_format_selector_form', 1),
+    'access callback' => 'file_entity_access',
+    'access arguments' => array('view', 1),
+    'file' => 'includes/media_embed.pages.inc',
+    'theme callback' => 'media_dialog_get_theme_name',
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['media-embed/%file/%'] = array(
+    'title' => 'Media Embed',
+    'description' => 'Formatted media',
+    'page callback' => 'media_embed_formatted_callback',
+    'page arguments' => array(1, 2),
+    'access callback' => 'file_entity_access',
+    'access arguments' => array('view', 1),
+    'type' => MENU_CALLBACK,
+  );
+
+  return $items;
+}
+
+
+/**
+ * Implements hook_permission().
+ */
+function media_embed_permission() {
+  return array(
+    'administer media embed' => array(
+      'title' => t('Administer Media Embed'),
+      'description' => t('Access media embed settings.'),
+    ),
+  );
+}
+
+
+/**
+ * Implements hook_api_tokens_info().
+ */
+function media_embed_api_tokens_info() {
+  $tokens['media-embed'] = array(
+    'title' => t('Media Embed'),
+    'description' => t('Renders media item.'),
+    'params' => 2,
+  );
+
+  return $tokens;
+}
+
+
+/**
+ * Implements hook_wysiwyg_plugin().
+ */
+function media_embed_wysiwyg_plugin($editor, $version) {
+  $plugins = array();
+  $path = drupal_get_path('module', 'media_embed') . '/plugins/' . $editor;
+  switch ($editor) {
+    case 'ckeditor':
+      $plugins = array(
+        'media_embed' => array(
+          'filename' => 'plugin.js',
+          'path' => $path . '/media_embed',
+          'buttons' => array(
+            'media_embed' => t('Media embed'),
+          ),
+          'load' => TRUE,
+        ),
+      );
+      break;
+  }
+
+  return $plugins;
+}
+
+
+/**
+ * Implements hook_wysiwyg_editor_settings_alter().
+ */
+function media_embed_wysiwyg_editor_settings_alter(&$settings, $context) {
+  if ('ckeditor' == $context['profile']->editor) {
+    $settings['allowedContent'] = TRUE;
+  }
+}
+
+
+/**
+ * Implements hook_element_info_alter().
+ */
+function media_embed_element_info_alter(&$types) {
+  $types['text_format']['#pre_render'][] = 'media_embed_pre_render_text_format';
+}
+
+
+/**
+ * Attaches plugin javascript.
+ */
+function media_embed_pre_render_text_format($element) {
+  if (!isset($element['format'])) {
+    return $element;
+  }
+  $field = &$element['value'];
+  if (!isset($field['#value'])) {
+    return $element;
+  }
+  module_load_include('inc', 'media', 'includes/media.browser');
+  if (!function_exists('media_attach_browser_js')) {
+    $element['#attached']['library'][] = array('media', 'media_browser');
+    $element['#attached']['library'][] = array('media', 'media_browser_settings');
+  }
+  else {
+    media_attach_browser_js($element);
+  }
+  $media_settings = array(
+    'mediaFormatSelectorUrl' => url('media/ID/format-selector', array(
+      'query' => array(
+        'format' => 'FORMAT',
+        'params' => 'PARAMS',
+        'render' => 'media-popup',
+      ),
+    )),
+  );
+  $conf = media_embed_settings();
+  $settings = array(
+    'url' => '/media-embed/ID/FORMAT?params=PARAMS',
+    'pattern' => MEDIA_EMBED_TOKEN_PATTERN,
+    'map' => array(
+      'id' => 1,
+      'format' => 2,
+      'params' => 4,
+    ),
+    'broken' => media_embed_broken(),
+    'browser' => array(
+      'enabledPlugins' => $conf['browser_plugins'],
+      'types' => $conf['file_types'],
+      'file_directory' => $conf['upload_directory'],
+      'id' => 'media_embed',
+    ),
+  );
+  $element['#attached']['js'][] = array(
+    'data' => array(
+      'media' => $media_settings,
+      'mediaEmbed' => $settings,
+    ),
+    'type' => 'setting',
+  );
+  $element['#attached']['js'][] = drupal_get_path('module', 'media_embed') . '/js/format_selector_media_popup.js';
+
+  return $element;
+}
+
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function media_embed_form_wysiwyg_profile_form_alter(&$form, &$form_state) {
+  $form['buttons']['drupal']['media_embed']['#element_validate'][] = 'media_embed_wysiwyg_plugin_validate';
+}
+
+
+/**
+ * Element validate callback for the wysiwyg plugin button.
+ */
+function media_embed_wysiwyg_plugin_validate($element, &$form_state) {
+  if (!empty($form_state['values']['buttons']['media_embed']['media_embed'])) {
+    $format = filter_format_load($form_state['build_info']['args'][0]->format);
+    $filters = filter_list_format($format->format);
+    if (empty($filters['api_tokens']->status)) {
+      form_error($element, t('The %filter filter must be enabled for the !format format in order to use the %plugin plugin.', array(
+        '%filter' => 'API Tokens',
+        '%plugin' => t('Media embed'),
+        '!format' => l($format->name, 'admin/config/content/formats/' . $format->format, array(
+          'query' => array('destination' => $_GET['q']),
+        )),
+      )));
+    }
+  }
+}
+
+
+/**
+ * Menu callback for formatted media.
+ *
+ * @param object $file
+ *   File object.
+ * @param string $formatter
+ *   Formatter name.
+ */
+function media_embed_formatted_callback($file, $formatter) {
+  $error = FALSE;
+  if ($file) {
+    $params = media_embed_params();
+    $formatters = media_embed_formatter_options($file, $params['settings']);
+    if (isset($formatters[$formatter])) {
+      $error || $content = media_embed_formatted_wysiwyg($file, $formatter, $params);
+    }
+    else {
+      $error = TRUE;
+      $content = t('Invalid file formatter is specified.');
+    }
+  }
+  else {
+    $error = TRUE;
+    $content = t('Invalid file ID is specified.');
+  }
+  $data = array(
+    'status' => $error ? 'error' : 'OK',
+    'content' => $error ? t('Unable to process media item {token}: ') . $content : $content,
+  );
+  drupal_json_output($data);
+}
+
+
+/**
+ * Handler for the "media-embed" API token.
+ */
+function media_embed_apitoken_media_embed($id, $formatter, $params = array()) {
+  $content = '';
+  $file = file_load($id);
+  if ($file) {
+    $content = media_embed_formatted($file, $formatter, $params);
+  }
+
+  return $content;
+}
+
+
+/**
+ * Returns formatted media item markup.
+ *
+ * @param object $file
+ *   File object.
+ * @param string $formatter
+ *   Formatter name.
+ * @param array $params
+ *   Additional parameters.
+ *
+ * @return string
+ *   Markup for the media item.
+ */
+function media_embed_formatted($file, $formatter, $params) {
+  $element = array();
+  if (empty($params['processed'])) {
+    $params = media_embed_params($params);
+  }
+  $formatters = media_embed_formatter_options($file, $params['settings']);
+  if (isset($formatters[$formatter])) {
+    $formatter_info = file_info_formatter_types($formatter);
+    $settings = media_embed_formatter_settings($formatter_info, $params['settings']);
+    $display = array(
+      'type' => $formatter,
+      'settings' => $settings,
+    );
+    $callback = isset($formatter_info['view callback']) ? $formatter_info['view callback'] : '';
+    if (function_exists($callback)) {
+      $langcode = $GLOBALS['language_content']->language;
+      $element = $callback($file, $display, $langcode);
+      if ($params['wrapper']) {
+        $wrapper = $params['wrapper'];
+        $attributes = array(
+          'class' => array('media-embed'),
+        );
+        $wrapper['class'] && $attributes['class'][] = $wrapper['class'];
+        $wrapper['id'] && $attributes['id'] = $wrapper['id'];
+        $element = array(
+          '#theme_wrappers' => array('container'),
+          '#attributes' => $attributes,
+          $element,
+        );
+      }
+      if (empty($file->override['wysiwyg'])) {
+        $_file = clone $file;
+        drupal_alter('media_embed_formatted', $element, $display, $_file);
+      }
+    }
+  }
+
+  return drupal_render($element);
+}
+
+
+/**
+ * Returns formatted media item markup for WYSIWYG.
+ *
+ * @param object $file
+ *   File object.
+ * @param string $formatter
+ *   Formatter name.
+ * @param array $params
+ *   Additional parameters.
+ *
+ * @return string
+ *   Markup for the media item.
+ */
+function media_embed_formatted_wysiwyg($file, $formatter, $params) {
+  $_file = clone $file;
+  $_file->override['wysiwyg'] = TRUE;
+  $params['wrapper'] = array();
+  $content = media_embed_formatted($_file, $formatter, $params);
+  if (!$content) {
+    $view_mode = 'default';
+    drupal_alter('media_embed_wisiwyg_view_mode', $view_mode, $_file);
+    $element = file_view_file($_file, $view_mode);
+    $settings = $params['settings'];
+    !empty($settings['height']) && $element['#attributes']['height'] = +$settings['height'];
+    !empty($settings['width']) && $element['#attributes']['width'] = +$settings['width'];
+    $content = drupal_render($element);
+  }
+
+  return trim($content);
+}
+
+
+/**
+ * Returns broken media item markup.
+ *
+ * @return string
+ *   Markup for the broken media item.
+ */
+function media_embed_broken() {
+  $broken = file_create_url(drupal_get_path('module', 'media') . '/images/icons/default/image-x-generic.png');
+  $content = '<img src="' . $broken . '" width="100px" height="100px" contenteditable="false"/>';
+
+  return $content;
+}
+
+
+/**
+ * Returns media embed settings.
+ *
+ * @return array
+ *   Media embed settings.
+ */
+function media_embed_settings() {
+  $settings = variable_get('media_embed_settings', array(
+    'browser_plugins' => array(),
+    'file_types' => array(),
+    'upload_directory' => '',
+  ));
+
+  return $settings;
+}
+
+
+/**
+ * Returns processed plugin parameters.
+ *
+ * @param array|FALSE $data
+ *   Unprocessed plugin parameters.
+ *
+ * @return array
+ *   Processed plugin parameters.
+ */
+function media_embed_params($data = FALSE) {
+  if (FALSE === $data) {
+    $g = $_GET;
+    $data = !empty($g['params']) ? drupal_json_decode($g['params']) : array();
+  }
+  $settings = !empty($data['settings']) && is_array($data['settings']) ? $data['settings'] : array();
+  $wrapper = !empty($data['wrapper']) && is_array($data['wrapper']) ? $data['wrapper'] : array();
+  if ($wrapper) {
+    $wrapper = array(
+      'class' => !empty($wrapper['class']) && is_string($wrapper['class']) ? media_embed_filter_wrapper_class($wrapper['class']) : '',
+      'id' => !empty($wrapper['id']) && is_string($wrapper['id']) ? media_embed_filter_wrapper_id($wrapper['id']) : '',
+    );
+  }
+  $params = array(
+    'settings' => $settings,
+    'wrapper' => $wrapper,
+    'processed' => TRUE,
+  );
+
+  return $params;
+}
+
+
+/**
+ * Returns supplemented formatter settings.
+ *
+ * @param array $formatter_info
+ *   Formatter info, as provided by hook_file_formatter_info().
+ * @param array $settings
+ *   (optional) Formatter settings.
+ *   If omitted, default formatter settings will be returned.
+ *
+ * @return array
+ *   Supplemented formatter settings.
+ */
+function media_embed_formatter_settings($formatter_info, $settings = array()) {
+  $settings += !empty($formatter_info['default settings']) ? $formatter_info['default settings'] : array();
+
+  return $settings;
+}
+
+
+/**
+ * Returns media embed API token.
+ *
+ * @param array $data
+ *   Token data.
+ *
+ * @return string
+ *   Media embed API token.
+ */
+function media_embed_generate_token($data) {
+  $params = $data['params'] ? ',' . $data['params'] : '';
+  return '[api:media-embed[' . $data['id'] . ',"' . $data['format'] . '"' . $params . ']/]';
+}
+
+
+/**
+ * Filters wrapper class.
+ *
+ * @param string $value
+ *   Unfiltered media item wrapper CSS classes.
+ *
+ * @return string
+ *   Filtered media item wrapper CSS classes.
+ */
+function media_embed_filter_wrapper_class($value) {
+  return implode(' ', array_filter(array_map('drupal_clean_css_identifier',
+    array_map('trim', explode(' ', $value))
+  )));
+}
+
+
+/**
+ * Filters wrapper ID.
+ *
+ * @param string $value
+ *   Unfiltered media item wrapper CSS ID.
+ *
+ * @return string
+ *   Filtered media item wrapper CSS ID.
+ */
+function media_embed_filter_wrapper_id($value) {
+  return drupal_clean_css_identifier(trim($value));
+}
+
+
+/**
+ * Returns an option list of suitable formatters.
+ *
+ * @param object $file
+ *   File object.
+ * @param array $settings
+ *   (optional) Formatter settings.
+ *
+ * @return array
+ *   An array of formatter options.
+ */
+function media_embed_formatter_options($file, $settings = array()) {
+  $options = array();
+  $formatters = file_info_formatter_types();
+  foreach ($formatters as $name => $formatter) {
+    $mime_types = isset($formatter['mime types']) ? $formatter['mime types'] : array();
+    $mime_type_match = !$mime_types || file_entity_match_mimetypes($mime_types, $file->filemime);
+    $callback = isset($formatter['view callback']) ? $formatter['view callback'] : '';
+    if (empty($formatter['hidden']) && $mime_type_match && function_exists($callback)) {
+      $display = array(
+        'type' => $name,
+        'settings' => media_embed_formatter_settings($formatter, $settings),
+      );
+      $langcode = $GLOBALS['language_content']->language;
+      if ($callback($file, $display, $langcode)) {
+        $options[$name] = $formatter['label'];
+      }
+    }
+  }
+  asort($options);
+  $_file = clone $file;
+  drupal_alter('media_embed_formatter_options', $options, $_file);
+
+  return array_intersect_key($options, $formatters);
+}
+
+
+/**
+ * Returns default file formatter.
+ *
+ * @param object $file
+ *   File object.
+ *
+ * @return string
+ *   Default formatter name.
+ */
+function media_embed_default_formatter($file) {
+  $formatter = 'file_field_file_default';
+  switch ($file->type) {
+    case 'audio':
+      $formatter = 'file_field_file_audio';
+      break;
+
+    case 'document':
+      $formatter = 'file_field_file_default';
+      break;
+
+    case 'image':
+      $formatter = 'file_field_image';
+      break;
+
+    case 'video':
+      $formatter = 'file_field_file_video';
+      break;
+  }
+  $_file = clone $file;
+  drupal_alter('media_embed_default_formatter', $formatter, $_file);
+
+  return $formatter;
+}

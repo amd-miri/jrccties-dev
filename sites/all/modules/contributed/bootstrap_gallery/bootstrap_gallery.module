@@ -1,0 +1,148 @@
+<?php
+
+/**
+ * Implements hook_init().
+ */
+
+function bootstrap_gallery_init() {
+//print_r(bootstrap_gallery_image_styles());
+}
+
+/**
+ * Implements hook_views_api().
+ */
+function bootstrap_gallery_views_api() {
+    return array(
+        'api' => 3.0,
+    );
+}
+
+
+/**
+ * Set default options.
+ */
+function bootstrap_gallery_get_options($array) {
+    $options = array();
+    foreach ($array as $key => $value) {
+        if (!is_array($value)) {
+            $options[$key] = $value;
+        }
+        else {
+            $options = array_merge($options, bootstrap_gallery_get_options($value));
+        }
+    }
+    return $options;
+}
+
+/**
+ * Return currently available Image Styles
+ */
+
+function bootstrap_gallery_image_styles() {
+  $image_styles = image_styles();
+  $bootstrap_gallery_image_styles = array(
+    'original' => t('Original Image')
+  );
+
+  foreach($image_styles as $machine_name => $image_style) {
+    $bootstrap_gallery_image_styles[$machine_name] = $image_style['label'];
+  }
+
+  return $bootstrap_gallery_image_styles;
+}
+
+/**
+ * Implementation of hook_theme()
+ */
+
+function bootstrap_gallery_theme($existing, $type, $theme, $path) {
+    return array(
+        'bootstrap_gallery_modal' => array(
+            'variables' => array('options' => array()),
+            'template' => 'theme/bootstrap-gallery-modal',
+        ),
+
+        'bootstrap_gallery_item' => array(
+            'variables' => array('original_image' => '', 'thumbnail' => '', 'title' => ''),
+            'template' => 'theme/bootstrap-gallery-item',
+        ),
+    );
+}
+
+/**
+ * Prepare Gallery image field wrapper
+ * @TODO: add video field support
+ *
+ */
+function bootstrap_gallery_preprocess_views_view_field(&$vars){
+
+    if($vars['view']->plugin_name == 'bootstrap_gallery') {
+        $view = $vars['view'];
+        $field = $vars['field'];
+        $field_name = $field->field;
+
+
+
+        $options = bootstrap_gallery_get_options($view->style_plugin->options);
+        $plugin_image_field = $options['image_field'];
+        $plugin_image_title = $options['image_title'];
+
+        if($field_name == $plugin_image_field) {
+            $row = (array)$vars['row'];
+
+            if(isset($row["field_{$field_name}"]) && $image = $row["field_{$field_name}"]){
+                if(!isset($options['image_style']) || $options['image_style'] == 'original') {
+                  $original_image = file_create_url($image[0]['raw']['uri']);
+                }
+                else {
+                  $original_image = image_style_url($options['image_style'], $image[0]['raw']['uri']);
+                }
+
+                $thumbnail = $vars['field']->advanced_render($vars['row']);
+
+                if(isset($image[0]['raw']['title'])) {
+                  $title = $image[0]['raw']['title'];
+                }
+
+
+                if($plugin_image_title != 'default') {
+                    if(isset($view->field[$plugin_image_title])
+                        && $title_field = $view->field[$plugin_image_title]) {
+                        $field_object = $title_field->get_value($vars['row']);
+
+                        if(is_string($field_object)) {
+                            $title = $field_object;
+                        } else if(is_array($field_object) && isset($field_object[0]['value'])) {
+                            $title = $field_object[0]['value'];
+                        } else {
+                            drupal_set_message(t('Bootstrap Gallery: Selected image title field type is not supported'), 'warning');
+                        }
+                    }
+                }
+
+                $vars['output'] = theme('bootstrap_gallery_item', array(
+                    'original_image' => $original_image,
+                    'thumbnail' => $thumbnail,
+                    'title' => $title,
+                ));
+            }
+
+        }
+    }
+}
+
+/**
+ * Build grid Gallery and add necessary scripts and styles.
+ */
+function template_preprocess_views_view_bootstrap_gallery(&$vars) {
+    $view = $vars['view'];
+    $options = bootstrap_gallery_get_options($view->style_plugin->options);
+
+    drupal_add_css(drupal_get_path('module', 'bootstrap_gallery') .'/css/bootstrap-gallery.css');
+    drupal_add_css(drupal_get_path('module', 'bootstrap_gallery') .'/css/blueimp-gallery.min.css');
+    drupal_add_js(drupal_get_path('module', 'bootstrap_gallery') .'/js/jquery.blueimp-gallery.js');
+    drupal_add_js(drupal_get_path('module', 'bootstrap_gallery') .'/js/bootstrap-gallery.js');
+    drupal_add_js(array('bootstrapGallery' => $options), array('type' => 'setting'));
+
+    template_preprocess_views_view_grid($vars);
+}

@@ -1,0 +1,13 @@
+name = Object log
+description = "Allows developers to log variables for later inspection."
+core = 7.x
+package = "Development"
+dependencies[] = devel
+
+
+; Information added by drupal.org packaging script on 2011-11-27
+version = "7.x-1.0"
+core = "7.x"
+project = "object_log"
+datestamp = "1322352083"
+

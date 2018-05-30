@@ -1,0 +1,204 @@
+<?php
+/**
+ * @file
+ * Hook implementations for enabled_modules.
+ *
+ * Provides a page showing all enabled modules by system name,
+ * including modules missing from the file system, and a page showing formerly
+ * enabled now disabled modules.  Also provides the operating system directory
+ * of the Drupal installation and the paths of enabled modules.
+ */
+
+/**
+ * Implements hook_block_info().
+ */
+function enabled_modules_block_info() {
+  $blocks['demo'] = array(
+    'info' => t('Key site modules'),
+  );
+
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_configure().
+ */
+function enabled_modules_block_configure($delta = 0) {
+  switch ($delta) {
+    case 'demo':
+      $form = array();
+      // All we need to provide is a text field, Drupal will take care of
+      // the other block configuration options and the save button.
+      $form['enabled_modules_demo_list'] = array(
+        '#type' => 'checkboxes',
+        '#title' => t('Select modules to list in the block'),
+        '#options' => enabled_modules_fetch_names(1, TRUE),
+        '#description' => t('Selected modules will be listed in the block.'),
+        '#default_value' => variable_get('enabled_modules_demo_list', ''),
+      );
+      return $form;
+  }
+}
+
+/**
+ * Implements hook_block_save().
+ */
+function enabled_modules_block_save($delta = 0, $edit = array()) {
+  switch ($delta) {
+    case 'demo':
+      variable_set('enabled_modules_demo_list', $edit['enabled_modules_demo_list']);
+      break;
+  }
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function enabled_modules_block_view($delta = 0) {
+  switch ($delta) {
+    case 'demo':
+      $block['subject'] = t('Key Site Modules');
+
+      $status = 1;
+      $modules = enabled_modules_fetch_demo($status);
+
+      $block['content'] = theme('enabled_modules_block_list', $modules, $status);
+
+      break;
+  }
+  return $block;
+}
+
+/**
+ * Implements hook_help().
+ */
+function enabled_modules_help($path, $arg) {
+  switch ($path) {
+    case 'admin/help#enabled_modules':
+      $help  = '<p>' . t('The <em>enabled modules</em> module provides various listings of the modules present within a Drupal installation as follows:') . '</p>';
+      $help .= '<ul><li>' . t('A <a href="@page">page suitable for demonstration sites</a> showing the names of enabled modules by 
+project.', array('@page' => url('enabled-modules'))) . '</li>';
+      $help .= '<li>' . t('A <a href="@page">page for site administrators</a> showing enabled modules with links to administrative 
+functions.', array('@page' => url('admin/reports/enabled-modules'))) . '</li>';
+      $help .= '<li>' . t('A <a href="@page">page for site administrators</a> showing disabled modules.', array('@page' => 
+url('admin/reports/enabled-modules/disabled'))) . '</li>';
+      $help .= '<li>' . t('A <a href="@page">page for site administrators</a> showing not installed modules present in the system.', 
+array('@page' => url('admin/reports/enabled-modules/not-installed'))) . '</li>';
+      $help .= '<li>' . t('A block configurable to show key modules used on the site.') . '</li></ul>';
+      return $help;
+
+    case 'admin/reports/enabled_modules':
+    case 'admin/reports/enabled_modules/list':
+    case 'admin/reports/enabled_modules/disabled':
+    case 'admin/reports/enabled_modules/not-installed':
+      if (module_exists('update')) {
+        return '<p>' . t('For more information about enabled and/or available modules, see the <a href="@status_report">Status Report</a> page and the <a href="@modules_page">Modules</a> page.', array('@status_report' => url('admin/reports/status'), '@modules_page' => url('admin/build/modules'))) . '</p>';
+      }
+      break;
+
+  }
+}
+
+/**
+ * Implements hook_permission().
+ */
+function enabled_modules_permission() {
+  return array(
+    'view enabled modules' => array(
+      'title' => t('View Enabled Modules page'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_theme().
+ */
+function enabled_modules_theme() {
+  return array(
+    'enabled_modules_block_list' => array(
+      'arguments' => array('modules' => NULL),
+    ),
+  );
+}
+
+/**
+ * Helper function to fetch information on modules.
+ */
+function enabled_modules_fetch_demo($status = 1, $reset = TRUE) {
+  static $modules = array();
+  if ($reset || !isset($modules) || empty($modules)) {
+    $module_list = array_values(variable_get('enabled_modules_demo_list', array()));
+    $result = db_query("SELECT filename, name, info, bootstrap, schema_version FROM {system} WHERE type = 'module' AND status = :status ORDER BY name", array(':status' => $status));
+    while ($module = $result->fetchObject()) {
+      if (in_array($module->name, $module_list, TRUE)) {
+        $module->info = unserialize($module->info);
+        $modules[] = $module;
+      }
+    }
+  }
+  return $modules;
+}
+
+/**
+ * Helper function to fetch module names.
+ */
+function enabled_modules_fetch_names($status = 1, $reset = TRUE) {
+  $module_names = array();
+  if ($reset || !isset($module_names) || empty($module_names)) {
+    $result = db_query("SELECT filename, name, info, bootstrap, schema_version FROM {system} WHERE type = 'module' AND status = :status ORDER BY name", array(':status' => $status));
+    while ($module = $result->fetchObject()) {
+      $module_names[$module->name] = $module->name;
+    }
+  }
+  return $module_names;
+}
+
+/**
+ * Theme function for displaying block.
+ */
+function theme_enabled_modules_block_list($modules, $status = 1) {
+  $output = '';
+
+  foreach ($modules as $module) {
+    $output .= '<div><h3>' . l($module->name, 'http://drupal.org/project/' . $module->info['project']) . '</h3>';
+    $output .= '<div><em>' . $module->info['version'] . '</em></div>';
+    $output .= '<div>' . $module->info['description'] . '</div>';
+
+    if (isset($module->info['dependencies']) && !empty($module->info['dependencies'])) {
+      $output .= '<ul><li>';
+      $output .= t('Depends on: !links', array(
+        '!links' => enabled_modules_array_link($module->info['dependencies']),
+      ));
+      $output .= '</li></ul>';
+    }
+    if (isset($module->info['dependents']) && !empty($module->info['dependents'])) {
+      $output .= '<ul><li>';
+      $output .= t('Required by: !links', array(
+        '!links' => enabled_modules_array_link($module->info['dependents']),
+      ));
+      $output .= '</li></ul>';
+    }
+    $output .= '</div>';
+  }
+  return $output;
+}
+
+/**
+ * Converts an array to a list of links.
+ */
+function enabled_modules_array_link($array) {
+  foreach ($array as $key => $link) {
+    $link = l($link, 'http://drupal.org/project/' . $link);
+    $array[$key] = $link;
+  }
+  return implode(', ', $array);
+}
+
+/**
+ * Implements hook_views_api().
+ */
+function enabled_modules_views_api() {
+  return array(
+    'api' => 3,
+  );
+}

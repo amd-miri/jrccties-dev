@@ -1,0 +1,180 @@
+<?php
+
+/**
+ * @file
+ * Statistics Counter
+ */
+
+/**
+ * Implements hook_cron().
+ */
+function statistics_counter_cron() {
+  // Get timestamps.
+  $statistics_timestamp = variable_get('statistics_counter_timestamp', '');
+
+  // Get date.
+  $week  = date('W') | 0;
+  $month = date('n') | 0;
+  $year  = date('Y') | 0;
+
+  $last_week  = date('W', $statistics_timestamp) | 0;
+  $last_month = date('n', $statistics_timestamp) | 0;
+  $last_year  = date('Y', $statistics_timestamp) | 0;
+
+  $fields = array();
+
+  if ($week != $last_week || $year != $last_year) {
+    // Reset week counts.
+    $fields['weekcount'] = 0;
+  }
+
+  if ($month != $last_month || $year != $last_year) {
+    // Reset month counts.
+    $fields['monthcount'] = 0;
+  }
+
+  if ($year != $last_year) {
+    // Reset year counts.
+    $fields['yearcount'] = 0;
+  }
+
+  if (!empty($fields)) {
+    // Reset year counts.
+    db_update('node_counter')
+      ->fields($fields)
+      ->execute();
+  }
+
+  variable_set('statistics_counter_timestamp', REQUEST_TIME);
+}
+
+/**
+ * Implements hook_exit().
+ */
+function statistics_counter_exit($destination = NULL) {
+  // Support statistics filter.
+  if (module_exists('statistics_filter') && statistics_filter_do_filter()) {
+    return;
+  }
+
+  if (variable_get('statistics_count_content_views', 0)) {
+    // We are counting content views.
+    if (arg(0) == 'node' && is_numeric(arg(1)) && arg(2) == NULL) {
+      // A node has been viewed, so update the node's counters.
+      db_merge('node_counter')
+        ->key(array('nid' => arg(1)))
+        ->fields(array(
+          'weekcount' => 1,
+          'monthcount' => 1,
+          'yearcount' => 1,
+        ))
+        ->expression('weekcount', 'weekcount + 1')
+        ->expression('monthcount', 'monthcount + 1')
+        ->expression('yearcount', 'yearcount + 1')
+        ->execute();
+    }
+  }
+}
+
+/**
+ * Implements hook_views_api().
+ *
+ * This one is used as the base to reduce errors when updating.
+ */
+function statistics_counter_views_api() {
+  return array(
+    'api'  => '3',
+    'path' => drupal_get_path('module', 'statistics_counter') . '/views',
+  );
+}
+
+/**
+ * Implements hook_entity_property_info_alter().
+ */
+function statistics_counter_entity_property_info_alter(&$info) {
+  $info['node']['properties']['weekcount'] = array(
+    'type' => 'integer',
+    'label' => t('Week node view counter'),
+    'description' => t('The total number of times the node has been viewed this week.'),
+    'sanitized' => TRUE,
+    'getter callback' => 'statistics_counter_weekcount_getter_callback',
+  );
+  $info['node']['properties']['monthcount'] = array(
+    'type' => 'integer',
+    'label' => t('Month node view counter'),
+    'description' => t('The total number of times the node has been viewed this month.'),
+    'sanitized' => TRUE,
+    'getter callback' => 'statistics_counter_monthcount_getter_callback',
+  );
+  $info['node']['properties']['yearcount'] = array(
+    'type' => 'integer',
+    'label' => t('Year node view counter'),
+    'description' => t('The total number of times the node has been viewed this year.'),
+    'sanitized' => TRUE,
+    'getter callback' => 'statistics_counter_yearcount_getter_callback',
+  );
+}
+
+/**
+ * Getter callback for weekcount property.
+ *
+ * @param object $item
+ *   A node object.
+ *
+ * @return int
+ *   View counter.
+ *
+ * @see _statistics_counter_getter_callback()
+ */
+function statistics_counter_weekcount_getter_callback($item) {
+  return _statistics_counter_getter_callback($item->nid, 'weekcount');
+}
+
+/**
+ * Getter callback for monthcount property.
+ *
+ * @param object $item
+ *   A node object.
+ *
+ * @return int
+ *   View counter.
+ *
+ * @see _statistics_counter_getter_callback()
+ */
+function statistics_counter_monthcount_getter_callback($item) {
+  return _statistics_counter_getter_callback($item->nid, 'monthcount');
+}
+
+/**
+ * Getter callback for monthcount property.
+ *
+ * @param object $item
+ *   A node object.
+ *
+ * @return int
+ *   View counter.
+ *
+ * @see _statistics_counter_getter_callback()
+ */
+function statistics_counter_yearcount_getter_callback($item) {
+  return _statistics_counter_getter_callback($item->nid, 'yearcount');
+}
+
+/**
+ * Get node statistic counter.
+ *
+ * @param int $nid
+ *   The node id.
+ * @param string $counter
+ *   Counter name.
+ *
+ * @return int
+ *   Counter.
+ */
+function _statistics_counter_getter_callback($nid, $counter) {
+  return db_select('node_counter', 'nc')
+    ->fields('nc', array($counter))
+    ->condition('nid', $nid)
+    ->execute()
+    ->fetchField() | 0;
+}

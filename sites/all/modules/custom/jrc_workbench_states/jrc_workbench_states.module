@@ -1,0 +1,33 @@
+<?php
+/**
+* Implements hook_flush_caches().
+*
+* There needs to be some point at which your migrations are registered, or
+* previously-registered migrations are updated with changed arguments. We choose to
+* do this on a cache clear.
+*/
+function jrc_workbench_states_flush_caches() {
+/**
+  * Each migration being registered takes an array of arguments, some required
+  * and some optional. Start with the common arguments required by all - the
+  * source_connection (connection key, set up in settings.php, pointing to
+  * the Drupal 6 database) and source_version (major version of Drupal).
+  */
+$common_arguments = array(
+	'group_name' => 'JRC Science Hub with moderation states',
+    'source_connection' => 'jrc_legacy_db',
+    'source_version' => 7,
+    'source_type' => 'event',
+    'destination_type' => 'event',
+);
+
+// The description and the migration machine name are also required arguments,
+// which will be unique for each migration you register.
+$arguments = $common_arguments + array(
+    'description' => t('JRC Science Hub Events with Workbench_moderation states'),
+    'machine_name' => 'jrschEvents',
+);
+
+// We just use the migrate_d2d D7 migration class as-is.
+Migration::registerMigration('WorkbenchStateMigration', $arguments['machine_name'], $arguments);
+}
