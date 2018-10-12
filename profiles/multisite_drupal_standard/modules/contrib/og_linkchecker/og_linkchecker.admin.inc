@@ -102,13 +102,6 @@ function og_linkchecker_report() {
       }
 
       // Query for # Broken Links column.
-      // First, get broken links from group node
-      $subquery_group = db_select('linkchecker_node', 'ln2');
-      $subquery_group->innerJoin('linkchecker_link', 'll2', 'ln2.lid = ll2.lid');
-      $subquery_group->condition('ln2.nid', $group->nid);
-      $subquery_group->condition('ll2.code', array('200', '-1'), 'NOT IN');
-      $subquery_group->fields('ln2');
-
       $broken_query = db_select('linkchecker_node', 'ln');
       $broken_query->innerJoin('linkchecker_link', 'll', 'll.lid = ln.lid');
       $broken_query->condition('ll.code', array('200', '-1'), 'NOT IN');
@@ -116,12 +109,10 @@ function og_linkchecker_report() {
       $broken_query->condition('om.entity_type', 'node');
       $broken_query->condition('om.gid', $gid);
       $broken_query->fields('ln');
-      $broken_query->union($subquery_group, 'ALL');
-      $broken_q = db_select($broken_query, 'q1')->fields('q1', array('lid'));
 
       // Convert to a count query to get the number of rows, i.e. the number of
       // broken links.
-      $broken = $broken_q->countQuery()->execute()->fetchField();
+      $broken = $broken_query->countQuery()->execute()->fetchField();
 
       $rows[$gid] = array(
         'group' => t('@title (!type) [<a href="!report">report</a>]',

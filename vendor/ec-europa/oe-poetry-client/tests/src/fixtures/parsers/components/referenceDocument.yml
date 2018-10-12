@@ -1,0 +1,18 @@
+-
+  -
+    <documentReference lgCode="en" format="HTML" type="REF" action="UPDATE">
+        <documentReferenceName>Filename</documentReferenceName>
+        <documentReferencePath>path</documentReferencePath>
+        <documentReferenceSize>10kB</documentReferenceSize>
+        <documentReferenceRemark>Remark</documentReferenceRemark>
+        <documentReferenceFile>File</documentReferenceFile>
+    </documentReference>
+  - getLanguage : "en"
+    getFormat : "HTML"
+    getType : "REF"
+    getAction : "UPDATE"
+    getName : "Filename"
+    getPath : "path"
+    getSize : "10kB"
+    getRemark : "Remark"
+    getFile : "File"

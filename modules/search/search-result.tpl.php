@@ -9,6 +9,8 @@
  * dependent to one another sharing the markup for definition lists.
  *
  * Available variables:
+ * - $attributes: array of HTML attributes populated by modules, intended to
+ *   be added to the main container tag of this template.
  * - $url: URL of the result.
  * - $title: Title of the result.
  * - $snippet: A small preview of the result. Does not apply to user searches.

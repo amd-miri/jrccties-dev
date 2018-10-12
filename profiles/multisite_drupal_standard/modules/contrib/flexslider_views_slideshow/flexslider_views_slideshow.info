@@ -1,0 +1,16 @@
+name = FlexSlider Views Slideshow
+description = NOT FUNCTIONAL - Integrate the FlexSlider library with Views Slideshow
+core = 7.x
+package = FlexSlider
+
+dependencies[] = flexslider
+dependencies[] = views_slideshow
+
+files[] = flexslider_views_slideshow.module
+files[] = flexslider_views_slideshow.views_slideshow.inc
+files[] = theme/flexslider_views_slideshow.theme.inc
+
+; Information added by drush on 2013-03-16
+version = "0b1f8e7e24c168d1820ccded63c319327d57a97e"
+project = "flexslider_views_slideshow"
+datestamp = "1363450076"

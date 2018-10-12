@@ -5,7 +5,22 @@
  * Multisite Toolbox definition module.
  */
 
- define('MULTISITE_DRUPAL_TOOLBOX_FEATURES_REVERT_BLACKLISTED', 'cce_basic_config,multisite_settings_core');
+define('MULTISITE_DRUPAL_TOOLBOX_FEATURES_REVERT_BLACKLISTED', 'cce_basic_config,multisite_settings_core');
+define('MULTISITE_DRUPAL_TOOLBOX_DRUPAL_MIN_WEIGHT', -50);
+define('MULTISITE_DRUPAL_TOOLBOX_DRUPAL_MAX_WEIGHT', 50);
+
+/**
+ * Implements hook_permission().
+ */
+function multisite_drupal_toolbox_permission() {
+  return array(
+    'view alert message' => array(
+      'title' => t('View Alert message'),
+      'description' => t('View the Alert message'),
+    ),
+  );
+}
+
 /**
  * Implements hook_menu().
  */
@@ -59,12 +74,6 @@ function multisite_drupal_toolbox_menu() {
     'page arguments' => array('multisite_drupal_toolbox_contact_settings'),
     'access arguments' => array('administer site configuration'),
     'weight' => -5,
-  );
-  $items['check_url'] = array(
-    'title' => 'Check URLs',
-    'page callback' => '_multisite_drupal_toolbox_url_exists',
-    'access arguments' => array('use text format full_html'),
-    'type' => MENU_CALLBACK,
   );
 
   return $items;
@@ -137,6 +146,10 @@ function multisite_drupal_toolbox_init() {
   if (variable_get("language_count", 1) == 1) {
     variable_set("language_count", 2);
   }
+
+  if (variable_get('alert_message_enable', FALSE) && user_access('view alert message')) {
+    drupal_set_message(variable_get('alert_message_body', ''), 'warning', FALSE);
+  }
 }
 
 /**
@@ -153,19 +166,20 @@ function multisite_drupal_toolbox_menu_alter(&$items) {
     }
   }
 
-  // Block node import with node_export module.
-  $items['node/add/node_export']['access callback'] = FALSE;
   // Hide broken links tab in the my account page.
   $items['user/%user/linkchecker']['access callback'] = FALSE;
-  // Only super admin can configure apache solR.
-  $items['admin/config/search/apachesolr/multisite-filters']['access callback'] = 'multisite_drupal_toolbox_is_admin';
-  $items['admin/config/search/apachesolr/settings/%/index']['access callback'] = 'multisite_drupal_toolbox_is_admin';
-  $items['admin/config/search/apachesolr/settings/%/edit']['access callback'] = 'multisite_drupal_toolbox_is_admin';
-  $items['admin/config/search/apachesolr/settings/%/delete']['access callback'] = 'multisite_drupal_toolbox_is_admin';
-  $items['admin/config/search/apachesolr/settings/%/clone']['access callback'] = 'multisite_drupal_toolbox_is_admin';
-  $items['admin/config/search/apachesolr/settings']['access callback'] = 'multisite_drupal_toolbox_is_admin';
-  $items['admin/config/search/apachesolr/settings/add']['access callback'] = 'multisite_drupal_toolbox_is_admin';
-  $items['admin/config/search/apachesolr/attachments']['access callback'] = 'multisite_drupal_toolbox_is_admin';
+
+  if (module_exists('apachesolr')) {
+    // Only super admin can configure apache solR.
+    $items['admin/config/search/apachesolr/multisite-filters']['access callback'] = 'multisite_drupal_toolbox_is_admin';
+    $items['admin/config/search/apachesolr/settings/%apachesolr_environment/index']['access callback'] = 'multisite_drupal_toolbox_is_admin';
+    $items['admin/config/search/apachesolr/settings/%apachesolr_environment/edit']['access callback'] = 'multisite_drupal_toolbox_is_admin';
+    $items['admin/config/search/apachesolr/settings/%apachesolr_environment/delete']['access callback'] = 'multisite_drupal_toolbox_is_admin';
+    $items['admin/config/search/apachesolr/settings/%apachesolr_environment/clone']['access callback'] = 'multisite_drupal_toolbox_is_admin';
+    $items['admin/config/search/apachesolr/settings']['access callback'] = 'multisite_drupal_toolbox_is_admin';
+    $items['admin/config/search/apachesolr/settings/add']['access callback'] = 'multisite_drupal_toolbox_is_admin';
+    $items['admin/config/search/apachesolr/attachments']['access callback'] = 'multisite_drupal_toolbox_is_admin';
+  }
 
   $items['user/%user/edit']['access callback'] = 'multisite_drupal_toolbox_edit_access';
   $items['user/%user/cancel']['access callback'] = 'multisite_drupal_toolbox_edit_access';
@@ -197,6 +211,13 @@ function multisite_drupal_toolbox_theme($existing, $type, $theme, $path) {
 }
 
 /**
+ * Returns HTML for a dropdown.
+ */
+function theme_dropdown(array $variables) {
+  return(theme("item_list", $variables));
+}
+
+/**
  * Implements hook_media_wysiwyg_token_to_markup_alter().
  */
 function multisite_drupal_toolbox_media_wysiwyg_token_to_markup_alter(&$element, &$tag_info, &$settings) {
@@ -222,10 +243,14 @@ function multisite_drupal_toolbox_media_wysiwyg_token_to_markup_alter(&$element,
     }
   }
 
-  // Add title and alt attributes to the img markup.
+  // Add alt attribute to the img markup.
   if (isset($tag_info['attributes']['alt'])) {
     $element['content']['file']['#item']['alt'] = $tag_info['attributes']['alt'];
-    $element['content']['file']['#item']['title'] = $tag_info['attributes']['alt'];
+  }
+
+  // Add title attribute to the img markup.
+  if (isset($tag_info['attributes']['title'])) {
+    $element['content']['file']['#item']['title'] = $tag_info['attributes']['title'];
   }
 }
 
@@ -267,7 +292,6 @@ function multisite_drupal_toolbox_form_user_admin_permissions_alter(&$form, &$fo
     unset($form['permission']['administer features']);
     unset($form['permission']['manage features']);
     unset($form['permission']['administer software updates']);
-    unset($form['permission']['use PHP to import nodes']);
 
     if (isset($form['permission']['administer varnish'])) {
       unset($form['permission']['administer varnish']);
@@ -284,7 +308,6 @@ function multisite_drupal_toolbox_form_user_admin_permissions_alter(&$form, &$fo
       unset($form['checkboxes'][$rid]['#options']['administer features']);
       unset($form['checkboxes'][$rid]['#options']['manage features']);
       unset($form['checkboxes'][$rid]['#options']['administer software updates']);
-      unset($form['checkboxes'][$rid]['#options']['use PHP to import nodes']);
       if (isset($form['checkboxes'][$rid]['#options']['use PHP for title patterns'])) {
         unset($form['checkboxes'][$rid]['#options']['use PHP for title patterns']);
       }
@@ -441,6 +464,75 @@ function multisite_drupal_toolbox_form_user_pass_alter(&$form, &$form_state, $fo
 }
 
 /**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Adds important block in the description of toolbox_sanitize and
+ * filter_html_escape filter fields.
+ */
+function multisite_drupal_toolbox_form_filter_admin_format_form_alter(&$form, &$form_state, $form_id) {
+  $filter_html_escape = &$form['filters']['status']['filter_html_escape'];
+  $toolbox_sanitize = &$form['filters']['status']['toolbox_sanitize'];
+
+  $addendum = '<span style="font-weight: bold;color: red;">' . t('Important:') . '</span> ';
+  $filter_html_escape['#description'] .= $addendum;
+  $addendum = '<br />' . $addendum;
+  $toolbox_sanitize['#description'] .= $addendum;
+
+  $filter_title = $toolbox_sanitize['#title'];
+  $filter_html_escape['#description'] .= t('The "@title" filter is <strong>enforced automatically</strong> if this one is not enabled.', array('@title' => $filter_title));
+  $filter_title = $filter_html_escape['#title'];
+  $toolbox_sanitize['#description'] .= t('This filter is <strong>enforced automatically</strong> if the "@title" one is not enabled.', array('@title' => $filter_title));
+}
+
+/**
+ * Implements hook_filter_format_insert().
+ */
+function multisite_drupal_toolbox_filter_format_insert($format) {
+  multisite_drupal_toolbox_filter_format_update($format);
+}
+
+/**
+ * Implements hook_filter_format_update().
+ *
+ * Enforces the activation of 'toolbox_sanitize' filter, if
+ * 'filter_html_escape' is not.
+ */
+function multisite_drupal_toolbox_filter_format_update($format) {
+  $filters = &$format->filters;
+  $filter_html_escape_status = $filters['filter_html_escape']['status'];
+  $toolbox_sanitize_status = $filters['toolbox_sanitize']['status'];
+
+  // If the both status are different, configuration is safe.
+  // Then, nothing to do.
+  if ($filter_html_escape_status != $toolbox_sanitize_status) {
+    return;
+  }
+
+  if (!$toolbox_sanitize_status) {
+    // Save the enforcing. Cannot pass by a normal save because that causes an
+    // infinitive loop.
+    $fields = array(
+      'status' => 1,
+      'weight' => MULTISITE_DRUPAL_TOOLBOX_DRUPAL_MIN_WEIGHT,
+    );
+
+    db_merge('filter')
+      ->key(array(
+        'format' => $format->format,
+        'name' => 'toolbox_sanitize',
+      ))
+      ->fields($fields)
+      ->execute();
+
+    $watchdog_variables = array(
+      '@text_format' => $format->format,
+      '@value' => (!$filter_html_escape_status),
+    );
+    watchdog('multisite drupal toolbox', '"toolbox_sanitize" status has been set to @value for @text_format.', $watchdog_variables, WATCHDOG_INFO);
+  }
+}
+
+/**
  * Implements hook_filter_info_alter().
  */
 function multisite_drupal_toolbox_filter_info() {
@@ -488,29 +580,6 @@ function multisite_drupal_toolbox_sanitize($content, $nid) {
     $content = multisite_drupal_toolbox_filter_xss($content, $filter_options);
   }
   return $content;
-}
-
-/**
- * Implements hook_theme_registry_alter().
- */
-function multisite_drupal_toolbox_theme_registry_alter(&$theme_registry) {
-  // Use our own function to display status messages.
-  $theme_registry['status_messages']['function'] = "multisite_drupal_toolbox_messages";
-}
-
-/**
- * Custom function to override the drupal status message.
- */
-function multisite_drupal_toolbox_messages($variables) {
-  global $user;
-  $message = "";
-  $rid = multisite_drupal_toolbox_get_rid('administrator');
-  if (variable_get('alert_message_enable', FALSE) && isset($user->roles[$rid])) {
-    $message = '<div id="alter_message" class="messages warning">' . variable_get('alert_message_body', "") . '</div>';
-  }
-  $output = theme_status_messages($variables);
-  $output = $message . $output;
-  return $output;
 }
 
 /**
@@ -796,15 +865,20 @@ function _disable_block($module, $delta) {
 /**
  * Public function to add or delete nodes from the index.
  *
- * You need to add the module apachesolr as a dependancy to your feature.
+ * You need to add the module apachesolr as a dependency to your feature.
+ *
+ * @param string $bundle
+ *   Node type (node entity bundle) to perform the operation with.
+ * @param string $op
+ *   Operation to perform, either 'add' or 'delete.
  */
 function multisite_drupal_toolbox_config_solr_bundle($bundle, $op) {
-  if ($op != 'delete' && $op != 'add') {
+  if (!in_array($op, array('delete', 'add'))) {
     return;
   }
-  else {
-    $info = new stdClass();
-    $info->type = $bundle;
+
+  if (!module_exists('apachesolr')) {
+    return;
   }
 
   // Update hook cache to find new hooks (see module_implements()).
@@ -815,6 +889,9 @@ function multisite_drupal_toolbox_config_solr_bundle($bundle, $op) {
 
   // We ensures that all node type are created.
   node_types_rebuild();
+
+  $info = new stdClass();
+  $info->type = $bundle;
 
   switch ($op) {
     case 'add':
@@ -1023,7 +1100,7 @@ function multisite_drupal_toolbox_rate_content_type($content_type, $op) {
     case 'add':
       if (module_exists('rate')) {
         $rw = variable_get("rate_widgets", array());
-        foreach ($rw as $key => $value) {
+        foreach ($rw as $value) {
           if ('rate_fivestar' == $value->name) {
             $value->node_types[] = $content_type;
           }
@@ -1035,7 +1112,7 @@ function multisite_drupal_toolbox_rate_content_type($content_type, $op) {
     case 'delete':
       if (module_exists('rate')) {
         $rw = variable_get("rate_widgets", array());
-        foreach ($rw as $key => $value) {
+        foreach ($rw as $value) {
           if ('rate_fivestar' == $value->name) {
             foreach ($value->node_types as $id => $item) {
               if ($content_type == $item) {
@@ -1197,19 +1274,19 @@ function multisite_drupal_toolbox_linkit_scan_url($url, $field) {
   // function should only be used for URLs that have been generated by the
   // system, and we cant be sure that this is the case here.
   $parts['path'] = '';
-  $parts = parse_url(trim($url, '/'));
+  $parts = drupal_parse_url(trim($url, '/'));
 
   if (!isset($parts['scheme']) || !isset($parts['host'])) {
     // Not an absolute URL.
-    form_set_error($field, 'Please insert a complete url. ex: http://www.myurl.com');
+    form_set_error($field, t('Please insert a complete url. ex: !url', array('!url' => 'http://www.myurl.com')));
     return FALSE;
   }
 
-  // Make a new array, this will hold the components from parse_url() and our
-  // own "Linkit" components.
+  // Make a new array, this will hold the components from drupal_parse_url()
+  // and our own "Linkit" components.
   $path_info = array();
 
-  // Append the original components from parse_url() to our array.
+  // Append the original components from drupal_parse_url() to our array.
   $path_info += $parts;
 
   // Save the whole URL.
@@ -1277,18 +1354,6 @@ function multisite_drupal_toolbox_linkit_scan_url($url, $field) {
   }
 
   return $path_info;
-}
-
-/**
- * Implements hook_i18n_sync_translation().
- *
- * Fix bug: synchronise translations causes an infinite loop.
- *
- * @see https://webgate.ec.europa.eu/CITnet/jira/browse/MULTISITE-1636
- * @see http://drupal.org/node/1372500
- */
-function multisite_drupal_toolbox_i18n_sync_translation($entity_type, $translation, $translation_language, $source, $source_language, $field_names) {
-  $translation->workbench_moderation['updating_live_revision'] = TRUE;
 }
 
 /**
@@ -1533,10 +1598,10 @@ function multisite_drupal_toolbox_taxonomy_term_delete_batch_process($target, $f
     if (db_table_exists('field_revision_' . $field['field_name'])) {
       // Clean revision field.
       db_delete('field_revision_' . $field['field_name'])
-          ->condition('entity_type', $target->entity_type)
-          ->condition('entity_id', $target->entity_id)
-          ->condition($field['field_name'] . '_tid', $term->tid)
-          ->execute();
+        ->condition('entity_type', $target->entity_type)
+        ->condition('entity_id', $target->entity_id)
+        ->condition($field['field_name'] . '_tid', $term->tid)
+        ->execute();
     }
   }
 }
@@ -1601,23 +1666,6 @@ function multisite_drupal_toolbox_library_alter(&$javascript, $module) {
 
     jquery_update_jquery_replace($javascript, $cdn, $path, $min, $version);
   }
-}
-
-/**
- * Page callback that returns if an URL is valid with drupal_http_request().
- *
- * Returns a boolean in JSON format.
- *
- * @todo This is redundant and should be removed. The calling code can simply
- *   inspect the HTTP response code of the URL to see if it exists. This is now
- *   doing two requests where one would be sufficient.
- */
-function _multisite_drupal_toolbox_url_exists() {
-  $response = drupal_http_request($_GET['url']);
-  $output = isset($response->errno) && $response->errno == 0 && $response->code >= 200 && $response->code < 300;
-  drupal_add_http_header('Content-Type', 'application/json');
-  echo drupal_json_encode($output);
-  drupal_exit();
 }
 
 /**

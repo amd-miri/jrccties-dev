@@ -1,0 +1,14 @@
+name = "Simplenews Statistics Bounce"
+description = "Integrates Bounce and Simplenews modules."
+core = 7.x
+package = Statistics
+;configure = admin/config/services/simplenews/statistics/bounce
+
+dependencies[] = simplenews
+dependencies[] = bounce
+; Information added by Drupal.org packaging script on 2014-09-23
+version = "7.x-1.0-alpha1"
+core = "7.x"
+project = "simplenews_statistics"
+datestamp = "1411448470"
+

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @file
  * Admin section for ECAS Group Sync.
@@ -23,8 +24,6 @@ function ecas_group_sync_mapping_form($form, &$form_state) {
     '#description' => t('to delete a mapping rule, put the mapping value to none'),
   );
 
-  // @todo The $none_option variable is unused in its scope.
-  $none_option = array("0" => "none");
   $id_mapping = 0;
 
   $query = db_select('ecas_sync_mapping', 'esm');
@@ -123,8 +122,7 @@ function ecas_group_sync_mapping_form_submit($form, &$form_state) {
 
   for ($i = 0; $i < $values['count_mapping']; $i++) {
     if ($values["LDAPfield_value_" . $i] != '0' && $values["synctype_value_" . $i] != '0') {
-      // @todo Variable $id is unused in its scope.
-      $id = db_insert('ecas_sync_mapping')
+      db_insert('ecas_sync_mapping')
         ->fields(array(
           'LDAPfield' => $values['LDAPfield_' . $i],
           'LDAPfield_value' => $values['LDAPfield_value_' . $i],
@@ -137,8 +135,7 @@ function ecas_group_sync_mapping_form_submit($form, &$form_state) {
 
   for ($i = 0; $i < $values['count_extra_mapping']; $i++) {
     if ($values["LDAPfield_value_extra_" . $i] != '0' && $values["synctype_value_extra_" . $i] != '0') {
-      // @todo Variable $id is unused in its scope.
-      $id = db_insert('ecas_sync_mapping')
+      db_insert('ecas_sync_mapping')
         ->fields(array(
           'LDAPfield' => $values['LDAPfield_extra_' . $i],
           'LDAPfield_value' => $values['LDAPfield_value_extra_' . $i],
@@ -148,6 +145,10 @@ function ecas_group_sync_mapping_form_submit($form, &$form_state) {
         ->execute();
     }
   }
+
+  // Clearing the rules of synchronisation cached during
+  // the "ecas_group_sync_get_ecas_sync_rules" function process.
+  cache_clear_all('ecas_group_sync_rules', 'cache');
 
   drupal_set_message(t('The mapping rules have been saved.'));
 }
@@ -173,7 +174,7 @@ function ecas_group_sync_get_row($id, $ldap_field, $synctype, $ldap_field_value 
   $none_option = array("0" => "none");
   $form['LDAPfield_value_' . $id] = array(
     '#type' => 'select',
-    '#options' => $none_option + get_dg(),
+    '#options' => $none_option + ecas_group_sync_get_dg(),
     '#default_value' => $ldap_field_value,
     '#prefix' => '<div class = "row_mapping">',
     '#title' => $ldap_field,

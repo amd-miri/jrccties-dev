@@ -1,0 +1,41 @@
+<?php
+
+/**
+ * @file
+ * Module file.
+ */
+
+/**
+ * Implements hook_integration_backend_info().
+ */
+function integration_couchdb_integration_backend_info() {
+  return [
+    'couchdb_backend' => [
+      'label' => t('CouchDB backend'),
+      'description' => t('Backend implementing RESTful calls in order to store data in a remote CouchDB instance.'),
+      'class' => 'Drupal\integration_couchdb\Backend\CouchdbBackend',
+      'form handler' => 'Drupal\integration_couchdb\FormHandlers\Backend\CouchdbBackendFormHandler',
+    ],
+  ];
+}
+
+/**
+ * Implements hook_integration_backend_components_info().
+ */
+function integration_couchdb_integration_backend_components_info() {
+  return [
+    'cookie_authentication' => [
+      'label' => t('Cookie Authentication'),
+      'description' => t('Provides cookie authentication.'),
+      'class' => 'Drupal\integration_couchdb\Backend\Authentication\CookieAuthentication',
+      'type' => 'authentication_handler',
+    ],
+  ];
+}
+
+/**
+ * Implements hook_integration_backend_components_info_alter().
+ */
+function integration_couchdb_integration_backend_components_info_alter(&$items) {
+  $items['cookie_authentication']['form handler'] = 'Drupal\integration_couchdb\FormHandlers\Backend\Authentication\CookieAuthenticationFormHandler';
+}

@@ -1,0 +1,13 @@
+name = Menu Token
+description = Provides tokens in menu items (links).
+core = 7.x
+dependencies[] = menu
+dependencies[] = entity
+dependencies[] = token
+dependencies[] = ctools
+files[] = menu_token.test
+configure = admin/config/menu_token
+; Information added by drush on 2016-11-22
+version = "7.x-1.0-beta7+14-dev"
+project = "menu_token"
+datestamp = "1479836109"

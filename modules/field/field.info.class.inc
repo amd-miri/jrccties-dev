@@ -673,11 +673,12 @@ class FieldInfo {
         else {
           $field_data['display'][$view_mode] = array(
             'weight' => $field_data['weight'],
-            'visible' => TRUE,
+            'visible' => isset($field_data['visible']) ? $field_data['visible'] : TRUE,
           );
         }
       }
       unset($field_data['weight']);
+      unset($field_data['visible']);
       $result['display'][$name] = $field_data;
     }
 

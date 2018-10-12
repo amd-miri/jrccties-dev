@@ -1,0 +1,100 @@
+name = Atomium Bartik
+description = The core Bartik theme based on Atomium
+engine = phptemplate
+core = 7.x
+base theme = atomium
+
+;-------------- F E A T U R E S -------------
+features[] = logo
+features[] = name
+features[] = slogan
+features[] = node_user_picture
+features[] = comment_user_picture
+features[] = comment_user_verification
+features[] = favicon
+features[] = main_menu
+features[] = secondary_menu
+
+;-------------- R E G I O N S -------------
+regions[header] = Header
+regions[help] = Help
+regions[page_top] = Page top
+regions[page_bottom] = Page bottom
+regions[highlighted] = Highlighted
+
+regions[featured] = Featured
+regions[content] = Content
+regions[sidebar_first] = Sidebar first
+regions[sidebar_second] = Sidebar second
+
+regions[triptych_first] = Triptych first
+regions[triptych_middle] = Triptych middle
+regions[triptych_last] = Triptych last
+
+regions[footer_firstcolumn] = Footer first column
+regions[footer_secondcolumn] = Footer second column
+regions[footer_thirdcolumn] = Footer third column
+regions[footer_fourthcolumn] = Footer fourth column
+regions[footer] = Footer
+;-------------- P A N E L S -------------
+
+;-------------- C S S -------------
+stylesheets[all][] = assets/css/layout.css
+stylesheets[all][] = assets/css/style.css
+stylesheets[all][] = assets/css/colors.css
+stylesheets[print][] = assets/css/print.css
+
+;-------------- JS -------------
+
+;-------------- Default Settings for theme-settings.php -------------
+settings[toggle_logo] = 1
+settings[toggle_name] = 1
+settings[toggle_slogan] = 1
+settings[toggle_node_user_picture] = 1
+settings[toggle_comment_user_picture] = 1
+settings[toggle_comment_user_verification] = 1
+settings[toggle_favicon] = 1
+settings[toggle_main_menu] = 1
+settings[toggle_secondary_menu] = 1
+
+; CSS
+; --------------
+; Necessary module CSS.
+;settings[alter][css_alter][exclude][] = 'misc/vertical-tabs.css'
+;settings[alter][css_alter][exclude][] = 'modules/filter/filter.css'
+;settings[alter][css_alter][exclude][] = 'modules/system/system.admin.css'
+;settings[alter][css_alter][exclude][] = 'modules/system/system.menus.css'
+;settings[alter][css_alter][exclude][] = 'modules/system/system.messages.css'
+;settings[alter][css_alter][exclude][] = 'modules/system/system.theme.css'
+
+settings[alter][css_alter][exclude][] = 'modules/aggregator/aggregator.css'
+settings[alter][css_alter][exclude][] = 'modules/book/book.css'
+settings[alter][css_alter][exclude][] = 'modules/block/block.css'
+settings[alter][css_alter][exclude][] = 'modules/comment/comment.css'
+settings[alter][css_alter][exclude][] = 'modules/dblog/dblog.css'
+settings[alter][css_alter][exclude][] = 'modules/field/theme/field.css'
+settings[alter][css_alter][exclude][] = 'modules/file/file.css'
+settings[alter][css_alter][exclude][] = 'modules/forum/forum.css'
+settings[alter][css_alter][exclude][] = 'modules/help/help.css'
+settings[alter][css_alter][exclude][] = 'modules/menu/menu.css'
+settings[alter][css_alter][exclude][] = 'modules/node/node.css'
+settings[alter][css_alter][exclude][] = 'modules/openid/openid.css'
+settings[alter][css_alter][exclude][] = 'modules/poll/poll.css'
+settings[alter][css_alter][exclude][] = 'modules/profile/profile.css'
+settings[alter][css_alter][exclude][] = 'modules/search/search.css'
+settings[alter][css_alter][exclude][] = 'modules/statistics/statistics.css'
+settings[alter][css_alter][exclude][] = 'modules/syslog/syslog.css'
+settings[alter][css_alter][exclude][] = 'modules/system/admin.css'
+settings[alter][css_alter][exclude][] = 'modules/system/maintenance.css'
+settings[alter][css_alter][exclude][] = 'modules/system/system.css'
+settings[alter][css_alter][exclude][] = 'modules/system/system.maintenance.css'
+settings[alter][css_alter][exclude][] = 'modules/taxonomy/taxonomy.css'
+settings[alter][css_alter][exclude][] = 'modules/tracker/tracker.css'
+settings[alter][css_alter][exclude][] = 'modules/update/update.css'
+settings[alter][css_alter][exclude][] = 'modules/user/user.css'
+
+; Information added by Drupal.org packaging script on 2018-04-11
+version = "7.x-2.8"
+core = "7.x"
+project = "atomium"
+datestamp = "1523455298"

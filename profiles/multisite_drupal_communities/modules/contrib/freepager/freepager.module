@@ -1,0 +1,181 @@
+<?php
+
+/**
+ * @file
+ * Some basic function for Free pager. Mostly implementations of Views hooks.
+ */
+
+/**
+ * Implementation of hook_views_api().
+ */
+function freepager_views_api() {
+  return array(
+    'api' => '3.0',
+  );
+}
+
+/**
+ * Implements hook_libraries_info().
+ */
+function freepager_libraries_info() {
+  $libraries['jquery-mobile'] = array(
+    'name' => 'jQuery mobile',
+    'vendor url' => 'http://jquerymobile.com/',
+    'download url' => 'http://jquerymobile.com/download/',
+    'files' => array(
+      'js' => array('jquery.mobile.js' => array()),
+    ),
+    'version arguments' => array(
+      'file' => 'jquery.mobile.js',
+      // Best practice: Document the actual version strings for later reference.
+      // 1.x: Version 1.0
+      'pattern' => '/jQuery Mobile (\d+)/',
+      'lines' => 2,
+    ),
+  );
+  return $libraries;
+}
+
+/**
+ * Helper function to keep track of settings used by Free pager in Views.
+ * @return type
+ */
+function freepager_settings() {
+  return array(
+    'path' => array(
+      'label' => t('Field containing path'),
+      'description' => t("Select the field containing the paths managed by this pager. Field could contain something on the form 'node/[nid]'."),
+    ),
+    'previous' => array(
+      'label' => t("Field for 'previous'"),
+      'description' => t('Select the field containing data used for linking to previous item.'),
+    ),
+    'current' => array(
+      'label' => t("Field for 'current'"),
+      'description' => t('Select the field containing data used for showing the currently viewed item.'),
+    ),
+    'next' => array(
+      'label' => t("Field for 'next'"),
+      'description' => t('Select the field containing data used for linking to next item.'),
+    ),
+    'loop' => array(
+      'label' => t("Loop the pager"),
+      'description' => t('Check this box to have the last item followed by the first one, and vice versa.'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_preprocess_HOOK().
+ */
+function freepager_preprocess_views_freepager(&$vars) {
+  // Let's get some of the data we will need.
+  $view = &$vars['view'];
+
+  if(count($view->result) <= 1) {
+    $view->result = array();
+    return;
+  }
+
+  $fields = array_keys(freepager_settings());
+  foreach($fields as $field) {
+    $field_names[$field] = $view->display_handler->options[$field];
+  }
+  $current_path = implode('/', arg());
+
+  // Let's go see if we're looking at a page matching the provided paths.
+  $row_number = -1;
+  foreach ($view->result as $row => $result) {
+    $rendered_fields = _freepager_render_views_row($view, $row, $field_names['path']);
+    if ($rendered_fields[$field_names['path']] == $current_path) {
+      $row_number = $row;
+      break;
+    }
+  }
+
+  // If no hit is found, set a flag and quit.
+  if ($row_number == -1) {
+    $view->display_handler->no_path_match = TRUE;
+    return;
+  }
+
+  $count = count($view->result);
+  $params = drupal_get_query_parameters();
+  // Build the 'previous' item.
+  if ($field_names['previous']) {
+    $previous_row_number = ($row_number - 1);
+    // Loop the 'previous' index, if the pager is set to loop.
+    if ($previous_row_number < 0 && $view->display_handler->get_option('loop')) {
+      $previous_row_number += $count;
+    }
+
+    if ($previous_row_number >= 0) {
+      $previous_rendered_fields = _freepager_render_views_row($view, $previous_row_number);
+      $vars['previous'] = $previous_rendered_fields[$field_names['previous']];
+      $vars['previous_linked'] = l($vars['previous'], $previous_rendered_fields[$field_names['path']], array('query'=> $params, 'html' => TRUE, 'attributes' => array('rel' => 'prev')));
+    }
+  }
+
+  // Build the 'current' item.
+  if ($field_names['current']) {
+    $rendered_fields = _freepager_render_views_row($view, $row_number);
+    $vars['current'] = $rendered_fields[$field_names['current']];
+    $vars['current_linked'] = l($vars['current'], $rendered_fields[$field_names['path']], array('query'=> $params,'html' => TRUE));
+  }
+
+  // Build the 'next' item.
+  if ($field_names['next']) {
+    $next_row_number = $row_number + 1;
+    // Loop the 'next' index, if the pager is set to loop.
+    if ($next_row_number >= $count && $view->display_handler->get_option('loop')) {
+      $next_row_number -= $count;
+    }
+
+    if ($next_row_number < $count) {
+      $next_rendered_fields = _freepager_render_views_row($view, $next_row_number);
+      $vars['next'] = $next_rendered_fields[$field_names['next']];
+      $vars['next_linked'] = l($vars['next'], $next_rendered_fields[$field_names['path']], array('query' => $params, 'html' => TRUE, 'attributes' => array('rel' => 'next')));
+    }
+  }
+
+  // Set two other items that might be used by the theme template.
+  $vars['row_number'] = $row_number;
+  $vars['total_rows'] = $count;
+
+// This is commented out, while waiting for a better solution (and jQuery
+// implementation that follows coding standards. See
+// http://drupal.org/node/1966002#comment-7398708 .
+//
+//  // If the jQuery mobile library is present, load it and run some helping JS.
+//  if (($library = libraries_load('jquery-mobile')) && !empty($library['loaded'])) {
+//    drupal_add_js(drupal_get_path('module', 'freepager') . '/freepager.js');
+//  }
+}
+
+/**
+ * Implements hook_views_post_render().
+ */
+function freepager_views_post_render(&$view, &$output, &$cache) {
+  // If we didn't find a match against the current path, there will still be
+  // result fetched from the view. To prevent an empty block from being rendered
+  // we tweak this result.
+  if (isset($view->display_handler->no_path_match) && $view->display_handler->no_path_match) {
+    $view->result = FALSE;
+  }
+}
+
+/**
+ * Renders a particular row in a view.
+ *
+ * @see views_plugin_style::render_fields()
+ */
+function _freepager_render_views_row($view, $row, $upto = NULL) {
+  $rendered_fields = array();
+  foreach (array_keys($view->field) as $id) {
+    $rendered_fields[$id] = $view->field[$id]->theme($view->result[$row]);
+    if (isset($upto) && $id == $upto) {
+      break;
+    }
+  }
+  return $rendered_fields;
+}

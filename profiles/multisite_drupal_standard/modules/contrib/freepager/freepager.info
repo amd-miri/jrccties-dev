@@ -1,0 +1,14 @@
+name = "Free Pager"
+description = "Creates a pager Views style, used for paging arbitrary pages."
+core = "7.x"
+package = "Other"
+dependencies[] = views
+files[] = freepager.module
+files[] = freepager.views.inc
+files[] = freepager_plugin_display_pagerblock.inc
+stylesheets[all][] = freepager.css
+
+; Information added by drush on 2014-11-26
+version = "c11c40f6e3e54ff728515589600a0d8e26d831f1"
+project = "freepager"
+datestamp = "1417021300"

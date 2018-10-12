@@ -1,0 +1,12 @@
+name = Pathauto Persistent State
+description = Keeps track and enforces a persistent Pathauto state per node.
+core = 7.x
+dependencies[] = pathauto
+files[] = pathauto_persist.test
+
+; Information added by Drupal.org packaging script on 2015-09-25
+version = "7.x-1.4"
+core = "7.x"
+project = "pathauto_persist"
+datestamp = "1443213544"
+

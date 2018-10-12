@@ -1,0 +1,7 @@
+<?php
+/**
+ * @file
+ * Code for the xml_field_test_assets feature.
+ */
+
+include_once 'xml_field_test_assets.features.inc';

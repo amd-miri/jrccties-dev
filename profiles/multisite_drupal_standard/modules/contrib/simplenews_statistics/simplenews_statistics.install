@@ -1,0 +1,304 @@
+<?php
+
+/**
+ * @file
+ * Simplenews statistics (un)install and updates file.
+ */
+
+/**
+ * Implements hook_schema().
+ *
+ * @todo: Add some sensible indexes.
+ */
+function simplenews_statistics_schema() {
+  $schema['simplenews_statistics'] = array(
+    'description' => 'Additional fields for {simplenews_newsletter}.',
+    'fields' => array(
+      'nid' => array(
+        'description' => 'The {simplenews_newsletter}.nid.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'subscriber_count' => array(
+        'description' => 'The count of subscribers at the time of sending.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'send_start_timestamp' => array(
+        'description' => 'The timestamp that newsletter sending started.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'send_end_timestamp' => array(
+        'description' => 'The timestamp that the last newsletter was sent.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'archived' => array(
+        'description' => '0 = active; 1 = archived.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'unique_opens' => array(
+        'description' => 'Unique open count if newsletter is archived.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => -1,
+      ),
+      'total_opens' => array(
+        'description' => 'Total open count if newsletter is archived.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => -1,
+      ),
+      'unique_clicks' => array(
+        'description' => 'Unique click count if newsletter is archived.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => -1,
+      ),
+    ),
+    'primary key' => array('nid'),
+    'foreign keys' => array(
+      'nid' => array(
+        'table' => 'simplenews_newsletter',
+        'columns' => array('nid' => 'nid'),
+      ),
+    ),
+  );
+
+  $schema['simplenews_statistics_url'] = array(
+    'description' => 'All the URLs for all the newslettter nodes.',
+    'fields' => array(
+      'urlid' => array(
+        'description' => 'The primary identifier for a URL record.',
+        'type' => 'serial',
+        'not null' => TRUE,
+      ),
+      'nid' => array(
+        'description' => 'The {node).nid in which the URL resides.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'url' => array(
+        'description' => 'The original URL of a link in a newsletter.',
+        'type' => 'text',
+        'size' => 'normal',
+        'not null' => TRUE,
+      ),
+      'click_count' => array(
+        'description' => 'Aggregated click count if newsletter is archived.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => -1,
+      ),
+    ),
+    'primary key' => array('urlid'),
+    'indexes' => array(
+      'nid' => array('nid'),
+    ),
+    'foreign keys' => array(
+      'nid' => array(
+        'table' => 'node',
+        'columns' => array('nid' => 'nid'),
+      ),
+    ),
+  );
+
+  $schema['simplenews_statistics_click'] = array(
+    'description' => 'Newsletter URL click data.',
+    'fields' => array(
+      'clid' => array(
+        'description' => 'The primary identifier for a URL click record.',
+        'type' => 'serial',
+        'not null' => TRUE,
+      ),
+      'urlid' => array(
+        'description' => 'Reference to the clicked URL.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'snid' => array(
+        'description' => 'The {simplenews_subscriber}.snid who clicked a URL.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'timestamp' => array(
+        'description' => 'The UNIX timestamp at which the URL was clicked.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('clid'),
+    'indexes' => array(
+      'urlid' => array('urlid'),
+    ),
+    'foreign keys' => array(
+      'urlid' => array(
+        'table' => 'simplenews_statistics_url',
+        'columns' => array('urlid' => 'urlid'),
+      ),
+      'snid' => array(
+        'table' => 'simplenews_subscriber',
+        'columns' => array('snid' => 'snid'),
+      ),
+    ),
+  );
+
+  $schema['simplenews_statistics_open'] = array(
+    'description' => 'Newsletter open data.',
+    'fields' => array(
+      'opid' => array(
+        'description' => 'The primary identifier for an email open record.',
+        'type' => 'serial',
+        'not null' => TRUE,
+      ),
+      'snid' => array(
+        'description' => 'The {simplenews_subscriber}.snid for an open record.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'nid' => array(
+        'description' => 'The {node}.nid.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'timestamp' => array(
+        'description' => 'The UNIX timestamp at which the email was opened.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('opid'),
+    'indexes' => array(
+      'nid' => array('nid'),
+    ),
+    'foreign keys' => array(
+      'snid' => array(
+        'table' => 'simplenews_subscriber',
+        'columns' => array('snid' => 'snid'),
+      ),
+      'nid' => array(
+        'table' => 'node',
+        'columns' => array('nid' => 'nid'),
+      ),
+    ),
+  );
+
+  return $schema;
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function simplenews_statistics_uninstall() {
+  // Delete all variables added by this module.
+  variable_del('simplenews_statistics_track_test');
+  variable_del('simplenews_statistics_track_mailto');
+  variable_del('simplenews_statistics_archive_days');
+}
+
+/**
+ * Create new database table {simplenews_statistics}.
+ */
+function simplenews_statistics_update_7001() {
+  $schema['simplenews_statistics'] = array(
+    'description' => 'Additional fields for {simplenews_newsletter}.',
+    'fields' => array(
+      'nid' => array(
+        'description' => 'The {simplenews_newsletter}.nid.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'subscriber_count' => array(
+        'description' => 'The count of subscribers at the time of sending.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'send_start_timestamp' => array(
+        'description' => 'The timestamp that newsletter sending started.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'send_end_timestamp' => array(
+        'description' => 'The timestamp that the last newsletter was sent.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('nid'),
+    'foreign keys' => array(
+      'nid' => array(
+        'table' => 'simplenews_newsletter',
+        'columns' => array('nid' => 'nid'),
+      ),
+    ),
+  );
+
+  db_create_table('simplenews_statistics', $schema['simplenews_statistics']);
+}
+
+/**
+ * Create new fields for storing aggregated totals for archived newsletters.
+ */
+function simplenews_statistics_update_7002() {
+  $fields = array(
+    'archived' => array(
+      'description' => '0 = active; 1 = archived.',
+      'type' => 'int',
+      'not null' => TRUE,
+      'default' => 0,
+    ),
+    'unique_opens' => array(
+      'description' => 'Unique open count if newsletter is archived.',
+      'type' => 'int',
+      'not null' => TRUE,
+      'default' => -1,
+    ),
+    'total_opens' => array(
+      'description' => 'Total open count if newsletter is archived.',
+      'type' => 'int',
+      'not null' => TRUE,
+      'default' => -1,
+    ),
+    'unique_clicks' => array(
+      'description' => 'Unique click count if newsletter is archived.',
+      'type' => 'int',
+      'not null' => TRUE,
+      'default' => -1,
+    ),
+    'click_count' => array(
+      'description' => 'Aggregated click count if newsletter is archived.',
+      'type' => 'int',
+      'not null' => TRUE,
+      'default' => -1,
+    ),
+  );
+  db_add_field('simplenews_statistics', 'archived', $fields['archived']);
+  db_add_field('simplenews_statistics', 'unique_opens', $fields['unique_opens']);
+  db_add_field('simplenews_statistics', 'total_opens', $fields['total_opens']);
+  db_add_field('simplenews_statistics', 'unique_clicks', $fields['unique_clicks']);
+  db_add_field('simplenews_statistics_url', 'click_count', $fields['click_count']);
+}

@@ -1,0 +1,14 @@
+name = User Dashboard
+description = Provides a dashboard page for every user.
+core = 7.x
+package = Knowledge Base
+version = 7.x-1.4
+files[] = user_dashboard.module
+dependencies[] = dashboard
+project = "user_dashboard"
+; Information added by Drupal.org packaging script on 2015-09-21
+version = "7.x-1.4"
+core = "7.x"
+project = "user_dashboard"
+datestamp = "1442876940"
+

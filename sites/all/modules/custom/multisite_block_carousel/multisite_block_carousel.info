@@ -1,7 +1,0 @@
-name = Multisite Block Carousel
-description = Create a block to display a gallery.
-package = Multisite Core Features
-core = 7.x
-php = 5.2.4
-dependencies[] = block
-features[features_api][] = api:1

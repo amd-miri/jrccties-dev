@@ -1,0 +1,34 @@
+name = xml_field_test_assets
+core = 7.x
+package = Testing
+dependencies[] = ctools
+dependencies[] = features
+dependencies[] = node_files_document
+dependencies[] = strongarm
+dependencies[] = text
+dependencies[] = xml_field
+features[ctools][] = strongarm:strongarm:1
+features[features_api][] = api:2
+features[field_base][] = field_xml_no_validation
+features[field_base][] = field_xml_schema
+features[field_base][] = field_xml_valid_xml
+features[field_base][] = field_xml_youtube
+features[field_instance][] = node-xml_test-body
+features[field_instance][] = node-xml_test-field_xml_no_validation
+features[field_instance][] = node-xml_test-field_xml_schema
+features[field_instance][] = node-xml_test-field_xml_valid_xml
+features[field_instance][] = node-xml_test-field_xml_youtube
+features[node][] = xml_test
+features[variable][] = field_bundle_settings_node__xml_test
+features[variable][] = menu_options_xml_test
+features[variable][] = menu_parent_xml_test
+features[variable][] = node_options_xml_test
+features[variable][] = node_preview_xml_test
+features[variable][] = node_submitted_xml_test
+
+; Information added by Drupal.org packaging script on 2015-07-24
+version = "7.x-2.2"
+core = "7.x"
+project = "xml_field"
+datestamp = "1437778178"
+

@@ -1,0 +1,112 @@
+name = EC Europa
+description = OpenEuropa base theme.
+base theme = atomium
+core = 7.x
+php = 5.6
+screenshot = assets/images/screenshot.png
+
+; ========================================
+; Regions
+; ========================================
+regions[navigation] = Navigation
+regions[header_top] = Header top
+regions[header] = Header
+regions[header_bottom] = Header bottom
+regions[utility] = Utility
+regions[highlighted] = Highlighted
+regions[help] = Help
+regions[content_top] = Content top
+regions[content] = Content
+regions[content_bottom] = Content bottom
+regions[sidebar_first] = Sidebar first
+regions[sidebar_second] = Sidebar second
+regions[footer_middle] = Footer middle
+regions[footer_right] = Footer right
+
+; ========================================
+; Stylesheets
+; ========================================
+stylesheets[all][] = assets/styles/europa.css
+
+; ========================================
+; Scripts
+; ========================================
+scripts[] = assets/scripts/misc/ajax.js
+scripts[] = assets/scripts/europa.js
+scripts[] = assets/scripts/init.js
+scripts[] = assets/scripts/europa_tabs.js
+scripts[] = assets/scripts/components/table-responsive.js
+
+; ========================================
+; Settings
+; ========================================
+
+; Visibility
+; -------------
+settings[toggle_main_menu] = 0
+settings[toggle_secondary_menu] = 0
+
+; Europa
+; --------------
+settings[ec_europa_introduction_field] = 0
+settings[ec_europa_site_switcher] = informational
+settings[ec_europa_user_menu] = 0
+settings[ec_europa_user_login] = 0
+settings[ec_europa_improved_website] = 1
+settings[ec_europa_improved_website_home] = 0
+settings[ec_europa_breadcrumb_menu] = menu-breadcrumb-menu
+settings[ec_europa_breadcrumb_home] = 1
+settings[ec_europa_site_header_home] = 1
+settings[ec_europa_multilingual] = 1
+settings[allow_css_double_underscores] = 1
+
+; Breakpoints
+; --------------
+breakpoints[wide] = only screen and (min-width: 992px)
+breakpoints[normal] = (min-width: 768px) and (max-width: 991px)
+breakpoints[medium] = (min-width: 480px) and (max-width: 767px)
+breakpoints[narrow] = (min-width: 320px) and (max-width: 479px)
+breakpoints[mobile] = (min-width: 0px) and (max-width: 319px)
+multipliers[wide][] = 2x
+multipliers[normal][] = 2x
+multipliers[medium][] = 2x
+multipliers[narrow][] = 2x
+multipliers[mobile][] = 2x
+multisite_version = 2.2
+
+; Alter configuration
+; ------------------------
+settings[alter][css_alter][exclude][] = 'modules/aggregator/aggregator.css'
+settings[alter][css_alter][exclude][] = 'modules/book/book.css'
+settings[alter][css_alter][exclude][] = 'modules/block/block.css'
+settings[alter][css_alter][exclude][] = 'modules/comment/comment.css'
+settings[alter][css_alter][exclude][] = 'modules/dblog/dblog.css'
+settings[alter][css_alter][exclude][] = 'modules/field/theme/field.css'
+settings[alter][css_alter][exclude][] = 'modules/file/file.css'
+settings[alter][css_alter][exclude][] = 'modules/forum/forum.css'
+settings[alter][css_alter][exclude][] = 'modules/help/help.css'
+settings[alter][css_alter][exclude][] = 'modules/menu/menu.css'
+settings[alter][css_alter][exclude][] = 'modules/node/node.css'
+settings[alter][css_alter][exclude][] = 'modules/openid/openid.css'
+settings[alter][css_alter][exclude][] = 'modules/poll/poll.css'
+settings[alter][css_alter][exclude][] = 'modules/profile/profile.css'
+settings[alter][css_alter][exclude][] = 'modules/search/search.css'
+settings[alter][css_alter][exclude][] = 'modules/statistics/statistics.css'
+settings[alter][css_alter][exclude][] = 'modules/syslog/syslog.css'
+settings[alter][css_alter][exclude][] = 'modules/system/admin.css'
+settings[alter][css_alter][exclude][] = 'modules/system/maintenance.css'
+settings[alter][css_alter][exclude][] = 'modules/system/system.css'
+settings[alter][css_alter][exclude][] = 'modules/system/system.admin.css'
+settings[alter][css_alter][exclude][] = 'modules/system/system.maintenance.css'
+settings[alter][css_alter][exclude][] = 'modules/system/system.menus.css'
+settings[alter][css_alter][exclude][] = 'modules/system/system.messages.css'
+settings[alter][css_alter][exclude][] = 'modules/system/system.theme.css'
+settings[alter][css_alter][exclude][] = 'modules/taxonomy/taxonomy.css'
+settings[alter][css_alter][exclude][] = 'modules/tracker/tracker.css'
+settings[alter][css_alter][exclude][] = 'modules/update/update.css'
+settings[alter][css_alter][exclude][] = 'modules/user/user.css'
+settings[alter][css_alter][exclude][] = 'modules/filter/filter.css'
+
+; Preprocess configuration
+; ------------------------
+settings[preprocess][node][classes_to_remove] = node-sticky,node-unpublished,node-promoted

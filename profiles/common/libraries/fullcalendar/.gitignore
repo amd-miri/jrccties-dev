@@ -1,0 +1,11 @@
+build/out
+build/archive
+build/bower
+build/cdnjs
+dist
+
+# npm modules
+node_modules
+
+# bower components
+lib/*/*

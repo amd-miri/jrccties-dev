@@ -1,0 +1,542 @@
+<?php
+
+/**
+ * @file
+ * Code for the jrccties_core feature.
+ */
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function jrccties_core_form_user_profile_form_alter(&$form, &$form_state, $form_id) {
+
+  unset($form['contact']);
+  unset($form['#metatags']);
+  unset($form['redirect']);
+  unset($form['account']['status']);
+  unset($form['account']['roles']);
+  unset($form['privatemsg']);
+  unset($form['status']);
+  unset($form['roles']);
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function jrccties_core_form_node_form_alter(&$form, &$form_state, $form_id) {
+  /* Hide the field_resource as it's useless and confusing for our users. */
+  $form['field_resource']['#access'] = FALSE;
+  /* Hide the revision_information field as it's also useless in our case. */
+  $form['revision_information']['#access'] = FALSE;
+  /* Change the name of the submit button for all content types. */
+  $form['actions']['submit']['#value'] = t('Save and publish');
+}
+
+/**
+ * Implements hook_og_features_default_roles_alter().
+ */
+function jrccties_core_og_features_default_roles_alter(&$roles) {
+  if (!empty($roles['node:community:community_manager'])) {
+    unset($roles['node:community:community_manager']);
+  }
+}
+
+/**
+ * Implements hook_og_features_default_permissions_alter().
+ */
+function jrccties_core_og_features_default_permissions_alter(&$permissions) {
+  // Event content type's permissions.
+  foreach ($permissions as $permission => $value) {
+    unset($permissions[$permission]['roles']['community_manager']);
+  }
+}
+
+/**
+ * Implements hook_strongarm_alter().
+ */
+function jrccties_core_strongarm_alter(&$items) {
+  // Community content type.
+  if (!empty($items['comment_community'])) {
+    $items['comment_community']->value = 1;
+  }
+  if (!empty($items['language_content_type_community'])) {
+    $items['language_content_type_community']->value = 0;
+  }
+  if (!empty($items['workbench_moderation_default_state_community'])) {
+    $items['workbench_moderation_default_state_community']->value = 'published';
+  }
+  if (!empty($items['node_options_community'])) {
+    $items['node_options_community']->value = array(
+      0 => 'revision',
+      1 => 'status',
+    );
+  }
+
+  // Event content type.
+  if (!empty($items['language_content_type_event'])) {
+    $items['language_content_type_event']->value = 0;
+  }
+  if (!empty($items['workbench_moderation_default_state_event'])) {
+    $items['workbench_moderation_default_state_event']->value = 'published';
+  }
+  if (!empty($items['node_options_event'])) {
+    $items['node_options_event']->value = array(
+      0 => 'revision',
+      1 => 'status',
+    );
+  }
+  if (!empty($items['field_bundle_settings_node__event'])) {
+    $items['field_bundle_settings_node__event']->value = array(
+      'view_modes' => array(),
+      'extra_fields' => array(
+        'form' => array(
+          'title' => array(
+            'weight' => '-10',
+          ),
+          'path' => array(
+            'weight' => '13',
+          ),
+        ),
+        'display' => array(),
+      ),
+    );
+  }
+}
+
+/**
+ * Implements hook_file_default_displays_alter().
+ */
+function jrccties_core_file_default_displays_alter(&$file_displays) {
+  // Video default file display.
+  if (!empty($file_displays['video__default__media_dailymotion_video'])) {
+    $file_displays['video__default__media_dailymotion_video']->status = FALSE;
+  }
+  if (!empty($file_displays['video__default__media_avportal_video'])) {
+    $file_displays['video__default__media_avportal_video']->status = FALSE;
+  }
+  // Video teaser file display.
+  if (!empty($file_displays['video__teaser__media_avportal_image'])) {
+    $file_displays['video__teaser__media_avportal_image']->status = FALSE;
+  }
+  if (!empty($file_displays['video__teaser__media_dailymotion_image'])) {
+    $file_displays['video__teaser__media_dailymotion_image']->status = FALSE;
+  }
+  if (!empty($file_displays['video__teaser__file_field_media_large_icon'])) {
+    $file_displays['video__teaser__file_field_media_large_icon']->status = FALSE;
+  }
+  if (!empty($file_displays['video__teaser__media_vimeo_image'])) {
+    $file_displays['video__teaser__media_vimeo_image']->status = FALSE;
+  }
+  if (!empty($file_displays['video__teaser__media_youtube_image'])) {
+    $file_displays['video__teaser__media_youtube_image']->status = FALSE;
+  }
+}
+
+/**
+ * Implements hook_node_info_alter().
+ */
+function jrccties_core_node_info_alter(&$node) {
+  if (!empty($node['article'])) {
+    unset($node['article']);
+  }
+}
+
+/**
+ * Implements hook_field_default_field_instances_alter().
+ */
+function jrccties_core_field_default_field_instances_alter(&$fields) {
+  // Community content type.
+  if (!empty($fields['node-community-body'])) {
+    $fields['node-community-body']['widget']['weight'] = 8;
+  }
+  if (!empty($fields['node-community-field_thumbnail'])) {
+    $fields['node-community-field_thumbnail']['widget']['weight'] = 8;
+  }
+  if (!empty($fields['node-community-group_access'])) {
+    $fields['node-community-group_access']['display']['default']['type'] = 'hidden';
+  }
+  if (!empty($fields['node-community-field_tags'])) {
+    $fields['node-community-field_tags']['display']['default']['type'] = 'hidden';
+  }
+  // Event content type.
+  if (!empty($fields['node-event-field_resource'])) {
+    $fields['node-event-field_resource']['display']['default']['type'] = 'hidden';
+  }
+  if (!empty($fields['node-event-field_tags'])) {
+    unset($fields['node-event-field_tags']);
+  }
+  if (!empty($fields['node-event-field_location'])) {
+    unset($fields['node-event-field_location']);
+  }
+  if (!empty($fields['node-event-body'])) {
+    $fields['node-event-body']['widget']['weight'] = 1;
+  }
+  if (!empty($fields['node-event-field_event_date'])) {
+    $fields['node-event-field_event_date']['widget']['weight'] = 3;
+  }
+  if (!empty($fields['node-event-field_location'])) {
+    $fields['node-event-field_location']['widget']['weight'] = 5;
+  }
+}
+
+/**
+ * Implements hook_field_group_info_alter().
+ */
+function jrccties_core_field_group_info_alter(&$groups) {
+  // Community content type.
+  if (!empty($groups['group_community_content|node|community|form'])) {
+    $groups['group_community_content|node|community|form']->data['weight'] = 0;
+    $groups['group_community_content|node|community|form']->data['children'] = array(
+      0 => 'title',
+      1 => 'field_show_body',
+      2 => 'body',
+      3 => 'field_show_welcome_message',
+      4 => 'field_welcome_message_title',
+      5 => 'field_welcome_message_body',
+      6 => 'field_about_page',
+      7 => 'field_show_latest_block_homepage',
+      8 => 'field_do_not_show_jrc_members',
+      9 => 'field_show_subscription_buttons',
+      10 => 'field_show_manager_editor_block',
+      11 => 'field_show_latest_member_block',
+      12 => 'field_show_last_online_members',
+    );
+  }
+  if (!empty($groups['group_community_metadata|node|community|form'])) {
+    unset($groups['group_community_metadata|node|community|form']);
+  }
+  if (!empty($groups['group_community_community|node|community|form'])) {
+    $groups['group_community_community|node|community|form']->data['weight'] = 2;
+    $groups['group_community_community|node|community|form']->data['children'] = array(
+      0 => 'field_group_category',
+      1 => 'og_menu',
+      2 => 'group_group',
+      3 => 'group_access',
+      4 => 'og_roles_permissions',
+    );
+  }
+}
+
+/**
+ * Implements hook_og_context_negotiation_info().
+ */
+function jrccties_core_og_context_negotiation_info() {
+  $providers = array();
+
+  $providers['jrccties_communities'] = array(
+    'name' => t('Jrccties Communities'),
+    'description' => t("Select group context for any url that start with 'community'"),
+    'callback' => 'jrccties_core_context_handler',
+    'menu path' => array('community/%'),
+  );
+
+  return $providers;
+}
+
+/**
+ * Context handler; Get groups from events.
+ *
+ * @return array
+ *   OG context
+ */
+function jrccties_core_context_handler() {
+  global $language;
+
+  $keyword = 'community';
+
+  // Remove langcode on URL according the language negotiation type used.
+  if (language_negotiation_get_any('nexteuropa_multilingual_url_suffix')) {
+    $path = nexteuropa_multilingual_language_negotiation_split_suffix(request_path(), [$language]);
+  }
+  elseif (defined('MULTISITE_DRUPAL_LANGUAGE_NEGOCIATION_URL_SUFFIX') && language_negotiation_get_any(MULTISITE_DRUPAL_LANGUAGE_NEGOCIATION_URL_SUFFIX)) {
+    $path = language_url_split_suffix(request_path(), [$language]);
+  }
+  elseif (language_negotiation_get_any(LOCALE_LANGUAGE_NEGOTIATION_URL)) {
+    $path = language_url_split_prefix(request_path(), [$language]);
+  }
+  else {
+    $path = [FALSE, request_path()];
+  }
+
+  $path_args = explode('/', $path[1]);
+
+  // Look for the community keyword in the path.
+  if ($path_args[0] === $keyword) {
+
+    if (isset($path_args[1]) && is_numeric($path_args[1])) {
+      // Check that the node acts as a group.
+      $node = node_load($path_args[1]);
+
+      if (og_is_group('node', $node)) {
+        return [
+          'node' => [
+            $node->nid,
+          ],
+        ];
+      }
+    }
+  }
+  return [];
+}
+
+/**
+ * Implements hook_module_implements_alter().
+ */
+function jrccties_core_module_implements_alter(&$implementations, $hook) {
+  if ($hook == 'init') {
+    if (isset($implementations['update'])) {
+      unset($implementations['update']);
+    }
+  }
+}
+
+/**
+ * Implements hook_init().
+ */
+function jrccties_core_init() {
+  global $user;
+  if ($user->uid == '1') {
+    switch ($_GET['q']) {
+      // These pages don't need additional nagging.
+      case 'admin/appearance/update':
+      case 'admin/appearance/install':
+      case 'admin/modules/update':
+      case 'admin/modules/install':
+      case 'admin/reports/updates':
+      case 'admin/reports/updates/update':
+      case 'admin/reports/updates/install':
+      case 'admin/reports/updates/settings':
+      case 'admin/reports/status':
+      case 'admin/update/ready':
+        return;
+
+      // If we are on the appearance or modules list, display a detailed report.
+      // Of the update status.
+      case 'admin/appearance':
+      case 'admin/modules':
+        $verbose = TRUE;
+        break;
+    }
+
+    module_load_install('update');
+    $status = update_requirements('runtime');
+    foreach (array('core', 'contrib') as $report_type) {
+      $type = 'update_' . $report_type;
+      if (!empty($verbose)) {
+        if (isset($status[$type]['severity'])) {
+          if ($status[$type]['severity'] == REQUIREMENT_ERROR) {
+            drupal_set_message($status[$type]['description'], 'error', FALSE);
+          }
+          elseif ($status[$type]['severity'] == REQUIREMENT_WARNING) {
+            drupal_set_message($status[$type]['description'], 'warning', FALSE);
+          }
+        }
+      }
+      // Otherwise, if we're on *any* admin page and there's a security.
+      // Update missing, print an error message about it.
+      else {
+        if (isset($status[$type])
+            && isset($status[$type]['reason'])
+            && $status[$type]['reason'] === UPDATE_NOT_SECURE) {
+          drupal_set_message($status[$type]['description'], 'error', FALSE);
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Custom switch for submit handler. First fill the questionair.
+ */
+function jrccties_core_form_entityform_edit_form_alter(&$form, &$form_state) {
+  $menu = menu_get_item();
+  // Get URL alias as set from the entityform submit.
+  $alias = $menu['page_arguments'][0]->paths['submit']['alias'];
+  $redirect_path = $menu['page_arguments'][0]->data['redirect_path'];
+
+  // Extract group id from path.
+  $find_gid_number = '/(\d{4}(?=[^\d]))/m';
+  preg_match_all($find_gid_number, $alias, $match);
+
+  // Stash the groupId and redirect path in $form array for next submit handler.
+  $form['#stash_gid'] = $match[0]['0'];
+  $form['#redirect_path'] = empty($redirect_path) ? 'node/' . $match[0]['0'] : $redirect_path;
+  $form['actions']['submit']['#submit'] = array(
+    'entityform_edit_form_submit',
+    '_jrccties_core_entityform_edit_form_submit',
+  );
+}
+
+/**
+ * Then join organic group programmatically.
+ */
+function _jrccties_core_entityform_edit_form_submit(&$form, &$form_state) {
+  global $user;
+  // Get Group ID stashed in form.
+  $groupid = $form['#stash_gid'];
+
+  $values = array(
+    'entity_type' => 'user',
+    'entity' => FALSE,
+    'field_name' => FALSE,
+    'state' => 1,
+  );
+  $values['state'] = 2;
+
+  // The form was generated with entityform, save a record on DB to later check.
+  $transaction = db_transaction();
+
+  try {
+
+    $insert = db_insert('jrccties_core')
+      ->fields(array(
+    // TRUE. Form was built with EntityForm.
+        'is_eform' => '1',
+        'gid' => $groupid,
+        'uid' => $user->uid,
+      ));
+    $insert->execute();
+    // Join organic group programmatically.
+    og_group('node', $groupid, $values);
+    return $insert;
+  }
+  catch (Exception $e) {
+    $transaction->rollback();
+    watchdog_exception('To track entityform DB', $e);
+  }
+
+  drupal_goto($form['#redirect_path']);
+
+}
+
+/**
+ * Custom form submit for non organic groups entityforms.
+ */
+function jrccties_core_form_og_ui_confirm_subscribe_alter(&$form, &$form_state) {
+  $form['#submit'][] = '_jrccties_core_normal_ogform_submit';
+}
+
+/**
+ * Custom submit function to remove entry from non-og entityforms.
+ */
+function _jrccties_core_normal_ogform_submit(&$form, &$form_state) {
+  global $user;
+
+  $transaction = db_transaction();
+
+  try {
+    // Form NOT built using Entityform.
+    $insert = db_insert('jrccties_core')
+      ->fields(array(
+    // FALSE. Form was NOT built with EntityForm.
+        'is_eform' => '0',
+        'gid' => $form['gid']['#value'],
+        'uid' => $user->uid,
+      ));
+    $insert->execute();
+
+    return $insert;
+  }
+  catch (Exception $e) {
+    $transaction->rollback();
+    watchdog_exception('To track non Eforms database', $e);
+  }
+
+}
+
+/**
+ * Alter submit function form for unsubscribing entityforms from og.
+ */
+function jrccties_core_form_alter(&$form, &$form_state, $form_id) {
+  $menu = menu_get_item();
+  $path = drupal_get_path_alias();
+  // If path containes groub and unsubscribe then proceed.
+  if ((strpos($path, 'group') !== FALSE) && (strpos($path, 'unsubscribe') !== FALSE)) {
+    $groupid = $menu['page_arguments']['1'];
+    $form['#groupid'] = $groupid;
+    $form['#submit'][] = 'jrccties_core_form_og_ui_confirm_unsubscribe_submit';
+  }
+}
+
+/**
+ * Remove user from Entityform when unsubscribing the group.
+ */
+function jrccties_core_form_og_ui_confirm_unsubscribe_submit(&$form, &$form_state) {
+  global $user;
+  $groupid = $form_state['complete form']['#groupid'];
+
+  $query = db_select('jrccties_core', 'jc')
+    ->fields('jc',
+  array('eid',
+    'gid',
+    'uid',
+    'is_eform',
+  )
+  )
+    ->condition('jc.uid', $user->uid, '=')
+    ->condition('jc.gid', $groupid, '=')
+    ->execute()
+    ->fetch();
+
+  if ($query->is_eform == '1') {
+    _jrccties_core_delete_from_eform($groupid, $query);
+  }
+  else {
+    _jrccties_core_delete_from_record($groupid, $query);
+  }
+
+}
+
+/**
+ * Find entityform user ID to find out which entityform ID to remove.
+ */
+function _jrccties_core_delete_from_eform($groupid, $query) {
+  global $user;
+
+  $ef_query = db_select('entityform', 'ef')
+    ->fields('ef',
+      array('entityform_id',
+        'uid',
+      )
+  )
+    ->condition('ef.uid', $user->uid, '=')
+    ->execute()
+    ->fetch();
+
+  $eform_id = (array) $ef_query;
+  $eform_id = $eform_id['entityform_id'];
+
+  // Delete user from entityform table.
+  entity_delete('entityform', $eform_id);
+  // Delete user from jrccore_core table if form created with entityform.
+  $query = db_delete('jrccties_core')
+    ->condition('eid', $query->eid, '=')
+    ->condition('is_eform', '1', '=')
+    ->execute();
+}
+
+/**
+ * OG subscribe is not a Entityform but still needs remove from record.
+ */
+function _jrccties_core_delete_from_record($groupid, $query) {
+  global $user;
+  $query = db_select('jrccties_core', 'jc')
+    ->fields('jc',
+        array('eid',
+          'gid',
+          'uid',
+          'is_eform',
+        )
+      )
+    ->condition('jc.uid', $user->uid, '=')
+    ->condition('jc.gid', $groupid, '=')
+    ->condition('jc.is_eform', '0', '=')
+    ->execute()
+    ->fetch();
+
+  // Delete user from table if form is not created with entityform.
+  $query = db_delete('jrccties_core')
+    ->condition('is_eform', '0', '=')
+    ->condition('eid', $query->eid, '=')
+    ->execute();
+}

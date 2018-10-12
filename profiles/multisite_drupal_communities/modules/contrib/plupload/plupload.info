@@ -1,0 +1,10 @@
+name = Plupload integration module
+description = Provides a plupload element.
+files[] = plupload.module
+core = 7.x
+package = Media
+
+; Information added by drush on 2015-03-19
+version = "7.x-1.7+5-dev"
+project = "plupload"
+datestamp = "1426755441"

@@ -911,7 +911,7 @@ function locale_js_alter(&$javascript) {
     if ($item['type'] == 'file') {
       $files = TRUE;
       $filepath = $item['data'];
-      if (!in_array($filepath, $parsed)) {
+      if (!in_array($filepath, $parsed) && !url_is_external($filepath)) {
         // Don't parse our own translations files.
         if (substr($filepath, 0, strlen($dir)) != $dir) {
           _locale_parse_js_file($filepath);

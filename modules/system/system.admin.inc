@@ -1798,6 +1798,17 @@ function system_clear_page_cache_submit($form, &$form_state) {
  * @see system_settings_form()
  */
 function system_file_system_settings() {
+  $intervals = array(0, 21600, 43200, 86400, 604800, 2419200, 7776000);
+  $period = array_combine($intervals, array_map('format_interval', $intervals));
+  $period[0] = t('Never');
+  $form['file_temporary_maximum_age'] = array(
+    '#type' => 'select',
+    '#title' => t('Delete orphaned files after'),
+    '#default_value' => variable_get('file_temporary_maximum_age', DRUPAL_MAXIMUM_TEMP_FILE_AGE),
+    '#options' => $period,
+    '#description' => t('Orphaned files are not referenced from any content but remain in the file system and may appear in administrative listings. <strong>Warning:</strong> If enabled, orphaned files will be permanently deleted and may not be recoverable.'),
+   );
+
   $form['file_public_path'] = array(
     '#type' => 'textfield',
     '#title' => t('Public file system path'),

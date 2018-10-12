@@ -1,0 +1,24 @@
+<?php
+
+/**
+ * @file
+ * Integrates Bounce and Simplenews modules.
+ */
+
+/**
+ * Implements hook_bounce_mails_blocked().
+ */
+function simplenews_statistics_bounce_bounce_mails_blocked($mails) {
+  // Filter out all email addresses that do not have a simplenews subscription.
+  $conditions = array('mail' => $mails);
+  $subscribers = simplenews_subscriber_load_multiple(array(), $conditions);
+  // Remove all blocked emails from newsletter subscriptions.
+  foreach ($subscribers as $subscriber) {
+    $mail = $subscriber->mail;
+    foreach ($subscriber->newsletter_subscription as $newsletter_id => $value) {
+      simplenews_unsubscribe_user($mail, $newsletter_id, FALSE, 'bounce');
+    }
+    // Notify the Drupal watchdog.
+    watchdog('simplenews_statistics_bounce', 'Unsubscribed blocked email address %mail from all newsletters.', array('%mail' => $mail));
+  }
+}

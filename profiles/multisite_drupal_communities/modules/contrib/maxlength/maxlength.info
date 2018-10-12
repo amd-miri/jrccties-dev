@@ -1,0 +1,12 @@
+name = Maxlength
+description = Limit the number of characters in textfields and textareas and shows the amount of characters left.
+core = 7.x
+package = Fields
+
+files[] = maxlength.test
+; Information added by Drupal.org packaging script on 2015-03-30
+version = "7.x-3.2-beta2"
+core = "7.x"
+project = "maxlength"
+datestamp = "1427741882"
+

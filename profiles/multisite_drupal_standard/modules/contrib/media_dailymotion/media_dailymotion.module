@@ -1,0 +1,202 @@
+<?php
+/**
+ * @file
+ *
+ * Media: Dailymotion provides a stream wrapper and formatters for videos
+ * provided by Dailymotion, available at http://dailymotion.com/.
+ */
+
+/**
+ * This is the variable namespace, automatically prepended to module variables.
+ */
+define('MEDIA_DAILYMOTION_NAMESPACE', 'media_dailymotion__');
+
+// Hooks and callbacks for integrating with File Entity module for display.
+include_once('includes/media_dailymotion.formatters.inc');
+
+/**
+ * Implements hook_stream_wrappers().
+ */
+function media_dailymotion_stream_wrappers() {
+  return array(
+    'dailymotion' => array(
+      'name' => t('Dailymotion videos'),
+      'class' => 'MediaDailymotionStreamWrapper',
+      'description' => t('Videos provided by Dailymotion.'),
+      'type' => STREAM_WRAPPERS_READ_VISIBLE,
+    ),
+  );
+}
+
+/**
+ * Implements hook_media_internet_providers().
+ */
+function media_dailymotion_media_internet_providers() {
+  $path = drupal_get_path('module', 'media_dailymotion');
+  return array(
+    'MediaInternetDailymotionHandler' => array(
+      'title' => 'dailymotion',
+      'image' => $path . '/images/stream-dailymotion.png'
+    ),
+  );
+}
+
+/**
+ * Implements hook_theme().
+ */
+function media_dailymotion_theme($existing, $type, $theme, $path) {
+  return array(
+    'media_dailymotion_video' => array(
+      'variables' => array('uri' => NULL, 'width' => NULL, 'height' => NULL, 'autoplay' => NULL, 'fullscreen' => NULL, 'iframe' => NULL),
+      'file' => 'media_dailymotion.theme.inc',
+      'path' => $path . '/includes',
+      'template' => 'media-dailymotion-video',
+    ),
+  );
+}
+
+/**
+ * Implements hook_file_mimetype_mapping_alter().
+ *
+ * Regster the video/dailymotion mimetype.
+ */
+function media_dailymotion_file_mimetype_mapping_alter(&$mapping) {
+  $mapping['mimetypes'][] = 'video/dailymotion';
+}
+
+/**
+ * Implements hook_ctools_plugin_api().
+ */
+function media_dailymotion_ctools_plugin_api($owner, $api) {
+  static $api_versions = array(
+    'file_entity' => array(
+      'file_default_displays' => 1,
+    ),
+  );
+  if (isset($api_versions[$owner][$api])) {
+    return array('version' => $api_versions[$owner][$api]);
+  }
+}
+
+/**
+ * Wrapper for variable_get() using the Media: Dailymotion variable registry.
+ *
+ * @param string $name
+ *  The variable name to retrieve. Note that it will be namespaced by
+ *  pre-pending MEDIA_DAILYMOTION_NAMESPACE, as to avoid variable collisions
+ *  with other modules.
+ * @param unknown $default
+ *  An optional default variable to return if the variable hasn't been set
+ *  yet. Note that within this module, all variables should already be set
+ *  in the media_dailymotion_variable_default() function.
+ * @return unknown
+ *  Returns the stored variable or its default.
+ *
+ * @see media_dailymotion_variable_set()
+ * @see media_dailymotion_variable_del()
+ * @see media_dailymotion_variable_default()
+ * @ingroup media_dailymotion_variables
+ */
+function media_dailymotion_variable_get($name, $default = NULL) {
+  // Allow for an override of the default.
+  // Useful when a variable is required (like $path), but namespacing is still
+  // desired.
+  if (!isset($default)) {
+    $default = media_dailymotion_variable_default($name);
+  }
+  // Namespace all variables.
+  $variable_name = MEDIA_DAILYMOTION_NAMESPACE . $name;
+  return variable_get($variable_name, $default);
+}
+
+/**
+ * Wrapper for variable_set() using the Media: Dailymotion variable registry.
+ *
+ * @param string $name
+ *  The variable name to set. Note that it will be namespaced by
+ *  pre-pending MEDIA_DAILYMOTION_NAMESPACE, as to avoid variable collisions with
+ *  other modules.
+ * @param unknown $value
+ *  The value for which to set the variable.
+ * @return unknown
+ *  Returns the stored variable after setting.
+ *
+ * @see media_dailymotion_variable_get()
+ * @see media_dailymotion_variable_del()
+ * @see media_dailymotion_variable_default()
+ * @ingroup media_dailymotion_variables
+ */
+function media_dailymotion_variable_set($name, $value) {
+  $variable_name = MEDIA_DAILYMOTION_NAMESPACE . $name;
+  return variable_set($variable_name, $value);
+}
+
+/**
+ * Wrapper for variable_del() using the Media: Dailymotion variable registry.
+ *
+ * @param string $name
+ *  The variable name to delete. Note that it will be namespaced by
+ *  pre-pending MEDIA_DAILYMOTION_NAMESPACE, as to avoid variable collisions with
+ *  other modules.
+ *
+ * @see media_dailymotion_variable_get()
+ * @see media_dailymotion_variable_set()
+ * @see media_dailymotion_variable_default()
+ * @ingroup media_dailymotion_variables
+ */
+function media_dailymotion_variable_del($name) {
+  $variable_name = MEDIA_DAILYMOTION_NAMESPACE . $name;
+  variable_del($variable_name);
+}
+
+/**
+ * The default variables within the Media: Dailymotion namespace.
+ *
+ * @param string $name
+ *  Optional variable name to retrieve the default. Note that it has not yet
+ *  been pre-pended with the MEDIA_DAILYMOTION_NAMESPACE namespace at this time.
+ * @return unknown
+ *  The default value of this variable, if it's been set, or NULL, unless
+ *  $name is NULL, in which case we return an array of all default values.
+ *
+ * @see media_dailymotion_variable_get()
+ * @see media_dailymotion_variable_set()
+ * @see media_dailymotion_variable_del()
+ * @ingroup media_dailymotion_variables
+ */
+function media_dailymotion_variable_default($name = NULL) {
+  static $defaults;
+
+  if (!isset($defaults)) {
+    $defaults = array(
+      'width' => 560,
+      'height' => 340,
+      'autoplay' => FALSE,
+      'fullscreen' => TRUE,
+      'iframe' => TRUE,
+      'preview_uri' => 'dailymotion://video_id/x4tbcg',
+    );
+  }
+
+  if (!isset($name)) {
+    return $defaults;
+  }
+
+  if (isset($defaults[$name])) {
+    return $defaults[$name];
+  }
+}
+
+/**
+ * Return the fully namespace variable name.
+ *
+ * @param string $name
+ *  The variable name to retrieve the namespaced name.
+ * @return string
+ *  The fully namespace variable name, prepended with
+ *  MEDIA_DAILYMOTION_NAMESPACE.
+ * @ingroup media_dailymotion_variables
+ */
+function media_dailymotion_variable_name($name) {
+  return MEDIA_DAILYMOTION_NAMESPACE . $name;
+}

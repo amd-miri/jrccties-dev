@@ -1,0 +1,15 @@
+name = Integration Producer
+description = Integration Layer Producer plugin.
+core = 7.x
+package = Integration
+version = 7.x-1.0-dev
+project = integration_producer
+
+dependencies[] = integration
+dependencies[] = registry_autoload
+registry_autoload[] = PSR-4
+
+; Information added by drush on 2016-12-09
+version = "7.x-1.x-dev"
+project = "integration"
+datestamp = "1481286319"

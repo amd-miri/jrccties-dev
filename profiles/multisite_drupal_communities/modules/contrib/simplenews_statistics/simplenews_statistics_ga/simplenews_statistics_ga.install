@@ -1,0 +1,22 @@
+<?php
+
+/**
+ * @file
+ * Simplenews statistics Google Analytics (un)install and updates file.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function simplenews_statistics_ga_install() {
+  // @todo: Setup defaults for variables.
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function simplenews_statistics_ga_uninstall() {
+  variable_del('simplenews_statistics_ga_utm_source');
+  variable_del('simplenews_statistics_ga_utm_medium');
+  variable_del('simplenews_statistics_ga_utm_campaign');
+}

@@ -55,8 +55,8 @@ function ecas_form_user_profile_form_alter(&$form, &$form_state, $form_id) {
     $ecas_ch_pw_url = variable_get('ecas_change_password_url', ECAS_DEFAULT_CHANGE_PASSWORD_URL);
     $form['account']['ecas_information_label'] = array(
       '#markup' => sprintf(
-        t('This account is managed by ECAS. Its password can be changed using %s.'),
-        l(t('the ECAS change password page'), $ecas_ch_pw_url)
+        t('This account is managed by EU Login. Its password can be changed using %s.'),
+        l(t('the EU Login change password page'), $ecas_ch_pw_url)
       ),
       '#weight' => -10,
     );
@@ -90,7 +90,7 @@ function _ecas_user_pass_validate($form, &$form_state) {
     if (_is_ecas_user($account)) {
       $ecas_ch_pw_url = variable_get('ecas_change_password_url', ECAS_DEFAULT_CHANGE_PASSWORD_URL);
       $ecas_ch_pw_link = l($ecas_ch_pw_url, $ecas_ch_pw_url);
-      $message = t('This user appears to be an ECAS user -- you can not recover his password using this form. Please visit %s instead');
+      $message = t('This user appears to be an EU Login user -- you can not recover his password using this form. Please visit %s instead');
       $displayed_message = sprintf($message, $ecas_ch_pw_link);
       form_set_error('name', $displayed_message);
       return;
@@ -113,20 +113,20 @@ function _ecas_user_pass_validate($form, &$form_state) {
 function _ecas_menu(array &$items) {
   $items['ecas'] = array(
     'path' => 'ecas',
-    'title' => 'ECAS Login',
+    'title' => 'EU Login',
     'page callback' => 'ecas_login_page',
     'access callback' => 'ecas_menu_check',
     'type' => MENU_SUGGESTED_ITEM,
   );
 
   $items['ecaslogout'] = array(
-    'title' => 'ECAS Logout',
+    'title' => 'EU Login - Logout',
     'page callback' => 'ecas_logout',
     'access callback' => 'ecas_menu_logout_check',
     'type' => MENU_SUGGESTED_ITEM,
   );
   $items['ecasfulllogout'] = array(
-    'title' => 'ECAS Full Logout',
+    'title' => 'EU Login - Full Logout',
     'page callback' => 'ecas_logout',
     'page arguments' => array(TRUE),
     'access callback' => 'ecas_menu_logout_check',
@@ -134,14 +134,14 @@ function _ecas_menu(array &$items) {
   );
 
   $items['account_request'] = array(
-    'title' => 'Create an ECAS account',
+    'title' => 'Create an EU Login account',
     'page callback' => 'account_request',
     'access callback' => 'ecas_menu_check',
     'type' => MENU_SUGGESTED_ITEM,
   );
 
   $items['ecas_warning_page'] = array(
-    'title' => 'Ecas warning',
+    'title' => 'EU Login warning',
     'page callback' => 'ecas_warning_page',
     'access arguments' => array('access content'),
     'type' => MENU_CALLBACK,
@@ -197,7 +197,7 @@ function ecas_login_page() {
   }
 
   $force_proto = variable_get('ecas_force_proto', FALSE);
-  if (strlen($force_proto)) {
+  if (drupal_strlen($force_proto)) {
     $destination = preg_replace('/^(https?:\/\/)/', $force_proto . '://', $destination);
   }
 
@@ -210,10 +210,10 @@ function ecas_login_page() {
  * @param bool $full_logout
  *   TRUE to also log out from ECAS itself, FALSE to log out only from Drupal.
  */
-function ecas_logout($full_logout = FALSE) {
+function ecas_logout($full_logout = TRUE) {
   global $user;
 
-  watchdog('user', 'Session closed for %name.', array('%name' => theme('placeholder', $user->name)));
+  watchdog('user', 'Session closed for %name.', array('%name' => format_username($user)));
 
   // Destroy the current session.
   session_destroy();
@@ -226,7 +226,7 @@ function ecas_logout($full_logout = FALSE) {
   unset($_SESSION['ecas_goto']);
   // Removes the optional sticky cookie.
   $http_cookie_name = variable_get('ecas_sticky_cookie_name', 'drupal_stick_to_https');
-  if (strlen($http_cookie_name)) {
+  if (drupal_strlen($http_cookie_name)) {
     global $base_path;
     setcookie($http_cookie_name, 'deleted', time() - 86400, $base_path, '.' . $_SERVER['HTTP_HOST'], FALSE, TRUE);
   }
@@ -234,8 +234,7 @@ function ecas_logout($full_logout = FALSE) {
   if ($full_logout) {
     _ecas_init_phpcas_client();
     $params = array(
-      'service' => variable_get('site_name', 'ecas'),
-      'url' => url('front', array('absolute' => TRUE)),
+      'url' => url('<front>', array('absolute' => TRUE)),
     );
     drupal_alter('ecas_full_logout_parameters', $params);
     phpCAS::logout($params);
@@ -389,12 +388,13 @@ function ecas_login_check() {
       phpCAS::forceAuthentication();
     }
 
-    if (phpCAS::isAuthenticated() && (($force_login === ECAS_GATEWAY && ($ecas_logout == NULL || $ecas_logout == 'false')) || ($force_login === ECAS_LOGIN))) {
+    if (phpCAS::isAuthenticated() && (($force_login === ECAS_GATEWAY) || ($force_login === ECAS_LOGIN))) {
       $ecas_name = phpCAS::getUser();
+      // @codingStandardsIgnoreStart: NEPT-1332: To be fixed during refactoring.
       $ecas_attributes = phpCAS::getAttributes();
       $ecas_groups = $ecas_attributes['cas:groups'];
       $ecas_email = $ecas_attributes['cas:email'];
-
+      // @codingStandardsIgnoreEnd
       // Try to log into Drupal.
       $account = user_load_by_name($ecas_name);
 
@@ -463,7 +463,7 @@ function ecas_login_check() {
         // using HTTPS and should not use HTTP for the duration of this
         // session".
         $http_cookie_name = variable_get('ecas_sticky_cookie_name', 'drupal_stick_to_https');
-        if (strlen($http_cookie_name)) {
+        if (drupal_strlen($http_cookie_name)) {
           global $base_path;
           setcookie($http_cookie_name, variable_get('ecas_sticky_cookie_value', 'y'), 0, $base_path, '.' . $_SERVER['HTTP_HOST'], FALSE, TRUE);
         }
@@ -544,7 +544,7 @@ function ecas_block_view($delta = '') {
  */
 function ecas_block_info() {
   $blocks['ecas'] = array(
-    'info' => t('ECAS User login'),
+    'info' => t('EU Login'),
   );
 
   return $blocks;
@@ -567,7 +567,7 @@ function _ecas_force_login() {
   }
 
   // Allow users to access the drupal login page.
-  if ($arg0 == 'user' && empty($arg1)) {
+  if ($arg0 == 'user') {
     return ECAS_NO_LOGIN;
   }
 
@@ -645,7 +645,7 @@ function _ecas_force_login() {
 function ecas_warning_page() {
   $output = '';
 
-  $output .= '<h2>' . t('Account blocked') . '</h2>';
+  $output .= '<h2 class="ecl-heading ecl-heading--h2">' . t('Account blocked') . '</h2>';
   $output .= '<p>' . variable_get('ecas_warning_message', t('Your account is not yet approved')) . '</p>';
 
   return $output;
@@ -662,7 +662,7 @@ function _ecas_init_phpcas_client() {
   $start_session      = (boolean) FALSE;
 
   // Drupal takes care of its own session.
-  $assurance_level    = variable_get('ecas_assurance_level', constant('ECAS_DEFAULT_ASSURANCE_LEVEL'));
+  $assurance_level = variable_get('ecas_assurance_level', constant('ECAS_DEFAULT_ASSURANCE_LEVEL'));
 
   // Before using the phpCas client, we optionally set it in debug mode.
   if (variable_get('ecas_phpcas_debug', FALSE)) {
@@ -697,7 +697,7 @@ function _ecas_init_phpcas_client() {
  * @param array $defaults
  *   An array of user fields and properties to save on the user object.
  *
- * @return FALSE|\stdClass
+ * @return false|\stdClass
  *   The user object, or FALSE if the user could not be created.
  */
 function ecas_create_user($ecas_name, $defaults = array()) {
@@ -731,4 +731,38 @@ function ecas_create_user($ecas_name, $defaults = array()) {
   }
 
   return $account;
+}
+
+/**
+ * Gets the user's department structure.
+ *
+ * @param array $user_info
+ *   The user's attributes retrieved from the LDAP.
+ *
+ * @return array
+ *   The service to which the user belongs:
+ *    - 'dg': User's DG Acronym or FALSE if not given;
+ *    - 'directorate': User's directorate name or FALSE if not given;
+ *    - 'unit': User's unit name or FALSE if not given;
+ *    - 'sub_unit': User's sub-unit name or FALSE if not given;
+ *    - 'full_name": The full name of the user's department.
+ *
+ * @see phpCAS::getAttributes()
+ */
+function ecas_get_user_department($user_info) {
+  if (!empty($user_info['cas:departmentNumber'])) {
+    $department = array('full_name' => $user_info['cas:departmentNumber']);
+    $organizations = explode('.', $user_info['cas:departmentNumber']);
+
+    $department += array(
+      'dg' => (!empty($organizations[0])) ? $organizations[0] : FALSE,
+      'directorate' => (!empty($organizations[1])) ? $organizations[1] : FALSE,
+      'unit' => (!empty($organizations[2])) ? $organizations[2] : FALSE,
+      'sub_unit' => (!empty($organizations[3])) ? $organizations[3] : FALSE,
+    );
+
+    return $department;
+  }
+
+  return array();
 }

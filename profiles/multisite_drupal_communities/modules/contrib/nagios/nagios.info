@@ -1,0 +1,10 @@
+name = Nagios monitoring
+description = Exposes a page that Nagios can monitor and drush hooks for NRPE.
+core = 7.x
+package = "Monitoring"
+configure = admin/config/system/nagios
+
+; Information added by drush on 2016-11-22
+version = "7.x-1.3+25-dev"
+project = "nagios"
+datestamp = "1479806424"

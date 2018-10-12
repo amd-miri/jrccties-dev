@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @file
  * Contains \\Drupal\\block\\Config.
@@ -70,10 +71,10 @@ class Config extends ConfigBase {
    * Get WYSIWYG profile object.
    *
    * @param string $format_name
-   *    Text format machine name, for example: "full_html".
+   *   Text format machine name, for example: "full_html".
    *
    * @return object
-   *    WYSIWYG profile object.
+   *   WYSIWYG profile object.
    */
   public function getProfile($format_name) {
     wysiwyg_profile_cache_clear();
@@ -86,14 +87,14 @@ class Config extends ConfigBase {
    * Create a new WYSIWYG profile.
    *
    * @param string $format_name
-   *    Text format machine name, for example: "full_html".
+   *   Text format machine name, for example: "full_html".
    * @param string $editor
-   *    WYSIWYG JavaScript plugin machine name, for example: "ckeditor".
+   *   WYSIWYG JavaScript plugin machine name, for example: "ckeditor".
    * @param array $settings
-   *    Profile settings array.
+   *   Profile settings array.
    *
    * @return object
-   *    WYSIWYG profile object.
+   *   WYSIWYG profile object.
    */
   public function createProfile($format_name, $editor, $settings = array()) {
     $settings += $this->defaultSettings();
@@ -114,7 +115,7 @@ class Config extends ConfigBase {
    * Remove a WYSIWYG profile.
    *
    * @param string $format_name
-   *    Text format machine name, for example: "full_html".
+   *   Text format machine name, for example: "full_html".
    */
   public function deleteProfile($format_name) {
     wysiwyg_profile_delete($format_name);
@@ -127,7 +128,7 @@ class Config extends ConfigBase {
    * @param string $profile
    *   Text format machine name, for example: "full_html".
    */
-  private function updateProfile($profile) {
+  public function updateProfile($profile) {
     db_merge('wysiwyg')
       ->key(array('format' => $profile->format))
       ->fields(array(
@@ -143,7 +144,7 @@ class Config extends ConfigBase {
    * @see: wysiwyg_profile_form().
    *
    * @return array
-   *    Array of default profile settings.
+   *   Array of default profile settings.
    */
   private function defaultSettings() {
     return array(
@@ -165,7 +166,7 @@ class Config extends ConfigBase {
       'preformatted' => FALSE,
       'convert_fonts_to_spans' => TRUE,
       'remove_linebreaks' => TRUE,
-      'apply_source_formatting' => FALSE,
+      'apply_source_formatting' => TRUE,
       'paste_auto_cleanup_on_paste' => FALSE,
       'css_setting' => 'theme',
       'css_path' => NULL,

@@ -180,7 +180,7 @@ function chr_curl_http_request($url, array $options = array()) {
   _chr_curl_set_options($options, $ch);
 
   // Make request.
-  $result->data = trim(curl_exec($ch));
+  $result->data = ltrim(curl_exec($ch));
 
   // Check for errors.
   $result->errno = curl_errno($ch);
@@ -412,17 +412,13 @@ function _chr_curl_set_headers(&$options, &$ch) {
  */
 function _chr_curl_request_type_option(&$options, &$ch) {
   $valid_method = FALSE;
-  switch(drupal_strtoupper($options['method'])) {
+  $method = drupal_strtoupper($options['method']);
+  switch($method) {
     case 'DELETE':
-      curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
-      $valid_method = TRUE;
-    break;
     case 'OPTIONS':
-      curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'OPTIONS');
-      $valid_method = TRUE;
-    break;
+    case 'PURGE':
     case 'TRACE':
-      curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'TRACE');
+      curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
       $valid_method = TRUE;
     break;
     case 'CONNECT':
@@ -491,7 +487,7 @@ function _chr_curl_set_port(&$options, &$ch, &$uri) {
     // RFC 2616: "non-standard ports MUST, default ports MAY be included".
     // We don't add the standard port to prevent from breaking rewrite rules
     // checking the host that do not take into account the port number.
-    $options['headers']['Host'] = $uri['host'] . ($uri['port'] != 80 ? ':' . $uri['port'] : '');
+    $options['headers']['Host'] = $uri['host'] . ($uri['port'] != $default_ports[$uri['scheme']] ? ':' . $uri['port'] : '');
 
     return TRUE;
   }

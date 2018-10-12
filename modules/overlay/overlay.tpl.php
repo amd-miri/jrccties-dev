@@ -5,6 +5,8 @@
  * Default theme implementation to display a page in the overlay.
  *
  * Available variables:
+ * - $attributes: array of HTML attributes populated by modules, intended to
+ *   be added to the main container tag of this template.
  * - $title: the (sanitized) title of the page.
  * - $page: The rendered page content.
  * - $tabs (array): Tabs linking to any sub-pages beneath the current page

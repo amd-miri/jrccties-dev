@@ -1,0 +1,13 @@
+core = "7.x"
+description = "Provides an additional language negotiation only for administration pages."
+name = "Administration language negotiation"
+package = Multilanguage
+dependencies[] = locale
+configure = admin/config/regional/language/configure/administration_language
+
+; Information added by Drupal.org packaging script on 2017-11-21
+version = "7.x-1.4"
+core = "7.x"
+project = "administration_language_negotiation"
+datestamp = "1511285288"
+

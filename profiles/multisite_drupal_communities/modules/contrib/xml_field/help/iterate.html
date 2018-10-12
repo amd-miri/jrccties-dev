@@ -1,0 +1,22 @@
+
+<p>In these examples, <code>$xml</code> can be either a string or an object.  <code>$selector</code> should be a string, e.g. "child".  We wrap <code>$xml</code> in <code>xml_field_xml()</code> to make sure that we have an xml object.</p>
+
+<h2>Iterating over attributes</h2>
+
+<pre><code>  if (xml_field_has($xml, $selector)) {
+    $attributes = xml_field_xml($xml)-&gt;{$selector}-&gt;attributes();
+    foreach (array_keys($attributes) as $name) {
+      ...
+    }
+  }
+</code></pre>
+
+<h2>Iterating over children</h2>
+
+<pre><code>  if (xml_field_has($xml, $selector)) {
+    $attributes = xml_field_xml($xml)-&gt;{$selector}-&gt;children();
+    foreach (array_keys($attributes) as $name) {
+      ...
+    }
+  }      
+</code></pre>

@@ -1,0 +1,141 @@
+<?php
+/**
+ * @file
+ * Install, update, and uninstall functions for the field_example module.
+ */
+
+/**
+ * Implements hook_field_schema().
+ *
+ * Defines the database schema of the field, using the format used by the
+ * Schema API.
+ *
+ * The data we will store here is just one 7-character element, even
+ * though the widget presents the three portions separately.
+ *
+ * All implementations of hook_field_schema() must be in the module's
+ * .install file.
+ *
+ * @see http://drupal.org/node/146939
+ * @see schemaapi
+ * @see hook_field_schema()
+ * @ingroup field_example
+ */
+function xml_field_field_schema($field) {
+  $columns = array(
+    'xml' => array(
+      'type' => 'text',
+      'size' => 'big',
+      'not null' => FALSE,
+    ),
+  );
+  $indexes = array();
+  return array(
+    'columns' => $columns,
+    'indexes' => $indexes,
+  );
+}
+
+
+/**
+ * Implements hook_enable().
+ */
+function xml_field_enable() {
+  drupal_set_message(t('Please review the <a href="@url">help page</a> for XML Field as it contains important security information.', array(
+    '@url' => url('admin/help', array(
+      'fragment' => 'xml_field',
+    ))
+  )));
+}
+
+/**
+ * Implements hook_requirements().
+ *
+ * Checks installation requirements and do status reporting.
+ * http://api.drupal.org/api/function/hook_requirements
+ *
+ * @param phase 'install' or 'runtime':
+ * @return A keyed array of requirements
+ */
+function xml_field_requirements($phase) {
+  $reqs = array();
+  $t = get_t();
+  if ($phase == 'install') {
+    if (!function_exists('simplexml_load_string')) {
+      $reqs['xml_field'] = array(
+        'severity' => REQUIREMENT_ERROR,
+        'description' => $t('The <a href="@url" onclick="window.open(this.href); return false;">SimpleXML PHP extension</a> is required by XML Field. This must be installed before enabling XML Field.', array(
+          '@url' => 'http://www.php.net/manual/en/book.simplexml.php',
+        )),
+      );
+    }
+  }
+  return $reqs;
+}
+
+/**
+ * Upgrade all field instances to use the default_value_function
+ */
+function xml_field_update_7001(&$sandbox) {
+  try {
+    $info = xml_field_xml_fields(TRUE);
+    foreach (array_keys($info) as $entity_type) {
+      foreach ($info[$entity_type] as $bundle_type => $field_data) {
+        foreach (array_keys($field_data) as $field_name) {
+          $instances = field_read_instances(array(
+            'entity_type' => $entity_type,
+            'bundle' => $bundle_type,
+            'field_name' => $field_name,
+          ));
+          foreach ($instances as $instance) {
+            if (!isset($instance['default_value_function'])) {
+              unset($instance['default_value']);
+              $instance['default_value_function'] = '_xml_field_default';
+              field_update_instance($instance);
+            }
+          }
+        }
+      }
+    }
+  }
+  catch (Exception $e) {
+    throw new DrupalUpdateException('FAILED: Upgrade all field instances to use the default_value_function');
+  }
+}
+
+/**
+ * Upgrade field instance settings keys to match those of the new element.
+ */
+function xml_field_update_7201(&$sandbox) {
+  try {
+    $info = xml_field_xml_fields(TRUE);
+    foreach (array_keys($info) as $entity_type) {
+      foreach ($info[$entity_type] as $bundle_type => $field_data) {
+        foreach (array_keys($field_data) as $field_name) {
+          $instances = field_read_instances(array(
+            'entity_type' => $entity_type,
+            'bundle' => $bundle_type,
+            'field_name' => $field_name,
+          ));
+          foreach ($instances as $instance) {
+            $instance['settings']['xml_example_show']       = $instance['settings']['default_show'];
+            unset($instance['settings']['default_show']);
+            $instance['settings']['xml_example_collapsed']  = $instance['settings']['default_collapsed'];
+            unset($instance['settings']['default_collapsed']);
+
+            unset($instance['settings']['default_prefill']);
+            field_update_instance($instance);
+          }
+        }
+      }
+    }
+  }
+  catch (Exception $e) {
+    throw new DrupalUpdateException('FAILED: Upgrade field instance settings keys to match those of the new element.');
+  }
+
+  $output   = array();
+  $output[] = t('XSD support has been added.  You might want to enable xml_field_extras() module to explore this new feature. Refer to Advanced Help for <a href="!url">XML Field</a> for more info.', array('!url' => url('admin/advanced_help/xml_field')));
+  
+  return implode(PHP_EOL, $output);
+}

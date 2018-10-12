@@ -454,15 +454,23 @@ function field_sql_storage_field_storage_write($entity_type, $entity, $op, $fiel
 
     // Delete and insert, rather than update, in case a value was added.
     if ($op == FIELD_STORAGE_UPDATE) {
+      // Ensure a revision revert won't leave any data in the base table by
+      // deleting everything not relevant to this revision.
+      $base_condition = db_or()
+        ->condition('revision_id', $vid, '<>');
       // Delete languages present in the incoming $entity->$field_name.
       // Delete all languages if $entity->$field_name is empty.
       $languages = !empty($entity->$field_name) ? $field_languages : $all_languages;
       if ($languages) {
-        db_delete($table_name)
-          ->condition('entity_type', $entity_type)
-          ->condition('entity_id', $id)
-          ->condition('language', $languages, 'IN')
-          ->execute();
+        $base_condition->condition('language', $languages, 'IN');
+      }
+      // Clean the tables.
+      db_delete($table_name)
+        ->condition('entity_type', $entity_type)
+        ->condition('entity_id', $id)
+        ->condition($base_condition)
+        ->execute();
+      if ($languages) {
         db_delete($revision_name)
           ->condition('entity_type', $entity_type)
           ->condition('entity_id', $id)

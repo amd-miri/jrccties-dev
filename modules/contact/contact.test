@@ -161,6 +161,20 @@ class ContactSitewideTestCase extends DrupalWebTestCase {
   }
 
   /**
+   * Tests that name and email fields are not present for authenticated users.
+   */
+  function testContactSiteWideTextfieldsLoggedInTestCase() {
+    $this->drupalLogin($this->drupalCreateUser(array('access site-wide contact form')));
+    $this->drupalGet('contact');
+
+    // Ensure that there is no textfield for name.
+    $this->assertFalse($this->xpath('//input[@name=:name]', array(':name' => 'name')));
+
+    // Ensure that there is no textfield for email.
+    $this->assertFalse($this->xpath('//input[@name=:name]', array(':name' => 'mail')));
+  }
+
+  /**
   * Tests auto-reply on the site-wide contact form.
   */
   function testAutoReply() {
@@ -174,6 +188,10 @@ class ContactSitewideTestCase extends DrupalWebTestCase {
     $this->addCategory('foo', 'foo@example.com', $foo_autoreply, FALSE);
     $this->addCategory('bar', 'bar@example.com', $bar_autoreply, FALSE);
     $this->addCategory('no_autoreply', 'bar@example.com', '', FALSE);
+
+    // Log the current user out in order to test the name and e-mail fields.
+    $this->drupalLogout();
+    user_role_grant_permissions(DRUPAL_ANONYMOUS_RID, array('access site-wide contact form'));
 
     // Test the auto-reply for category 'foo'.
     $email = $this->randomName(32) . '@example.com';
@@ -343,6 +361,28 @@ class ContactPersonalTestCase extends DrupalWebTestCase {
     // Test that anonymous users can access the contact form.
     $this->drupalLogout();
     user_role_grant_permissions(DRUPAL_ANONYMOUS_RID, array('access user contact forms'));
+    $this->drupalGet('user/' . $this->contact_user->uid . '/contact');
+    $this->assertResponse(200);
+
+    // Test that users can disable their contact form.
+    $this->drupalLogin($this->contact_user);
+    $edit = array('contact' => FALSE);
+    $this->drupalPost('user/' . $this->contact_user->uid . '/edit', $edit, 'Save');
+    $this->drupalLogout();
+    $this->drupalGet('user/' . $this->contact_user->uid . '/contact');
+    $this->assertResponse(403);
+
+    // Test that user's contact status stays disabled when saving.
+    $contact_user_temp = user_load($this->contact_user->uid, TRUE);
+    user_save($contact_user_temp);
+    $this->drupalGet('user/' . $this->contact_user->uid . '/contact');
+    $this->assertResponse(403);
+
+    // Test that users can enable their contact form.
+    $this->drupalLogin($this->contact_user);
+    $edit = array('contact' => TRUE);
+    $this->drupalPost('user/' . $this->contact_user->uid . '/edit', $edit, 'Save');
+    $this->drupalLogout();
     $this->drupalGet('user/' . $this->contact_user->uid . '/contact');
     $this->assertResponse(200);
 

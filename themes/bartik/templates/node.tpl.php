@@ -5,6 +5,8 @@
  * Bartik's theme implementation to display a node.
  *
  * Available variables:
+ * - $attributes: array of HTML attributes populated by modules, intended to
+ *   be added to the main container tag of this template.
  * - $title: the (sanitized) title of the node.
  * - $content: An array of node items. Use render($content) to print them all,
  *   or print a subset such as render($content['field_example']). Use
@@ -33,6 +35,8 @@
  *   - node-sticky: Nodes ordered above other non-sticky nodes in teaser
  *     listings.
  *   - node-unpublished: Unpublished nodes visible only to administrators.
+ * - $title_attributes: Same as attributes, except applied to the main title
+ *   tag that appears in the template.
  * - $title_prefix (array): An array containing additional output populated by
  *   modules, intended to be displayed in front of the main title tag that
  *   appears in the template.

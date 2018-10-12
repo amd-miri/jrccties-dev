@@ -1,0 +1,84 @@
+<?php
+/**
+ * @file
+ * Install, update, and uninstall functions for the fblikebutton module.
+ */
+// $Id$
+
+/**
+ * Implementation of hook_install().
+ */
+function fblikebutton_install() {
+//  There really is no "schema" to install.
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function fblikebutton_uninstall() {
+  variable_del('fblikebutton_full_node_display');
+  variable_del('fblikebutton_bl_iframe_css');
+  variable_del('fblikebutton_node_types');
+  variable_del('fblikebutton_show_faces');
+  variable_del('fblikebutton_layout');
+  variable_del('fblikebutton_color_scheme');
+  variable_del('fblikebutton_iframe_height');
+  variable_del('fblikebutton_iframe_width');
+  variable_del('fblikebutton_iframe_css');
+  variable_del('fblikebutton_language');
+  variable_del('fblikebutton_displaysend');
+  variable_del('fblikebutton_font');
+  variable_del('fblikebutton_weight');
+  variable_del('fblikebutton_teaser_display');
+  variable_del('fblikebutton_xfbml');
+  variable_del('fblikebutton_appid');
+  variable_del('fblikebutton_share');
+  variable_del('fblikebutton_bl_layout');
+  variable_del('fblikebutton_bl_layout');
+  variable_del('fblikebutton_bl_show_faces');
+  variable_del('fblikebutton_bl_action');
+  variable_del('fblikebutton_bl_font');
+  variable_del('fblikebutton_bl_color_scheme');
+  variable_del('fblikebutton_bl_iframe_width');
+  variable_del('fblikebutton_bl_iframe_height');
+  variable_del('fblikebutton_bl_iframe_css');
+  variable_del('fblikebutton_bl_language');
+  variable_del('fblikebutton_bl_share');
+}
+
+/**
+ * Change the stored variables for the 'show faces' option to a simple boolean.
+ */
+function fblikebutton_update_7200() {
+  // Update the variables for the dynamic fblikebutton.
+  $faces = variable_get('fblikebutton_show_faces', '');
+  if ($faces == 'show') {
+    variable_set('fblikebutton_show_faces', TRUE);
+  }
+  else if ($faces == 'hide') {
+    variable_set('fblikebutton_show_faces', FALSE);
+  }
+
+  // Update the variables for the static fblikebutton.
+  $faces = variable_get('fblikebutton_bl_show_faces', '');
+  if ($faces == 'show') {
+    variable_set('fblikebutton_bl_show_faces', TRUE);
+  }
+  else if ($faces == 'hide') {
+    variable_set('fblikebutton_bl_show_faces', FALSE);
+  }
+}
+
+/**
+ * Remove old values and replace with properly-formatted values, as some sites are experiencing problems from previous update.
+ */
+function fblikebutton_update_7201() {
+  // Just delete the variable and inform the administrator that the value has been set to false, and if it should be true, then they need to manually set it to true.
+  // Too much confusion has occurred with the word "true" and the PHP boolean TRUE, and it's causing the button not to show up on some sites.
+  variable_del('fblikebutton_show_faces');
+  variable_set('fblikebutton_show_faces', TRUE);
+  variable_del('fblikebutton_bl_show_faces');
+  variable_set('fblikebutton_bl_show_faces', TRUE);
+  cache_clear_all();
+  drupal_set_message(t('The Facebook Like Button has been updated successfully. However, if you previously set the values of "show faces" to "Do not show faces", you will need to set those values back to "Do not show faces" now by visiting the settings page for both the') . ' ' . l(t('static'), 'admin/config/fblikebutton/static') . ' ' . t('and the') . ' ' . l(t('dynamic'), 'admin/config/fblikebutton/dynamic') . ' ' . t('settings pages for the Facebook Like Button.'));
+}

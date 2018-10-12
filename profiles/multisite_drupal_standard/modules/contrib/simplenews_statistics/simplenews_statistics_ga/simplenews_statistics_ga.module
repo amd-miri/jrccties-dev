@@ -1,0 +1,67 @@
+<?php
+
+/**
+ * @file
+ * Main simplenews statistics Google Analytics file.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function simplenews_statistics_ga_menu() {
+  $items['admin/config/services/simplenews/statistics/ga'] = array(
+    'title' => 'Google Analytics',
+    'type' => MENU_LOCAL_TASK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('simplenews_statistics_ga_admin_settings_form'),
+    'access arguments' => array('administer GA for newsletter statistics'),
+    'file' => 'simplenews_statistics_ga.admin.inc',
+  );
+  return $items;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function simplenews_statistics_ga_permission() {
+  $perms = array(
+    'administer GA for newsletter statistics' => array(
+      'title' => t('administer GA for newsletter statistics'),
+      'description' => t('Allows to administer Google Analytics settings for newsletter statistics. Give to only trusted roles.'),
+    ),
+  );
+  return $perms;
+}
+
+/**
+ * Implements hook_simplenews_statistics_rewrite_goto_url().
+ * 
+ * @todo: implement use of tokens
+ */
+function simplenews_statistics_ga_simplenews_statistics_rewrite_goto_url(&$path, &$options, $snid, $nid) {
+  $ga_account = variable_get('googleanalytics_account', 'UA-');
+  if (module_exists('googleanalytics') && !empty($ga_account) && $ga_account != 'UA-') {
+    $campaign = variable_get('simplenews_analytics_utm_campaign', '!newsletter_title');
+    if ($campaign == '!newsletter_title') {
+      $node = node_load($nid);
+      $campaign = $node->title;
+    }
+
+    if (variable_get('simplenews_statistics_ga_use_hash', 0)) {
+      // We shouldn't be using fragment like this, but Google Analytics requires
+      // it like this if we have set the fragment option
+      // This might corrupt URL's already using the fragment...
+      if (!empty($options['fragment'])) {
+        $options['fragment'] .= '&';
+      }
+      $options['fragment'] .= 'utm_source=' . drupal_encode_path(variable_get('simplenews_analytics_utm_source', 'newsletter'));
+      $options['fragment'] .= '&utm_medium=' . drupal_encode_path(variable_get('simplenews_analytics_utm_medium', 'email'));
+      $options['fragment'] .= '&utm_campaign=' . drupal_encode_path($campaign);
+    }
+    else {
+      $options['query']['utm_source'] = drupal_encode_path(variable_get('simplenews_analytics_utm_source', 'newsletter'));
+      $options['query']['utm_medium'] = drupal_encode_path(variable_get('simplenews_analytics_utm_medium', 'email'));
+      $options['query']['utm_campaign'] = drupal_encode_path($campaign);
+    }
+  }
+}

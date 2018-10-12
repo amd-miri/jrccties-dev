@@ -1,0 +1,25 @@
+<?php
+
+/**
+ * Install file for Media: Node.
+ */
+ 
+/**
+ * Implement hook_uninstall().
+ */
+function media_node_uninstall() {
+  // Manually load media_node.module for media_node_variable_default().
+  drupal_load('module', 'media_node');
+
+  foreach (media_node_variable_default() as $name => $value) {
+    media_node_variable_del($name);
+  }
+}
+
+
+/**
+ * Rebuild the theme.
+ */
+function media_node_update_7001() {
+}
+

@@ -1,0 +1,35 @@
+name = Free pager: term browsing example
+description = This feature contains an example of how Free pager can be used to browse content ("news") sharing the same taxonomy term.
+core = 7.x
+package = Other
+dependencies[] = features
+dependencies[] = freepager
+dependencies[] = strongarm
+dependencies[] = taxonomy
+dependencies[] = views
+features[ctools][] = strongarm:strongarm:1
+features[ctools][] = views:views_default:3.0
+features[features_api][] = api:1
+features[field][] = node-news-body
+features[field][] = node-news-field_section
+features[node][] = news
+features[taxonomy][] = section
+features[variable][] = comment_anonymous_news
+features[variable][] = comment_default_mode_news
+features[variable][] = comment_default_per_page_news
+features[variable][] = comment_form_location_news
+features[variable][] = comment_news
+features[variable][] = comment_preview_news
+features[variable][] = comment_subject_field_news
+features[variable][] = field_bundle_settings_node__news
+features[variable][] = menu_options_news
+features[variable][] = menu_parent_news
+features[variable][] = node_options_news
+features[variable][] = node_preview_news
+features[variable][] = node_submitted_news
+features[views_view][] = free_pager_section_browser
+
+; Information added by drush on 2014-11-26
+version = "c11c40f6e3e54ff728515589600a0d8e26d831f1"
+project = "freepager"
+datestamp = "1417021300"

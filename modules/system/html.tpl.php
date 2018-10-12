@@ -6,6 +6,8 @@
  * Drupal page.
  *
  * Variables:
+ * - $attributes: array of HTML attributes populated by modules, intended to
+ *   be added to the body tag of this template.
  * - $css: An array of CSS files for the current page.
  * - $language: (object) The language the site is being displayed in.
  *   $language->language contains its textual representation.

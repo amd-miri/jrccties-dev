@@ -1,0 +1,92 @@
+<?php
+/**
+ * @file
+ * Base file for the xml_field_test module.
+ *
+ * @defgroup xml_field_test Xml Field Test
+ * @{
+ */
+
+/**
+ * Form builder for the xml_field_test_element_form form.
+ *
+ * Presents a form using the xml_field elements for testing.
+ *
+ * @param array $form
+ * @param array &$form_state
+ *
+ * @see xml_field_test_element_form_validate()
+ * @see xml_field_test_element_form_submit()
+ * @ingroup forms
+ */
+function xml_field_test_element_form($form, &$form_state) {
+
+  $form['xmltext_novalidation'] = array(
+    '#type' => 'xmltext',
+    '#title' => 'XML - No validation',
+    '#rows' => 8,
+    '#validation_callback' => NULL,
+  );
+  
+  $form['xmltext_is_valid_xml_string'] = array(
+    '#type' => 'xmltext',
+    '#title' => 'XML - xml_field_is_valid_xml_string()',
+    '#rows' => 8,
+    '#validation_callback' => 'xml_field_is_valid_xml_string',
+  );
+
+  $form['xmltext_youtube'] = array(
+    '#type' => 'xmltext',
+    '#title' => 'XML - xml_field_youtube_validator()',
+    '#rows' => 8,
+    '#validation_callback' => 'xml_field_youtube_validator',
+  );
+
+  $form['xmltext_schema'] = array(
+    '#type' => 'xmltext',
+    '#title' => 'XML - with schema',
+    '#rows' => 8,
+    '#xml_schema_errors' => 1,
+    '#xml_schema' => '<xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:element name="test">
+    <xs:complexType>
+      <xs:simpleContent>
+        <xs:extension base="xs:string">
+          <xs:attribute type="xs:string" name="name"/>
+        </xs:extension>
+      </xs:simpleContent>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>',
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('submit'),
+  );
+
+  return $form;
+}
+
+/**
+ * Form submission handler
+ */
+function xml_field_test_element_form_submit($form, &$form_state) {
+  drupal_set_message(t("All fields validated."), 'status', FALSE);
+}
+
+/**
+ * Implements hook_menu().
+ */
+function xml_field_test_menu() {
+  $items = array();
+  $items['xml-field-test/forms'] = array(
+     'title' => 'Forms testing',
+     'page callback' => 'drupal_get_form',
+     'page arguments' => array('xml_field_test_element_form'),
+     'access callback' => TRUE,
+     'type' => MENU_CALLBACK,
+   ); 
+
+  return $items;
+}

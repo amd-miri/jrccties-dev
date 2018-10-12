@@ -108,11 +108,6 @@ function og_linkchecker_report_page($node) {
   $ignore_response_codes = preg_split('/(\r\n?|\n)/', variable_get('linkchecker_ignore_response_codes', "200\n206\n302\n304\n401\n403"));
 
   // Build query for broken links in nodes of the current user.
-  $subquery_group = db_select('linkchecker_link', 'll2');
-  $subquery_group->fields('ll2', array('lid'));
-  $subquery_group->innerJoin('linkchecker_node', 'ln2', 'll2.lid = ln2.lid');
-  $subquery_group->condition('ln2.nid', $node->nid);
-
   $subquery2 = db_select('node', 'n');
   $subquery2->innerJoin('node_revision', 'r', 'r.vid = n.vid');
   $subquery2->innerJoin('linkchecker_node', 'ln', 'ln.nid = n.nid');
@@ -125,7 +120,6 @@ function og_linkchecker_report_page($node) {
   $subquery2->condition('om.entity_type', 'node');
   $subquery2->distinct();
   $subquery2->fields('ll', array('lid'));
-  $subquery2->union($subquery_group, 'ALL');
 
   if (variable_get('linkchecker_scan_comments', 0)) {
     // Build query for broken links in nodes and comments of the current user.
@@ -157,5 +151,6 @@ function og_linkchecker_report_page($node) {
   $query->condition('ll.status', 1);
   $query->condition('ll.code', $ignore_response_codes, 'NOT IN');
   // End code adapted from the Linkchecker module.
+
   return _linkchecker_report_page($query);
 }

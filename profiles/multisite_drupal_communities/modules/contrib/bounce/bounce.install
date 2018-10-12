@@ -1,0 +1,550 @@
+<?php
+
+/**
+ * @file
+ * Install, update, and uninstall functions for the Bounce module.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function bounce_schema() {
+  $schema = array();
+
+  $schema['bounce_blocked'] = array(
+    'description' => 'Stores email addresses that should no longer receive further emails due to past non-delivery reports.',
+    'fields' => array(
+      'blocked_id' => array(
+        'description' => 'Primary key for blocked mail records.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'mail' => array(
+        'description' => 'Email addresses that should no longer receive further emails due to past non-delivery reports.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'created' => array(
+        'description' => 'The time at which this email address was added to the table.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('blocked_id'),
+    'unique_keys' => array(
+      'mail' => array('mail'),
+    ),
+  );
+
+  $schema['bounce_sent'] = array(
+    'description' => 'Records the identifying headers of sent mail, so that non-delivery reports can be more easily linked to email addresses.',
+    'fields' => array(
+      'sent_id' => array(
+        'description' => 'Primary key for sent mail records.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'header_id' => array(
+        'description' => 'Identifier added to the mail headers.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'mail' => array(
+        'description' => 'Email address the mail was sent to.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'created' => array(
+        'description' => 'The time this record was created.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'indexes' => array(
+      'header_id' => array('header_id'),
+      'mail' => array('mail'),
+      'created' => array('created'),
+    ),
+    'primary key' => array('sent_id'),
+  );
+
+  $schema['bounce_non_delivery_report'] = array(
+    'description' => 'Record of non-delivery reports - not all of them, just the ones that could be deciphered.',
+    'fields' => array(
+      'report_id' => array(
+        'description' => 'Primary ID for non-delivery report records.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'mail' => array(
+        'description' => 'Email address the mail was sent to.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'code' => array(
+        'description' => 'The response code associated with the non-delivery report.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'analyst' => array(
+        'description' => 'The machine name of the analyst component that determined the code for this report.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'report' => array(
+        'description' => 'The non-delivery report mail as a serialized data structure of parts.',
+        'type' => 'blob',
+        'size' => 'big',
+        'not null' => FALSE,
+        'serialize' => TRUE,
+      ),
+      'status' => array(
+        'description' => 'Used to record whether or not this non-delivery report has been used to block a mail, and therefore should be treated differently.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'created' => array(
+        'description' => 'The time this record was created.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'indexes' => array(
+      'mail' => array('mail'),
+      'code' => array('code'),
+      'created' => array('created'),
+    ),
+    'primary key' => array('report_id'),
+  );
+
+  $schema['bounce_code_score'] = array(
+    'description' => 'Assigning scores to SMTP codes to enable actions based on score thresholds.',
+    'fields' => array(
+      'code' => array(
+        'description' => 'A code applied to a non-delivery report.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'type' => array(
+        'description' => 'The type of code, e.g. rfc821.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'score' => array(
+        'description' => 'The score associated with this code.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'description' => array(
+        'description' => 'A short description for this response code and score.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+    ),
+    'primary key' => array('code'),
+  );
+  return $schema;
+}
+
+/**
+ * Implements hook_requirements().
+ */
+function bounce_requirements() {
+  $requirements = array();
+  $t = get_t();
+  $requirements['bounce_php_imap'] = array(
+    'title' => $t('PHP IMAP Extension'),
+    'description' => $t('Bounce requires the PHP IMAP extension to be enabled. See <a href="@url">the PHP IMAP documentation</a> for installation instructions.', array(
+      '@url' => 'http://www.php.net/manual/en/book.imap.php',
+    )),
+    'severity' => REQUIREMENT_OK,
+    'value' => $t('Enabled'),
+  );
+  // Check for existence of php-imap.
+  if (!function_exists('imap_open')) {
+    $requirements['bounce_php_imap']['severity'] = REQUIREMENT_ERROR;
+    $requirements['bounce_php_imap']['value'] = $t('Not enabled');
+  }
+  return $requirements;
+}
+
+/**
+ * Implements hook_install().
+ */
+function bounce_install() {
+  // Check to make sure that the schema isn't already there and populated.
+  $count = db_select('bounce_code_score')
+    ->countQuery()
+    ->execute()
+    ->fetchField();
+  if ($count) {
+    return;
+  }
+
+  $t = get_t();
+
+  // Set some initial variables here rather than using the long defaults
+  // everywhere.
+  variable_set('bounce_notify_user_message', 'Please update your email address: it has been blocked from receiving further mails due to failed delivery of past mail.');
+  variable_set('bounce_error_on_registration_message', 'You cannot register with the provided email address: it has been blocked from receiving further mails due to failed delivery of past mail.');
+  variable_set('bounce_error_on_password_reset_message', 'You cannot reset your password. The email address associated with your account been blocked from receiving further mails due to failed delivery of past mail.');
+
+  // Add an initial set of SMTP codes and scores. These are opinionated and by
+  // no means rigorous or comprehensive. The only goal here is to prioritize
+  // avoidance of actions that will make you look like a spam source - i.e.
+  // stop sending mail to addresses where you look like a spammer if you keep
+  // sending despite the non-delivery reports.
+  $values = array(
+    array(
+      'code' => '421',
+      'type' => 'rfc821',
+      'score' => 0,
+      'description' => $t('Probably a greylist response.'),
+    ),
+    array(
+      'code' => '422',
+      'type' => 'rfc821',
+      'score' => 0,
+      'description' => $t('Server out of space error.'),
+    ),
+    array(
+      'code' => '450',
+      'type' => 'rfc821',
+      'score' => 0,
+      'description' => $t('Varying soft bounces.'),
+    ),
+    array(
+      'code' => '451',
+      'type' => 'rfc821',
+      'score' => 0,
+      'description' => $t('Greylist response.'),
+    ),
+    array(
+      'code' => '452',
+      'type' => 'rfc821',
+      'score' => 50,
+      'description' => $t('Account temporarily out of space notice.'),
+    ),
+    array(
+      'code' => '454',
+      'type' => 'rfc821',
+      'score' => 0,
+      'description' => $t('Temporary server error.'),
+    ),
+    array(
+      'code' => '500',
+      'type' => 'rfc821',
+      'score' => 25,
+      'description' => $t('Server error.'),
+    ),
+    array(
+      'code' => '501',
+      'type' => 'rfc821',
+      'score' => 25,
+      'description' => $t('Server error.'),
+    ),
+    array(
+      'code' => '502',
+      'type' => 'rfc821',
+      'score' => 25,
+      'description' => $t('Server error.'),
+    ),
+    array(
+      'code' => '503',
+      'type' => 'rfc821',
+      'score' => 25,
+      'description' => $t('Server error.'),
+    ),
+    array(
+      'code' => '504',
+      'type' => 'rfc821',
+      'score' => 25,
+      'description' => $t('Server error.'),
+    ),
+    array(
+      'code' => '550',
+      'type' => 'rfc821',
+      'score' => 50,
+      'description' => $t('Definitive hard bounce.'),
+    ),
+    array(
+      'code' => '551',
+      'type' => 'rfc821',
+      'score' => 50,
+      'description' => $t('Definitive hard bounce.'),
+    ),
+    array(
+      'code' => '552',
+      'type' => 'rfc821',
+      'score' => 50,
+      'description' => $t('Account permanently out of space notice.'),
+    ),
+    array(
+      'code' => '553',
+      'type' => 'rfc821',
+      'score' => 50,
+      'description' => $t('Definitive hard bounce.'),
+    ),
+    array(
+      'code' => '554',
+      'type' => 'rfc821',
+      'score' => 50,
+      'description' => $t('Definitive hard bounce.'),
+    ),
+    array(
+      'code' => '4.1.1',
+      'type' => 'rfc1893',
+      'score' => 25,
+      'description' => $t('Temporarily no such mailbox.'),
+    ),
+    array(
+      'code' => '4.2.1',
+      'type' => 'rfc1893',
+      'score' => 25,
+      'description' => $t('Mailbox temporarily disabled.'),
+    ),
+    array(
+      'code' => '4.2.2',
+      'type' => 'rfc1893',
+      'score' => 25,
+      'description' => $t('Mailbox temporarily full.'),
+    ),
+    array(
+      'code' => '4.7.1',
+      'type' => 'rfc1893',
+      'score' => 0,
+      'description' => $t('Greylist response.'),
+    ),
+    array(
+      'code' => '5.1.1',
+      'type' => 'rfc1893',
+      'score' => 50,
+      'description' => $t('Permanently no such mailbox.'),
+    ),
+    array(
+      'code' => '5.1.3',
+      'type' => 'rfc1893',
+      'score' => 25,
+      'description' => $t('Failed recipient.'),
+    ),
+    array(
+      'code' => '5.2.1',
+      'type' => 'rfc1893',
+      'score' => 50,
+      'description' => $t('Mailbox permanently disabled.'),
+    ),
+    array(
+      'code' => '5.2.2',
+      'type' => 'rfc1893',
+      'score' => 50,
+      'description' => $t('Mailbox permanently full.'),
+    ),
+    array(
+      'code' => '5.4.0',
+      'type' => 'rfc1893',
+      // We don't want to block an address for a transient DNS error.
+      'score' => 15,
+      'description' => $t('DNS resolution failure for mail domain.'),
+    ),
+    array(
+      'code' => 'abusereport',
+      'type' => 'rfc5965',
+      'score' => 50,
+      'description' => $t('Abuse reporting format (ARF) notification.'),
+    ),
+    array(
+      'code' => 'autoreply',
+      'type' => 'system',
+      'score' => 0,
+      'description' => $t('Out of office, on vacation, and other forms of auto-reply mail.'),
+    ),
+    array(
+      'code' => 'greylist',
+      'type' => 'system',
+      'score' => 0,
+      'description' => $t('Greylist non-delivery report with no SMTP response code.'),
+    ),
+    array(
+      'code' => 'spamfilter',
+      'type' => 'system',
+      'score' => 10,
+      'description' => $t('Notification of message blocked by spam filter.'),
+    ),
+  );
+  $query = db_insert('bounce_code_score')
+    ->fields(array('code', 'type', 'score', 'description'));
+  foreach ($values as $record) {
+    $query->values($record);
+  }
+  $query->execute();
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function bounce_uninstall() {
+  variable_del('bounce_analyst');
+  variable_del('bounce_analyst_ignored_emails');
+  variable_del('bounce_analyst_use_vulnerable_email_search');
+  variable_del('bounce_blocker');
+  variable_del('bounce_blocker_threshold_score');
+  variable_del('bounce_connector');
+  variable_del('bounce_connector_server');
+  variable_del('bounce_connector_type');
+  variable_del('bounce_connector_login');
+  variable_del('bounce_connector_max_reports_per_session');
+  variable_del('bounce_connector_password');
+  variable_del('bounce_connector_port');
+  variable_del('bounce_connector_protocol');
+  variable_del('bounce_connector_encryption');
+  variable_del('bounce_connector_timeout');
+  variable_del('bounce_error_on_password_reset');
+  variable_del('bounce_error_on_password_reset_message');
+  variable_del('bounce_error_on_registration');
+  variable_del('bounce_error_on_registration_message');
+  variable_del('bounce_mail_header_name');
+  variable_del('bounce_mail_header_return_path');
+  variable_del('bounce_max_report_age_days');
+  variable_del('bounce_max_sent_age_days');
+  variable_del('bounce_notify_user_on_account_page');
+  variable_del('bounce_notify_user_on_login');
+  variable_del('bounce_notify_user_message');
+  variable_del('bounce_connector_class');
+}
+
+/**
+ * Update to configuration variables.
+ *
+ * The protocol definitions changed from [pop3, pop3s, imap, imaps] to
+ * [pop3, imap], and the 'bounce_connector_encryption' variable was added. The
+ * prior version could only be configured to use SSL, rather than TLS or SSL.
+ */
+function bounce_update_7100(&$sandbox) {
+  // First a quick paranoia check to make sure we're not trying to run an
+  // update twice. If there is a bounce_connector_encryption variable, then
+  // we're on a later version of the code.
+  $encryption = variable_get('bounce_connector_encryption', NULL);
+  if (!is_null($encryption)) {
+    return;
+  }
+
+  $old_protocol = variable_get('bounce_connector_protocol');
+  switch ($old_protocol) {
+    case 'pop3s':
+      variable_set('bounce_connector_protocol', 'pop3');
+      variable_set('bounce_connector_encryption', 'ssl');
+      break;
+
+    case 'imaps':
+      variable_set('bounce_connector_protocol', 'imap');
+      variable_set('bounce_connector_encryption', 'ssl');
+      break;
+
+    default:
+      variable_set('bounce_connector_encryption', '');
+      break;
+  }
+}
+
+/**
+ * An update to add a new response code.
+ */
+function bounce_update_7101(&$sandbox) {
+  // First a quick paranoia check to make sure we're not trying to run an
+  // update twice. If the new code is there, we've already updated.
+  $check = db_select('bounce_code_score', 'cs')
+    ->fields('cs', array('code', 'type', 'score', 'description'))
+    ->condition('code', 'abusereport', '=')
+    ->execute()
+    ->fetchAssoc();
+  if ($check) {
+    return;
+  }
+
+  $t = get_t();
+
+  $values = array(
+    array(
+      'code' => 'abusereport',
+      'type' => 'rfc5965',
+      'score' => 50,
+      'description' => $t('Abuse reporting format (ARF) notification.'),
+    ),
+  );
+  $query = db_insert('bounce_code_score')
+    ->fields(array('code', 'type', 'score', 'description'));
+  foreach ($values as $record) {
+    $query->values($record);
+  }
+  $query->execute();
+}
+
+/**
+ * An update to add new response codes.
+ */
+function bounce_update_7102(&$sandbox) {
+  $t = get_t();
+
+  $codes = array(
+    array(
+      'code' => '5.1.3',
+      'type' => 'rfc1893',
+      'score' => 25,
+      'description' => $t('Failed recipient.'),
+    ),
+    array(
+      'code' => '5.4.0',
+      'type' => 'rfc1893',
+      'score' => 15,
+      'description' => $t('DNS resolution failure for mail domain.'),
+    ),
+  );
+
+  foreach ($codes as $code) {
+    // First a quick paranoia check to make sure we're not trying to run an
+    // update twice. If the new code is there, we've already updated.
+    $check = db_select('bounce_code_score', 'cs')
+      ->fields('cs', array('code', 'type', 'score', 'description'))
+      ->condition('code', $code['code'], '=')
+      ->execute()
+      ->fetchAssoc();
+    if ($check) {
+      continue;
+    }
+
+    $query = db_insert('bounce_code_score')
+      ->fields(array('code', 'type', 'score', 'description'));
+    $query->values($code);
+    $query->execute();
+  }
+}

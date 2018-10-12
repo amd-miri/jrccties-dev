@@ -16,6 +16,8 @@
  *      where all items and categories are collected and printed out.
  *
  * Available variables:
+ * - $attributes: array of HTML attributes populated by modules, intended to
+ *   be added to the dl tag of this template.
  * - $title: Category title for the group of items.
  * - $profile_items: All the items for the group rendered through
  *   user-profile-item.tpl.php.

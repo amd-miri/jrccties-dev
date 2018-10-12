@@ -1,52 +1,53 @@
 <?php
 
 /**
- * Implements hook_install().
- *
- * Perform actions to set up the site for this profile.
+ * @file
+ * Multisite Drupal Standard installation profile.
  */
 
+/**
+ * Install all basic configuration of the standard profile.
+ */
 function multisite_drupal_standard_install() {
-  include_once DRUPAL_ROOT . '/profiles/multisite_drupal_core/multisite_drupal_core.install';
-  multisite_drupal_core_install();
-
-  // permissions to the contributor
-  $contrib_rid = get_rid('contributor');
-  user_role_grant_permissions($contrib_rid, array(  
-    'view all unpublished content',
-	//'moderate content from needs_review to published',
-	'moderate content from needs_review to draft',
-	//'edit any article content',
-	//'delete any article content',
-  )); 
-  
+  cce_basic_config_post_install();
 }
 
+/**
+ * Implements hook_install_tasks().
+ */
+function multisite_drupal_standard_install_tasks() {
+  $tasks = array(
+    'cce_basic_config_profile_theme_default_form' => array(
+      'display_name' => st('Choose theme'),
+      'type' => 'form',
+    ),
+  );
+  return $tasks;
+}
 
-/*
- * hook_update_N
+/**
+ * Gives permissions to the editor role.
  */
 function multisite_drupal_standard_update_7100() {
-  // editor role
+  // Editor role.
   $role = db_select('role', 'r')
     ->condition('name', 'editor', '=')
     ->fields('r')
     ->execute()
-    ->fetchObject();   
-  if(!$role) {
+    ->fetchObject();
+  if (!$role) {
     $role = new stdClass();
     $role->name = 'editor';
-    user_role_save($role); 
+    user_role_save($role);
   }
 
-  user_role_grant_permissions($role->rid, array(  
+  user_role_grant_permissions($role->rid, array(
     'create article content',
     'delete any article content',
     'delete own article content',
     'delete revisions',
     'edit any article content',
     'edit own article content',
-    'export nodes',
     'moderate content from needs_review to draft',
     'moderate content from needs_review to published',
     'moderate content from needs_review to validated',
@@ -58,11 +59,33 @@ function multisite_drupal_standard_update_7100() {
     'revert revisions',
     'view own unpublished content',
     'view all unpublished content',
-  ));  
-  
-  // administrator role
-  $adm_rid = get_rid('administrator'); 
+  ));
+
+  // Administrator role.
+  $adm_rid = get_rid('administrator');
   user_role_revoke_permissions($adm_rid, array(
     'administer software updates',
   ));
+}
+
+/**
+ * NEXTEUROPA-3298: Disable ckeditor_link module.
+ */
+function multisite_drupal_standard_update_7200() {
+  module_disable(array('ckeditor_link'));
+  drupal_uninstall_modules(array('ckeditor_link'));
+}
+
+/**
+ * NEXTEUROPA-9797: Enable nexteuropa_laco module.
+ */
+function multisite_drupal_standard_update_7201() {
+  module_enable(array('nexteuropa_laco'));
+}
+
+/**
+ * NEXTEUROPA-11872: Enable username_enumeration_prevention module.
+ */
+function multisite_drupal_standard_update_7202() {
+  module_enable(array('username_enumeration_prevention'));
 }

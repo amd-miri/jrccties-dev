@@ -1,0 +1,83 @@
+<?php
+
+/**
+ * @file
+ * Main simplenews statistics encoder file.
+ */
+
+/**
+ * @todo: Implement a system like simplenews' hash for sub and unsub links.
+ *
+ * See: simplenews_generate_hash()
+ *   drupal_substr(md5($mail . simplenews_private_key()), 0, 10).$snid.'t'.$tid;
+ * See: simplenews_subscriber_load_by_hash($hash)
+ *
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function simplenews_statistics_encoder_menu() {
+  $items['admin/config/services/simplenews/statistics/encoder'] = array(
+    'title' => 'Parameter Encoding',
+    'type' => MENU_LOCAL_TASK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('simplenews_statistics_encoder_settings_form'),
+    'access arguments' => array('administer newsletter paramater encoding'),
+    'file' => 'simplenews_statistics_encoder.admin.inc',
+  );
+  return $items;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function simplenews_statistics_encoder_permission() {
+  return array(
+    'administer newsletter paramater encoding' => array(
+      'title' => t('Administer newsletter paramater encoding'),
+      'description' => t('Allows to administer parameter encoding settings for newsletter statistics.'),
+      'restrict access' => TRUE,
+    ),
+  );
+}
+
+/**
+ * Implements hook_simplenews_statistics_encode().
+ */
+function simplenews_statistics_encoder_simplenews_statistics_encode($id, $key) {
+  $type = variable_get('simplenews_statistics_encoder_type', 'md5');
+  module_load_include('inc', 'simplenews_statistics_encoder', 'encoder');
+
+  if ($type == 'md5') {
+    return simplenews_statistics_encoder_generate_hash($id, $key);
+  }
+  elseif ($type == 'shorturl') {
+    $salt = variable_get('simplenews_statistics_encoder_salt', 0);
+    $salted = $id + $salt;
+    return simplenews_statistics_encoder_encode($salted);
+  }
+  else {
+    return $id;
+  }
+}
+
+/**
+ * Implements hook_simplenews_statistics_decode().
+ */
+function simplenews_statistics_encoder_simplenews_statistics_decode($id, $key) {
+  $type = variable_get('simplenews_statistics_encoder_type', 'md5');
+  module_load_include('inc', 'simplenews_statistics_encoder', 'encoder');
+
+  if ($type == 'md5') {
+    return simplenews_statistics_encoder_decode_hash($id, $key);
+  }
+  elseif ($type == 'shorturl') {
+    $decoded = simplenews_statistics_encoder_decode($id);
+    $salt = variable_get('simplenews_statistics_encoder_salt', 0);
+    return $decoded - $salt;
+  }
+  else {
+    return $id;
+  }
+}

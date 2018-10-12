@@ -1,0 +1,62 @@
+<?php
+/**
+ * @file
+ * Handles installation steps for xml_field_extras
+ *
+ * @ingroup xml_field_extras
+ * @{
+ */
+
+/**
+ * The uninstall hook will fire when the module gets uninstalled.
+ */
+function xml_field_extras_uninstall() {
+
+  //Clean up our entries in the variables table.
+  $result = db_query("SELECT name FROM {variable} WHERE `name` LIKE 'xml_field_extras%'");
+  while ($data = db_fetch_object($result)) {
+    variable_del($data->name);
+  }
+
+  //delete blocks
+  db_query("DELETE FROM {blocks} WHERE `module` = 'xml_field_extras'");
+}
+
+
+/**
+ * Replace 'xml_field_schema_validator' with 'xml_field_is_valid_xml_string' in all field instances.
+ */
+function xml_field_extras_update_7001(&$sandbox) {
+  try {
+    $info = xml_field_xml_fields(TRUE);
+    foreach (array_keys($info) as $entity_type) {
+      foreach ($info[$entity_type] as $bundle_type => $field_data) {
+        foreach (array_keys($field_data) as $field_name) {
+          $instances = field_read_instances(array(
+            'entity_type' => $entity_type,
+            'bundle' => $bundle_type,
+            'field_name' => $field_name,
+          ));
+          foreach ($instances as $instance) {
+            // Prefix a number of settings...
+            foreach (array('schema', 'schema_show', 'schema_errors', 'schema_collapsed') as $base) {
+              if (!isset($instance['settings']['xml_' . $base]) && isset($instance['settings'][$base])) {
+                $instance['settings']['xml_' . $base] = $instance['settings'][$base];
+              }
+              unset($instance['settings'][$base]);
+            }
+            if ($instance['settings']['validation_callback'] === 'xml_field_schema_validator') {
+              $instance['settings']['validation_callback'] = 'xml_field_is_valid_xml_string';
+            }
+            field_update_instance($instance);
+          }
+        }
+      }
+    }
+  }
+  catch (Exception $e) {
+    throw new DrupalUpdateException("FAILED: Replacing 'xml_field_schema_validator' with 'xml_field_is_valid_xml_string' in all field instances.");
+  }
+}
+
+/** @} */ //end of group xml_field_extras

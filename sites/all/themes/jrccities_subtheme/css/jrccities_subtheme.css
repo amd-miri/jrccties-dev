@@ -292,7 +292,7 @@ body {
 
 .rate-widget-2 {
   float: left;
-  min-width: 70%;
+  min-width: 60%;
   width: auto;
   padding: 0;
   margin: 0;
@@ -391,22 +391,37 @@ body {
   margin-top: 0;
 }
 
+.page-user #jrc-profile-linkedin-link {
+  background: transparent url("../images/linkedin.png") no-repeat scroll 0 0 / 100% auto;
+  background-size: 32px;
+  height: 32px;
+  width: 32px;
+  color: transparent;
+  margin: 0 0px;
+  float: left;
+}
+.page-user #jrc-profile-research-gate-link {
+  background: transparent url("../images/ResearchGate.png") no-repeat scroll 0 0 / 100% auto;
+  background-size: 32px;
+  height: 32px;
+  width: 32px;
+  color: transparent;
+  margin: 0 0px;
+  float: left;
+}
 .page-user #jrc-profile-facebook-link {
   background: transparent url("../images/facebook_logo.png") no-repeat scroll 0 0 / 100% auto;
   background-size: 32px;
-  display: inline-block;
   height: 32px;
   width: 32px;
   color: transparent;
   margin: 0 0px 0 0;
   float: left;
-  clear: left;
 }
 
 .page-user #jrc-profile-twitter-link {
   background: transparent url("../images/twitter_logo.png") no-repeat scroll 0 0 / 100% auto;
   background-size: 32px;
-  display: inline-block;
   height: 32px;
   width: 32px;
   color: transparent;
@@ -414,26 +429,52 @@ body {
   float: left;
 }
 
-.page-user #jrc-profile-linkedin-link {
-  background: transparent url("../images/linkedin.png") no-repeat scroll 0 0 / 100% auto;
-  background-size: 32px;
-  display: inline-block;
-  height: 32px;
-  width: 32px;
-  color: transparent;
-  margin: 0 0px;
-  float: left;
+.btn-margin-top {
+  margin: 27px 0px 0px;
+  padding: 5px;
 }
 
-.page-user #jrc-profile-research-gate-link {
-  background: transparent url("../images/ResearchGate.png") no-repeat scroll 0 0 / 100% auto;
-  background-size: 32px;
-  display: inline-block;
-  height: 32px;
-  width: 32px;
-  color: transparent;
-  margin: 0 0px;
-  float: left;
+@media screen and (max-width: 320px) {
+  .ds-3col-stacked-fluid > .group-left {
+    width: 100%;
+  }
+  .ds-3col-stacked-fluid.group-one-sidebar > .group-middle {
+    width: 100%;
+  }
+  .page-user .views-field-privatemsg-link a {
+    width: 23.5em;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .ds-3col-stacked-fluid > .group-left {
+    width: 100%;
+  }
+  .ds-3col-stacked-fluid.group-one-sidebar > .group-middle {
+    width: 100%;
+  }
+}
+
+@media screen and (max-width: 992px) {
+  .page-user .views-field-privatemsg-link a {
+    width: 23.5em;
+  }
+}
+
+@media screen and (max-width: 1200px) {
+  .ds-3col-stacked-fluid > .group-left {
+    width: 100%;
+  }
+  .ds-3col-stacked-fluid.group-one-sidebar > .group-middle {
+    width: 100%;
+  }
+  .page-user .views-field-privatemsg-link a {
+    width: 23.5em;
+  }
+}
+
+li {
+  margin-left: 20px;
 }
 
 .page-user .views-field-privatemsg-link a {
@@ -445,7 +486,8 @@ body {
   height: 32px;
   padding: 6px 3px 0 37px;
   color: unset;
-  width: unset;
+  width: 90%;
+  margin: 0 10% 0 0;
 }
 
 .page-user .views-field-privatemsg-link a:hover {
@@ -1190,6 +1232,33 @@ fieldset.collapsible legend {
 }
 
 #block-bean-humaint-tweets .panel-body.content {
+  max-height: 320px;
+  overflow: auto;
+  padding: 0;
+}
+
+
+.field.field-name-group-group.field-type-list-boolean.field-label-hidden.btn.btn-info {
+  display: block;
+  float: right;
+  margin-bottom: 5px;
+  min-width: 200px;
+}
+
+#block-block-3 .library-icons {
+  width: 100%;
+}
+
+#block-block-3 .library-icons td {
+  text-align: center;
+}
+
+.tableauPlaceholder {
+  width: 100% !important;
+  height: auto !important;
+}
+
+#block-bean-cop-bioeconomy-tweets .panel-body.content {
   max-height: 320px;
   overflow: auto;
   padding: 0;

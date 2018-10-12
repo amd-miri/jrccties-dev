@@ -1,0 +1,27 @@
+<?php
+
+/**
+ * @file
+ * Simplenews statistics encoder (un)install and updates file.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function simplenews_statistics_encoder_install() {
+  // Generate a very random number as salt.
+  $min = rand(0, 100);
+  $max = rand($min, 1000);
+  $salt = rand($min, $max);
+  variable_set('simplenews_statistics_encoder_salt', $salt);
+  // Generate a 32 character identifier (a 128 bit hex number).
+  $key = md5(uniqid(rand()));
+  variable_set('simplenews_statistics_encoder_private_key', $key);
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function simplenews_statistics_encoder_uninstall() {
+  variable_del('simplenews_statistics_encoder_salt');
+}

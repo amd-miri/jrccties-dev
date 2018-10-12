@@ -1,0 +1,37 @@
+-
+  -
+    <demande>
+        <userReference>clientId</userReference>
+        <applicationReference>applicationId</applicationReference>
+        <organisationAuteur>DIGIT</organisationAuteur>
+        <serviceDemandeur>DGCOMM</serviceDemandeur>
+        <titre>Title</titre>
+        <remarque>Remark</remarque>
+        <type id="INTER"/>
+        <destination id="AUTRE"/>
+        <procedure id="NEANT"/>
+        <delai>11/12/2007</delai>
+        <dateDemande>11/12/2007</dateDemande>
+        <statusDemande>Ready</statusDemande>
+        <consultationInterServices>Yes</consultationInterServices>
+        <procedureInterInstitution>Yes</procedureInterInstitution>
+        <referenceFilesNote>Note</referenceFilesNote>
+        <workflowCode>STS</workflowCode>
+    </demande>
+  - getClientId : "clientId"
+    getApplicationId : "applicationId"
+    getAuthor : "DIGIT"
+    getRequester : "DGCOMM"
+    getTitle : "Title"
+    getRemark : "Remark"
+    getType : "INTER"
+    getDestination : "AUTRE"
+    getProcedure : "NEANT"
+    getDelay : "11/12/2007"
+    getRequestDate : "11/12/2007"
+    getStatus : "Ready"
+    getInterServices : "Yes"
+    getInterInstitution : "Yes"
+    getReferenceFilesRemark : "Note"
+    getWorkflowCode : "STS"
+

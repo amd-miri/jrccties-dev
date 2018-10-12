@@ -1,0 +1,713 @@
+.newsroom-item {
+  margin: 1.5em 0;
+}
+
+/* Teaser view mode for the newsroom_item */
+.newsroom-item--teaser {
+  padding: 0 !important;
+  border: none !important;
+}
+
+.newsroomPage-container {
+  &.node-sticky {
+    padding-bottom: 0.5em;
+  }
+
+  .newsroom-read-more:hover::after {
+    border-color: transparent transparent transparent #003556;
+  }
+
+  .node-info-submitted, 
+  h2 {
+    display: none;
+  }
+}
+
+// Exposed form in newsroom page.
+.newsroomPage-filterForm,
+.newsroomAgenda-filterForm {
+  border-bottom: solid 1px #ced9e4;
+  background: #fff;
+  padding: 0 15px 12px;
+  margin: -15px -15px 25px -15px;
+
+  &:after {
+    clear: both;
+    content: "";
+    display: block;
+  }
+
+  h3 {
+    padding: 0.3em 1em;
+  }
+
+  form > div > .form-item,
+  .container-inline-date {
+    width: 47%;
+    float: left;
+    margin-right: 6%;
+  }
+
+  form > div > .checkbox {
+    width: 100%;
+    clear: both;
+  }
+
+  form > div > .checkbox > label {
+    font-weight: bold;
+  }
+
+  .date-padding {
+    float: none;
+    width: 100%;
+  }
+
+  .container-inline-date:nth-child(4) {
+    float: left;
+    width: 25%;
+  }
+
+  div > .form-item:nth-child(2),
+  .container-inline-date:nth-child(4) {
+    margin-right: 0;
+  }
+
+  .container-inline-date .form-item, 
+  .container-inline-date .form-item input {
+    width: 100%;
+  }
+
+  .form-item input,
+  .form-item select.form-control {
+    background: #ececec;
+  }
+
+  .container-inline-date {
+    clear: none;
+  }
+
+  .container-inline-date .form-item input {
+    margin-right: 0;
+  }
+
+  .description {
+    margin-top: 0.5em;
+    font-style: italic;
+  }
+
+  #edit-button {
+    float: left;
+    width: 20%;
+    margin: 1.8em 0 1em 1.58em;
+    background: #0065a2;
+    text-transform: uppercase;
+    color: #fff !important;
+    font-weight: bold;
+    padding: 7px 12px 6px;
+
+    &:hover {
+      background: #afd9ee;
+      color: #222 !important;
+    }
+  }
+}
+
+.newsroomAgenda-filterForm {
+  form > div > .form-item {
+    width: 36%;
+  }
+
+  #edit-button {
+    margin-top: 2.8em;
+  }
+}
+
+.newsroom-item__type,
+.node-type-newsroom-item .field-name-field-newsroom-item-type a,
+.node-type-newsroom-item .field-label,
+.newsroom_item_container .newsroom_type,
+.newsroomPage-filterForm h3,
+.newsroomAgenda-filterForm h3,
+.sample a,
+.furtherDates > .newsroom_title {
+  display: inline-block;
+  background: #0065a2;
+  padding: 0.2em 15px;
+  margin: 0 1.5em 1em -15px;
+  color: #fff;
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: 0.9em;
+  position: relative;
+}
+
+.newsroom-item__type a,
+.sample a {
+  &:link,
+  &:visited {
+    color: #fff;
+  }
+}
+
+// Fields as elements.
+.newsroom-item__title {
+  margin-bottom: 1em !important;
+  line-height: 130%;
+  font-size: 1.2em;
+  font-weight: 600;
+}
+
+.newsroom-item__date {
+  background: #ccc;
+  padding: 0 1em;
+  color: #0065a2;
+  display: inline-block;
+  margin-bottom: 1em;
+  margin-right: 1em;
+  position: relative;
+}
+
+.newsroom-item__venue {
+  font-weight: 600;
+}
+
+/* Styling the default view mode */
+.node-type-newsroom-item { 
+   .field-name-body {
+    border-bottom: none !important;
+  }
+
+  .field-name-field-newsroom-teaser {
+    background: #f9f9f9;
+    border-left: 10px solid #ccc;
+    margin: 1.5em 10px;
+    padding: 0.5em 10px;
+    quotes: "\201C" "\201D" "\2018" "\2019";
+    font-family: monospace;
+  }
+
+  .field-name-field-newsroom-teaser:before {
+    color: #ccc;
+    content: open-quote;
+    font-size: 4em;
+    line-height: 0.1em;
+    margin-right: 0.25em;
+    vertical-align: -0.4em;
+  }
+
+  .field-name-field-newsroom-teaser p {
+    display: inline;
+  }
+}
+
+.node-newsroom-item {
+  .field-group-div {
+    padding-bottom: 1em;
+  }
+
+  .field-name-body {
+    border: none;
+  }
+}
+
+.newsroom_item_container.agenda .date-date {
+  background: #f9f9f9;
+  border-bottom: 0.222em solid #fed437;
+  width: 5%;
+  margin-right: 0.75em;
+  min-width: 5.556em;
+  padding: 0.4em 0.7em;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  display: inline-block;
+  vertical-align: top;
+}
+
+.newsroomAgenda-container .date-date {
+    position: relative;
+    display: inline-block;
+    min-height: 5.556em;
+    min-width: 5.556em;
+    margin-right: 0.75em;
+    padding: 0.9em 0.5em 0.7em;
+    background: #f2f2f2;
+    border-bottom: 0.222em solid #fed437;
+    text-align: center;
+  }
+
+.newsroom_item_container {
+  clear: right;
+  
+  .newsroom_type {
+    margin: 0 0 0.5em;
+    font-size: 0.8em;
+  }
+
+  .views-row .newsroom_title {
+    font-size: 1.2em;
+    font-weight: 600;
+    margin-bottom: 0.3em;
+    width: 100%;
+  }
+
+  .newsroom_item_metadata {
+    font-style: italic;
+    margin-bottom: 0.5em;
+  }
+
+  h3 {
+    margin-left: -15px;
+    background: #ececec;
+    padding: 0.2em 1.5em;
+    display: inline-block;
+    font-size: 1.3em;
+    position: relative;
+    color: #0065a2;
+    font-weight: 600;
+  }
+
+  .views-row {
+    margin-bottom: 1em;
+    border-bottom: 2px solid #ececec;
+  }
+
+  &.agenda {
+    .date-date .day {
+      font-size: 2em;
+      font-weight: bold;
+      line-height: 1.2;
+    }
+
+    .date-date .month {
+      font-size: 1em;
+      line-height: 1;
+    }
+
+    .date-events {
+      display: inline-block;
+      width: 89%;
+    }
+  }
+
+  &.agenda .date-date::after,
+  h3::after {
+    content: " ";
+    position: absolute;
+    top: -0.667em;
+    right: -0.200em;
+    width: 0;
+    height: 0;
+    border-top: 1em solid transparent;
+    border-bottom: 1em solid transparent;
+    border-right: 1em solid #fff;
+    -webkit-transform: rotate(135deg);
+    -ms-transform: rotate(135deg);
+    transform: rotate(135deg);
+  }
+}
+
+@media screen and (min-width: 640px) and (max-width: 1000px) {
+  .newsroom_item_container.agenda .date-events {
+    width: 79%;
+  }
+}
+
+@media screen and (min-width: 320px) and (max-width: 640px) {
+  .newsroom_item_container.agenda .date-events {
+    width: 70%;
+  }
+
+  .newsroom_item_container .views-row .newsroom_title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.block-nexteuropa-newsroom {
+  > .newsroom_rss {
+    position: relative;
+    top: 4.5em;
+    margin-top: -3em;
+    background: #ececec;
+    float: right;
+    padding: 0.4em 0.5em;
+    
+    a.feed-icon {
+      padding: 0 0.5em 0 0;
+    }
+
+    &:after {
+      clear: both;
+    }
+  }
+}
+
+.newsroom-image {
+  float: right;
+  background: #fff;
+  border: solid 1px #e5e5e5;
+  padding: 2px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  margin: -6px -5px 15px 3%;
+  z-index: 5;
+  min-width: 90px;
+  width: 20%;
+
+  .picContainer {
+    position: relative;
+    border-bottom: 1px solid #f3f3f3;
+    text-align: center;
+    display: block;
+
+    img {
+      width: 100%;
+      height: auto;
+    }
+
+    .zoomIcon {
+      display: none;
+    }
+
+    &.zoomable {
+      cursor: pointer;
+    
+      .zoomIcon {
+        display: block;
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 28px;
+        height: 27px;
+        background: url(../images/zoom.png) no-repeat 0 0;
+      }
+    }
+  }
+}
+
+.newsroom-image figcaption {
+  margin-top: 5px;
+  padding-bottom: 5px;
+  text-align: center;
+  background: #fff;
+
+  .legend {
+    font-size: 11px;
+    line-height: 12px;
+    padding: 5px 6px 3px;
+    color: #555;
+    display: inline-block;
+    text-align: left;
+  }
+
+   .copyright {
+    font-size: 10px;
+    line-height: 11px;
+    padding: 3px 6px 0;
+    color: #999;
+    display: block;
+    text-align: right;
+
+    a {
+      color: #999;
+    }
+  }
+}
+
+.no-result {
+  text-align: center;
+  margin: 20px 0;
+  font-weight: bold;
+  color: #a02622;
+}
+
+/** Agenda presentation **/
+.newsroomAgenda-container {
+  .date-row {
+    position: relative;
+    min-height: 80px;
+    border-bottom: solid 1px #ddd;
+    padding-bottom: 0;
+    margin-bottom: 15px;
+  }
+
+  .date-date {
+    float: left;
+    text-align: center;
+    width: 7%;
+    margin-right: 3%;
+
+    .day {
+      display: block;
+      font-size: 250%;
+      line-height: 1.0em;
+    }
+
+    .month {
+      display: block;
+      font-size: 110%;
+      letter-spacing: 0.15em;
+    }
+
+    .year {
+      display: block;
+      font-size: 90%;
+    }
+  }
+} 
+
+.newsroom-item--agenda {
+  &:first-child {
+    margin-top: 0;
+  }
+}
+
+.newsroomAgenda-container {
+  .newsroom-item__type {
+    margin-left: 0;
+  }
+
+  .date-row:after {
+    display: block;
+    clear: both;
+    content: "";
+  } 
+
+  .newsroom_title {
+    
+    a {
+      text-decoration: none;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+
+  .date-events {
+    float: left;
+    width: 89%;
+
+    &:after {
+      display: block;
+      clear: both;
+      content: "";
+    }
+  
+    .views-row {
+      border-top: solid 1px #eee;
+      padding-top: 15px;
+      margin: 0;
+    }
+
+    .views-row:first-child {
+      border-top: 0;
+      padding-top: 0;
+    }
+  }
+}
+
+.block-nexteuropa-newsroom .newsroom_item_container.agenda .newsroom_type,
+.newsroomAgenda-container .newsroom_type {
+  font-size: 85%;
+}
+
+.agendaPagination {
+  margin: 0 -12px;
+  padding: 20px 12px;
+  box-sizing: content-box;
+  float: left;
+  width: 100%;
+  text-align: center;
+  
+  .agenda-next,
+  .agenda-previous {
+    display: inline-block;
+    vertical-align: middle;
+    margin: 10px 0;
+   
+    a {
+      display: inline-block;
+      width: 100px;
+      border: solid 1px #eee;
+      border-radius: 20px;
+      text-align: center;
+      text-decoration: none;
+    }
+  }
+
+  .agenda-next a {
+    padding: 1px 26px 2px 8px;
+  }
+
+  .date-form {
+    display: inline-block;
+    vertical-align: middle;
+    margin: 5px 15px;
+
+    .form-item-current-date label {
+      display: none;
+    }
+
+    .container-inline-date > .form-item,
+    .container-inline-date .form-item input {
+      margin: 0;
+      text-align: center;
+    }
+  }
+
+  .container-inline-date .form-item input {
+    text-align: center;
+    color: #fff;
+    background: #0065a2;
+    cursor: pointer;
+    border-radius: 10px;
+  }
+}
+
+/** Agenda presentation: end **/
+
+// Featured item 
+.newsroom-item--featured {
+  border-bottom: 2px solid #ececec;
+  margin-bottom:  2em;
+  padding-bottom: 1em;
+
+  .newsroom-item__title {
+    font-size: 150%;
+  }
+
+  .newsroom-item__featured {
+    display: inline-block;
+    background: #ffd617;
+    padding: 0.2em 1em;
+    color: #fff;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.9em;
+  }
+
+  .newsroom-item__teaser {
+    font-size: 110%;
+  }
+}
+
+// Spare styles.
+.newsroom-read-more,
+.newsroom_date {
+  font-style: italic;
+}
+
+.newsroom-read-more {
+  text-align: right;
+  display: block;
+  clear: both;
+}
+
+.newsroom-read-more::after,
+.newsroom_more::after,
+.read-full-text::after {
+  content: "";
+  width: 0;
+  height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 4px solid #0065a2;
+  display: inline-block;
+  margin-left: 0.5em;
+}
+
+.read-full-text {
+  font-weight: bold;
+  margin-top: 1em;
+}
+
+.newsroom_rss {
+  text-align: right;
+}
+
+.newsroom_more {
+  text-align: right;
+  background: #ececec;
+  padding: 0.3em 1em;
+  float: right;
+ 
+  .placeholder {
+    font-style: normal;
+  }
+} 
+
+// Newsletter list.
+.subscrNewsletterItem {
+  padding: 1em 0;
+  border-bottom: 2px solid #ececec;
+  
+  h4 {
+    font-weight: 600;
+  }
+
+  img {
+    float: right;
+    margin: 0 0 0 1em;
+  }
+
+  input[type="submit"] {
+    margin: 1.8em 0 0;
+    background: #0065a2;
+    text-transform: uppercase;
+    color: #fff !important;
+    font-weight: bold;
+    padding: 7px 12px 6px;
+
+    &[disabled] {
+      background: #f9f9f9;
+      color: #ccc !important;
+    }
+  }
+}
+
+.newsroom-service-page {
+  .newsroom-service-widget {
+    padding: 2em 0;
+  }
+
+  .middle-step {
+    border-left: 4px solid #0065a2;
+    padding: 2em 0 2em 3em;
+    margin-left: 1.3em;
+  }
+  
+  .newsroom-service-email-description {
+    display: inline-block;
+    font-style: italic;
+    font-size: 0.9em;
+    min-height: 30px;
+  }
+  
+  h2 {
+    padding-left: 60px;
+    position: relative;
+    margin: 0;
+
+
+    &:before {
+      content: "1";
+      display: block;
+      position: absolute;
+      left: 0;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px; 
+      background: #0065a2;
+      font-size: 30px;
+      color: #fff;
+      font-weight: bold;
+      padding: 3px 0 0 12px; 
+    }
+
+    ~ h2:before {
+      content: "2";
+    }
+  }
+}

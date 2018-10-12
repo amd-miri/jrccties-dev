@@ -1,0 +1,19 @@
+-
+  -
+    <contacts type="Secretaire">
+        <contactNickname>Username</contactNickname>
+        <contactEmail>user@mail.com</contactEmail>
+    </contacts>
+  - "Secretaire"
+  - "Username"
+  - "user@mail.com"
+
+-
+  -
+    <contacts type="Secretaire">
+        <contactNickname>Username</contactNickname>
+    </contacts>
+  - "Secretaire"
+  - "Username"
+  - null
+

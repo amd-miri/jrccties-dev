@@ -362,7 +362,14 @@ function file_field_delete_file($item, $field, $entity_type, $id, $count = 1) {
   $file_usage = file_usage_list($file);
   if ($file->status == 0 || !empty($file_usage['file'])) {
     file_usage_delete($file, 'file', $entity_type, $id, $count);
-    return file_delete($file);
+    // Make the file temporary so it will be deleted on cron.
+    // We need to check file usage again since file_delete
+    // used to handle that.
+    $file_usage = file_usage_list($file);
+    if (empty($file_usage['file'])) {
+       $file->status = 0;
+      file_save($file);
+    }
   }
 
   // Even if the file is not deleted, return TRUE to indicate the file field

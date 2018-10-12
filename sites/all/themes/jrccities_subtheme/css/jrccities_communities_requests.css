@@ -86,3 +86,19 @@
 .og-context-node-891 #polls-link {
   display: none;
 }
+
+/* Bioeconomy - From Database to code */
+
+#block-bean-cop-bioeconomy-tweets .panel-body.content {
+  max-height: 320px;
+  overflow: auto;
+  padding: 0;
+}
+
+/* Copfir - From Database to code */
+
+.page-community-1146 #forum-link,
+.page-community-1146 #polls-link,
+.page-community-1146 #events-link {
+  display: none;
+}

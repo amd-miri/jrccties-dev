@@ -1,0 +1,73 @@
+<?php
+
+/**
+ * @file
+ * Views Slideshow Slider adds a new widget to control the slides:
+ * the jQuery UI slider.
+ */
+
+/**
+ * Implements hook_theme().
+ */
+function views_slideshow_slider_theme($existing, $type, $theme, $path) {
+  return array(
+    'views_slideshow_slider_widget_render' => array(
+      'variables' => array('vss_id' => NULL, 'view' => NULL, 'settings' => array(), 'location' => NULL, 'rows' => array()),
+      'file' => 'theme/views_slideshow_slider.theme.inc',
+    ),
+    'views_slideshow_slider_slider' => array(
+      'variables' => array('vss_id' => NULL, 'view' => NULL, 'settings' => array(), 'location' => NULL, 'rows' => array(), 'items_per_slide' => NULL),
+      'template' => 'theme/templates/views-slideshow-slider',
+      'file' => 'theme/views_slideshow_slider.theme.inc',
+    ),
+  );
+}
+
+/**
+ * Implementation of hook_views_slideshow_skins().
+ */
+function views_slideshow_slider_views_slideshow_skins() {
+  return array(
+    'default' => array(
+      'title' => t('Default'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_views_slideshow_widget_info().
+ */
+function views_slideshow_slider_views_slideshow_widget_info() {
+  return array(
+    'views_slideshow_slider' => array(
+      'name' => t('Slider'),
+      'accepts' => array(
+        'transitionBegin' => array('required' => TRUE),
+        'goToSlide',
+        'previousSlide',
+        'nextSlide',
+      ),
+      'calls' => array(
+        'goToSlide',
+        'pause',
+        'play',
+      ),
+    ),
+  );
+}
+
+/**
+ * Implements hook_help().
+ */
+function views_slideshow_slider_help($path, $arg) {
+  switch ($path) {
+    case 'admin/help#views_slideshow_slider':
+      if (module_exists('advanced_help')) {
+        $output = '<p>' . l(t('Click here to view the documentation for Views Slideshow slider'),  'admin/advanced_help/views_slideshow_slider') . '</p>';
+      }
+      else {
+        $output = '<p>' . t('Views Slideshow slider help can be found by installing and enabling the !advanced_help.',  array('!advanced_help' => l(t('Advanced Help module'), 'http://drupal.org/project/advanced_help'))) . '</p>';
+      }
+      return $output;
+  }
+}

@@ -5,6 +5,8 @@
  * Default theme implementation to display a block.
  *
  * Available variables:
+ * - $attributes: array of HTML attributes populated by modules, intended to
+ *   be added to the main container tag of this template.
  * - $block->subject: Block title.
  * - $content: Block content.
  * - $block->module: Module that generated the block.
@@ -18,6 +20,8 @@
  *   - block-[module]: The module generating the block. For example, the user
  *     module is responsible for handling the default user navigation block. In
  *     that case the class would be 'block-user'.
+ * - $title_attributes: Same as attributes, except applied to the main title
+ *   tag that appears in the template.
  * - $title_prefix (array): An array containing additional output populated by
  *   modules, intended to be displayed in front of the main title tag that
  *   appears in the template.

@@ -1,0 +1,13 @@
+name = Simplenews Statistics Encoder
+description = "Encodes and decodes the parameters for Simplenews Statistics URLs."
+package = Statistics
+core = 7.x
+configure = admin/config/services/simplenews/statistics/encoder
+
+dependencies[] = simplenews_statistics
+; Information added by Drupal.org packaging script on 2014-09-23
+version = "7.x-1.0-alpha1"
+core = "7.x"
+project = "simplenews_statistics"
+datestamp = "1411448470"
+

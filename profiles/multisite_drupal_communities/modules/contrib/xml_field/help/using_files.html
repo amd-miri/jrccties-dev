@@ -1,0 +1,50 @@
+<p>In addition to the field instance default and schema (which are stored in the database via the Field API mechanism), this module allows for much finer-grained control of defaults and schemas, even down to the individual entity or even entity field level, e.g. <code>$node-&gt;field_xml</code>.</p>
+
+<p>For this type of control, defaults and schemas are provided using include files in either your custom module or the public files directory.  In both cases, we'll use the familiar form of suggestion filename convention found throughout Drupal.</p>
+
+<p>For schema definitions use this cascade:</p>
+
+<pre><code>entity_type--entity_id--field_id.xsd
+entity_type--entity_id.xsd    
+entity_type--bundle_type--field_id.xsd
+entity_type--bundle_type.xsd 
+entity_type--field_id.xsd
+entity_type.xsd
+default.xsd
+</code></pre>
+
+<p>For field defaults use this cascade:</p>
+
+<pre><code>entity_type--entity_id--field_id.xml
+entity_type--entity_id.xml    
+entity_type--bundle_type--field_id.xml
+entity_type--bundle_type.xml
+entity_type--field_id.xml     
+entity_type.xml
+default.xml
+</code></pre>
+
+<h2>Gotchas</h2>
+
+<ol>
+<li>Did you implement <code>hook_xml_field_api()</code>?  </li>
+<li>Be sure to clear cache after adding/removing files.</li>
+<li>Did you use a <strong>double-hyphen</strong> in the filename?</li>
+<li>When editing a field instance, you will see a form field called <em>XML Schema</em>.  This form field will disappear and become irrelevant if you add an include file that (in it's cascade) applies to said field instance.  The same thing goes for the <em>Default Value</em> field.  Another way to say this is that the file includes will override the field instance schema and default.</li>
+</ol>
+
+<h2>By Custom Module</h2>
+
+<p>If using a custom module you will place these files in:</p>
+
+<pre><code>my_module/includes/xml_field/
+</code></pre>
+
+<p>You must also implement <code>hook_xml_field_api()</code> in your module to let xml_field know to look in your module directory for these files.  See <code>xml_field.api.php</code> for more info.</p>
+
+<h2>By User Files</h2>
+
+<p>You may also place include files in the public files of Drupal, however they will have the lowest weight when conflicting with a module-provided file of the same name.</p>
+
+<pre><code>public://xml_field/
+</code></pre>

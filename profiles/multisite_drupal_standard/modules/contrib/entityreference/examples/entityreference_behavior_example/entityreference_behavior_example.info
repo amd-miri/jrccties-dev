@@ -1,0 +1,10 @@
+name = Entity Reference Behavior Example
+description = Provides some example code for implementing Entity Reference behaviors.
+core = 7.x
+package = Fields
+dependencies[] = entityreference
+
+; Information added by drush on 2016-12-23
+version = "7.x-1.2+13-dev"
+project = "entityreference"
+datestamp = "1482523445"

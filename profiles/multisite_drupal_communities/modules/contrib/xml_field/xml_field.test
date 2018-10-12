@@ -1,0 +1,1294 @@
+<?php
+/**
+ * @file
+ * Tests for xml_field.module.
+ */
+
+class XMLFieldWebTestCase extends DrupalWebTestCase {
+
+  public function subtest_field_schema_validation() {
+    $account = $this->drupalCreateUser(array('edit own xml_test content', 'create xml_test content'));
+    $this->drupalLogin($account);
+    $url = 'node/add/xml-test';
+    
+    // Arbitrary text should pass for no validation
+    $edit = array(
+      'title' => 'Delete me',
+      'field_xml_schema[und][0][xml]' => '<fish dog="schema">validation</fish>',
+    );
+    $this->drupalPost($url, $edit, 'Save');
+    $this->assertText('Element \'fish\': No matching global declaration available for the validation root.');
+    $this->assertText('xml_schema: XML did not validate per XSD.');
+
+    $edit = array(
+      'title' => 'Delete me',
+      'field_xml_schema[und][1][xml]' => '<cat dog="schema">validation</cat>',
+    );
+    $this->drupalPost($url, $edit, 'Save');
+    $this->assertText('Element \'cat\': No matching global declaration available for the validation root.');
+    $this->assertText('xml_schema: XML did not validate per XSD.');
+
+    $edit = array(
+      'title' => 'Delete me',
+      'field_xml_schema[und][0][xml]' => '<test name="schema">validation</test>',
+    );
+    $this->drupalPost($url, $edit, 'Save');
+    $this->assertText('xml_test Delete me has been created.');
+
+    $edit = array(
+      'title' => 'Delete me',
+      'field_xml_schema[und][1][xml]' => '<test name="schema">validation</test>',
+    );
+    $this->drupalPost($url, $edit, 'Save');
+    $this->assertText('xml_test Delete me has been created.');
+  }
+
+  public function subtest_field_validation() {
+    $account = $this->drupalCreateUser(array('edit own xml_test content', 'create xml_test content'));
+    $this->drupalLogin($account);
+    $url = 'node/add/xml-test';
+
+    // All blank should validate all.
+    $this->drupalPost($url, array('title' => 'Delete me'), 'Save');
+    $this->assertText('xml_test Delete me has been created.');
+
+    // Arbitrary text should pass for no validation
+    $edit = array(
+      'title' => 'Delete me',
+      'field_xml_no_validation[und][0][xml]' => 'juniper',
+    );
+    $this->drupalPost($url, $edit, 'Save');
+    $this->assertText('xml_test Delete me has been created.');
+
+    // xml string should validate
+    $common = '<xml>string</xml>';
+    $edit = array(
+      'title' => 'Delete me',
+      'field_xml_valid_xml[und][0][xml]' => $common,
+      'field_xml_valid_xml[und][1][xml]' => $common,
+    );
+    $this->drupalPost($url, $edit, 'Save');
+    $this->assertText('xml_test Delete me has been created.');
+
+    // youtube should validate
+    $edit = array(
+      'title' => 'Delete me',
+      'field_xml_youtube[und][0][xml]' => '<iframe width="560" height="315" src="https://www.youtube.com/embed/JIbfA5Lv2o8" frameborder="0" allowfullscreen></iframe>',
+    );
+    $this->drupalPost($url, $edit, 'Save');
+    $this->assertText('xml_test Delete me has been created.');
+
+    // arbitrary text should fail for two.
+    $common = 'juniper';
+    $edit = array(
+      'title' => 'Delete me',
+      'field_xml_no_validation[und][0][xml]' => $common,
+      'field_xml_valid_xml[und][0][xml]' => $common,
+      'field_xml_valid_xml[und][1][xml]' => $common,
+      'field_xml_youtube[und][0][xml]' => $common,
+    );
+    $this->drupalPost($url, $edit, 'Save');
+    $this->assertText('xml_valid_xml is not');
+    $this->assertText('xml_youtube does not appear to be valid YouTube embed code.');    
+
+    // xml text should fail for one.
+    $common = '<xml>string</xml>';
+    $edit = array(
+      'title' => 'Delete me',
+      'field_xml_no_validation[und][0][xml]' =>$common,
+      'field_xml_valid_xml[und][0][xml]' => $common,
+      'field_xml_valid_xml[und][1][xml]' => $common,
+      'field_xml_youtube[und][0][xml]' => $common,
+    );
+    $this->drupalPost($url, $edit, 'Save');
+    $this->assertNoText('xml_valid_xml is not');
+    $this->assertText('xml_youtube does not appear to be valid YouTube embed code.');   
+
+    // you tube should fail for one.
+    $common = '<iframe width="560" height="315" src="https://www.youtube.com/embed/JIbfA5Lv2o8" frameborder="0" allowfullscreen></iframe>';
+    $edit = array(
+      'title' => 'Delete me',
+      'field_xml_no_validation[und][0][xml]' =>$common,
+      'field_xml_valid_xml[und][0][xml]' => $common,
+      'field_xml_valid_xml[und][1][xml]' => $common,
+      'field_xml_youtube[und][0][xml]' => $common,
+    );
+    $this->drupalPost($url, $edit, 'Save');
+    $this->assertText('xml_valid_xml is not');
+    $this->assertNoText('xml_youtube does not appear to be valid YouTube embed code.');       
+  }
+
+  public function subtest_fapi_elements_schema_validation() {
+    $url = 'xml-field-test/forms';
+
+    // xml string should validate
+    $edit = array(
+      'xmltext_schema' => '<fish dog="schema">validation</fish>',
+    );
+    $this->drupalPost($url, $edit, 'submit');
+    $this->assertText('Element \'fish\': No matching global declaration available for the validation root.');
+    $this->assertText('XML - with schema: XML did not validate per XSD.');
+
+    // All blank should validate all.
+    $edit = array(
+      'xmltext_schema' => '<test name="schema">validation</test>',
+    );
+    $this->drupalPost($url, $edit, 'submit');
+    $this->assertText('All fields validated.');
+    $this->assertText('View XSD');
+    $this->assertText('&quot;xs:string&quot;');
+  }
+
+  public function subtest_fapi_elements_validation() {
+    $url = 'xml-field-test/forms';
+
+    // All blank should validate all.
+    $this->drupalPost($url, array(), 'submit');
+    $this->assertText('All fields validated.');
+
+    // Arbitrary text should pass for no validation
+    $edit = array(
+      'xmltext_novalidation' => 'juniper',
+    );
+    $this->drupalPost($url, $edit, 'submit');
+    $this->assertText('All fields validated.');
+
+    // xml string should validate
+    $edit = array(
+      'xmltext_is_valid_xml_string' => '<xml>string</xml>',
+    );
+    $this->drupalPost($url, $edit, 'submit');
+    $this->assertText('All fields validated.');
+
+    // youtube should validate
+    $edit = array(
+      'xmltext_youtube' => '<iframe width="560" height="315" src="https://www.youtube.com/embed/JIbfA5Lv2o8" frameborder="0" allowfullscreen></iframe>',
+    );
+    $this->drupalPost($url, $edit, 'submit');
+    $this->assertText('All fields validated.');
+
+    // arbitrary text should fail for two.
+    $common = 'juniper';
+    $edit = array(
+      'xmltext_novalidation' => $common,
+      'xmltext_is_valid_xml_string' => $common,
+      'xmltext_youtube' => $common,
+    );
+    $this->drupalPost($url, $edit, 'submit');
+    $this->assertText('XML - xml_field_is_valid_xml_string() is not');
+    $this->assertText('XML - xml_field_youtube_validator() does not appear to be valid YouTube embed code.');    
+
+    // xml text should fail for one.
+    $common = '<xml>string</xml>';
+    $edit = array(
+      'xmltext_novalidation' => $common,
+      'xmltext_is_valid_xml_string' => $common,
+      'xmltext_youtube' => $common,
+    );
+    $this->drupalPost($url, $edit, 'submit');
+    $this->assertNoText('XML - xml_field_is_valid_xml_string() is not');
+    $this->assertText('XML - xml_field_youtube_validator() does not appear to be valid YouTube embed code.');   
+
+    // you tube should fail for one.
+    $common = '<iframe width="560" height="315" src="https://www.youtube.com/embed/JIbfA5Lv2o8" frameborder="0" allowfullscreen></iframe>';
+    $edit = array(
+      'xmltext_novalidation' => $common,
+      'xmltext_is_valid_xml_string' => $common,
+      'xmltext_youtube' => $common,
+    );
+    $this->drupalPost($url, $edit, 'submit');
+    $this->assertText('XML - xml_field_is_valid_xml_string() is not');
+    $this->assertNoText('XML - xml_field_youtube_validator() does not appear to be valid YouTube embed code.');       
+  }
+
+  public function subtest_autoCData() {
+    $xml = xml_field_load_string('<demo/>');
+    xmlFieldXMLElement::setConfig('autoCData', TRUE);
+    $xml->addChild('a', '<>');
+    $xml->addChild('b', '&amp;');
+    $xml->addChild('c', '>');
+    $xml->addChild('d', '"');
+    $xml->addChild('e', "'");
+
+    $control = '<?xml version="1.0"?>
+<demo><a>&lt;&gt;</a><b>&amp;</b><c>&gt;</c><d>"</d><e>\'</e></demo>
+';
+    $this->assertIdentical($control, $xml->asXml());
+  
+    $xml = xml_field_load_string('<demo/>');
+    xmlFieldXMLElement::setConfig('autoCData', FALSE);
+    $xml->addChild('a', '<');
+    $xml->addChild('b', '&amp;');
+    $xml->addChild('c', '>');
+    $xml->addChild('d', '"');
+    $xml->addChild('e', "'");
+
+    $control = '<?xml version="1.0"?>
+<demo><a>&lt;</a><b>&amp;</b><c>&gt;</c><d>"</d><e>\'</e></demo>
+';
+    $this->assertIdentical($control, $xml->asXml());
+  }  
+
+  public function subtest_childrenInheritAutoCData() {
+    $xml = '<rss version="2.0"/>';
+    $feed = xml_field_xml($xml);
+    $feed->setConfig('autoCData', TRUE);
+    $channel = $feed->addChild('channel');
+    $channel->addChild('summary', '<a href="http://www.apple.com">Apple</a>');
+    $control = '<?xml version="1.0"?>
+<rss version="2.0"><channel><summary><![CDATA[<a href="http://www.apple.com">Apple</a>]]></summary></channel></rss>
+';
+    $this->assertIdentical($control, $feed->asXml());
+  }
+
+  public function subtest__cdata() {
+    $this->assertIdentical('<![CDATA[<strong>]]>', xmlFieldXMLElement::cdata('<strong>'));
+    $this->assertIdentical('<![CDATA[<strong>]]>', xmlFieldXMLElement::cdata('<strong>', TRUE));
+    $this->assertIdentical('<![CDATA[<strong>]]>', xmlFieldXMLElement::cdata('<strong>', FALSE));
+
+    $this->assertIdentical('Pizza', xmlFieldXMLElement::cdata('Pizza'));
+    $this->assertIdentical('Pizza', xmlFieldXMLElement::cdata('Pizza', FALSE));
+    $this->assertIdentical('<![CDATA[Pizza]]>', xmlFieldXMLElement::cdata('Pizza', TRUE));
+  }
+
+  public function subtest_childrenWithCDataWorks() {
+    $xml = xml_field_load_string('<demo/>');
+    xmlFieldXMLElement::setConfig('autoCData', TRUE);
+    $child = $xml->addChild('child');
+    $child->setConfig('autoCData', TRUE);
+    $child->addChild('name', '<strong>Bobby</strong>');
+    $control = '<?xml version="1.0"?>
+<demo><child><name><![CDATA[<strong>Bobby</strong>]]></name></child></demo>
+';
+    $this->assertIdentical($control, $xml->asXml());
+
+    $this->assertIdentical('<strong>Bobby</strong>', (string) $xml->child->name);
+
+    $this->assertIdentical('<![CDATA[<strong>Bobby</strong>]]>', (string) $xml->cdata($xml->child->name));
+    $this->assertIdentical('<![CDATA[<strong>Bobby</strong>]]>', (string) $xml->child->cdata($xml->child->name));
+  }
+
+  public function subtest_accessingCData() {
+    $xml = xml_field_load_string("<node/>");
+    xmlFieldXMLElement::setConfig('autoCData', TRUE);
+    $xml->addChild('title', '<strong>Dawn</strong>');
+    $this->assertIdentical('<![CDATA[<strong>Dawn</strong>]]>', $xml->cdata($xml->title));
+
+    // Make sure no cdata does a passthru
+    $xml = xml_field_load_string("<node/>");
+    xmlFieldXMLElement::setConfig('autoCData', TRUE);
+    $xml->addChild('title', 'Dawn');
+    $this->assertIdentical('Dawn', $xml->cdata($xml->title));
+  }
+
+  public function subtest_autoCDataSettingPersistsAcrossInstances() {
+    $xml = xml_field_load_string("<node/>");
+    xmlFieldXMLElement::setConfig('autoCData', TRUE);
+    $xml->addChild('title', '<strong>Dawn</strong>');
+    $control = '<?xml version="1.0"?>
+<node><title><![CDATA[<strong>Dawn</strong>]]></title></node>
+';
+    $this->assertIdentical($control, $xml->asXml());
+
+    $xml = xml_field_load_string("<node/>");
+    $xml->addChild('title', '<strong>Dawn</strong>');
+    $control = '<?xml version="1.0"?>
+<node><title><![CDATA[<strong>Dawn</strong>]]></title></node>
+';
+    $this->assertIdentical($control, $xml->asXml());
+
+    xmlFieldXMLElement::setConfig('autoCData', FALSE);
+    $xml = xml_field_load_string("<node/>");
+    $xml->addChild('subtitle', '<strong>The Beginning</strong>');
+    $control = '<?xml version="1.0"?>
+<node><subtitle>&lt;strong&gt;The Beginning&lt;/strong&gt;</subtitle></node>
+';
+    $this->assertIdentical($control, $xml->asXml());  
+  }
+  
+
+  public function subtest_cdataDoesntPersistAcrossInstances() {
+    $subject = '<?xml version="1.0"?>
+<node><title><![CDATA[<strong>Dawn</strong>]]></title></node>
+';
+    $xml = xml_field_load_string($subject);
+    $this->assertIdentical($subject, $xml->asXml());
+
+    $subject = '<?xml version="1.0"?>
+<node><title>Tree</title></node>
+';
+    $xml = xml_field_load_string($subject);
+    $this->assertIdentical($subject, $xml->asXml());
+
+  }
+
+  /**
+   * https://www.drupal.org/node/2312241
+   */
+  public function subtest_dontLooseZeroValue() {
+    $xml = "<xml><zero>0</zero><empty/><param>4</param></xml>";
+    $obj = xml_field_xml($xml);
+    $result = '';
+    foreach ($obj->children() as $param) {
+      $result .= xml_field($param, NULL, NULL, '*');
+    }
+    $this->assertIdentical('0*4', $result);
+  }
+
+  public function subtest__formatting() {
+    $xml = '<food><dinner><desert>cookie</desert></dinner><breakfast>eggs</breakfast></food>';
+
+    // default with indents
+    $control = '<?xml version="1.0"?>
+<food>
+  <dinner>
+    <desert>cookie</desert>
+  </dinner>
+  <breakfast>eggs</breakfast>
+</food>';
+    $this->assertIdentical($control, xml_field_format($xml));
+
+    // header set to false
+    $control = '<food>
+  <dinner>
+    <desert>cookie</desert>
+  </dinner>
+  <breakfast>eggs</breakfast>
+</food>';
+    $this->assertIdentical($control, xml_field_format($xml, array(), FALSE));
+  
+    // malordered xml attributes
+    $control = '<?xml version="4.5" encoding="utf-8"?>
+<food>
+  <dinner>
+    <desert>cookie</desert>
+  </dinner>
+  <breakfast>eggs</breakfast>
+</food>';
+    $this->assertIdentical($control, xml_field_format($xml, array(), array(
+      'encoding' => 'utf-8',
+      'version' => '4.5',
+    )));
+
+    // Html entities with default tab and break.
+    $control = '&lt;?xml version=&quot;1.0&quot;?&gt;<br />&lt;food&gt;<br />&nbsp;&nbsp;&nbsp;&nbsp;&lt;dinner&gt;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;desert&gt;cookie&lt;/desert&gt;<br />&nbsp;&nbsp;&nbsp;&nbsp;&lt;/dinner&gt;<br />&nbsp;&nbsp;&nbsp;&nbsp;&lt;breakfast&gt;eggs&lt;/breakfast&gt;<br />&lt;/food&gt;';
+    $this->assertIdentical($control, xml_field_format($xml, array(
+      'htmlentities' => TRUE,
+    )));
+
+    // Custom indent and break.
+    $control = '<?xml version="1.0"?>^^<food>^^**<dinner>^^****<desert>cookie</desert>^^**</dinner>^^**<breakfast>eggs</breakfast>^^</food>';
+    $this->assertIdentical($control, xml_field_format($xml, array(
+      'tab' => '**',
+      'break' => '^^',
+    )));
+  }
+
+  public function subtest__validators() {
+    /**
+     * Assert standard iframe returns true
+     */
+    $_control_group = 'xml_field_youtube_validator';
+    // The test and result
+    $subject = '<iframe width="420" height="315" src="//www.youtube.com/embed/mIMFL9wRaJE" frameborder="0" allowfullscreen></iframe>';
+    $return = xml_field_youtube_validator($subject);
+    $result = $return;
+    $this->assertTrue($result, "Assert standard iframe returns true", $_control_group);
+    // END ASSERT
+
+    /**
+     * Assert iframe with other website returns false
+     */
+    $_control_group = 'xml_field_youtube_validator';
+    // Desired test result
+    $subject = '<iframe width="420" height="315" src="//www.google.com/embed/mIMFL9wRaJE" frameborder="0" allowfullscreen></iframe>';
+    // The test and result
+    $return = xml_field_youtube_validator($subject);
+    $result = $return;
+    $this->assertFalse($result, "Assert iframe with other website returns false", $_control_group);
+    // END ASSERT
+
+    /**
+     * Assert a valid XML string returns true
+     */
+    $_control_group = 'xml_field_is_valid_xml_string';
+    // Desired test result
+    $subject = <<<EOD
+<page>
+  <header align="right">Lorem ipsum</header>
+</page>
+EOD;
+    // The test and result
+    $return = xml_field_is_valid_xml_string($subject);
+    $result = $return;
+    $this->assertTrue($result, "Assert a valid XML string returns true", $_control_group);
+    // END ASSERT
+
+    /**
+     * Assert an invalid XML string returns false
+     */
+    $_control_group = 'xml_field_is_valid_xml_string';
+    // Desired test result
+    $subject = <<<EOD
+<page>
+  <header align></bogus>
+</page>
+EOD;
+    // The test and result
+    $return = xml_field_is_valid_xml_string($subject);
+    $result = $return;
+    $this->assertFalse($result, "Assert an invalid XML string returns false", $_control_group);
+    // END ASSERT
+  }
+
+  public function subtest__xml_field_explode() {
+    $_control_xml = <<<EOD
+<page args="do:re:mi,fa">
+  <nodes>123,456, 789</nodes>
+</page>
+EOD;
+
+    /**
+     * Assert value of a child using default separator returns three nids
+     */
+    $_control_group = 'xml_field_explode';
+    // Desired test result
+    $control = array(123, 456, 789);
+    // The test and result
+    $return = xml_field_explode($_control_xml, 'nodes');
+    $result = $return;
+    $this->assertEqual($control, $result, "Assert value of a child using default separator returns three nids", $_control_group);
+    // END ASSERT
+
+    /**
+     * Assert pulling attribute with alternative separator returns three values
+     */
+    $_control_group = 'xml_field_explode';
+    // Desired test result
+    $control = array('do', 're', 'mi,fa');
+    // The test and result
+    $return = xml_field_explode($_control_xml, NULL, 'args', ':');
+    $result = $return;
+    $this->assertIdentical($control, $result, "Assert pulling attribute with alternative separator returns three values", $_control_group);
+    // END ASSERT
+  }
+
+  public function subtest__xml_field_attributes_as_array() {
+    $_control_options =  array(
+      'name' => array('name', 'content_by_tags'),
+      'display_id' => array('display', 'default'),
+      'view_mode' => array('mode', 'default'),
+      'separator' => array('separator', ','),
+      'items_per_page' => array('pager', 5),
+    );
+    $_control_xml = '<page><view name="view_name" mode="teaser" pager="10" bogus="attribute">view_arg1,view_arg2</view></page>';
+
+    /**
+     * Assert attribute mode with value teaser is returned as view_mode
+     */
+    $_control_group = 'xml_field_attributes_as_array';
+    // Desired test result
+    $control = 'teaser';
+    // The test and result
+    $return = xml_field_attributes_as_array($_control_xml, 'view', $_control_options, TRUE);
+    $result = $return['view_mode'];
+    $this->assertIdentical($control, $result, "Assert attribute mode with value teaser is returned as view_mode", $_control_group);
+
+    // Assert missing attribute separator returns default value of ','
+    $control = ',';
+    $result = $return['separator'];
+    $this->assertIdentical($control, $result, "Assert missing attribute separator returns default value of ','", $_control_group);
+
+    // Assert all keys sent are present in return
+    $control = array_keys($_control_options);
+    $result = array_keys($return);
+    $this->assertIdentical($control, $result, "Assert all keys sent are present in return", $_control_group);
+    // END ASSERT
+
+    /**
+     * Assert when filter is FALSE extra attributes are passed through
+     */
+    $_control_group = 'xml_field_attributes_as_array';
+    // Desired test result
+    $control = array('name', 'display_id', 'view_mode', 'separator', 'items_per_page', 'bogus');
+    // The test and result
+    $return = xml_field_attributes_as_array($_control_xml, 'view', $_control_options);
+    $result = array_keys($return);
+    $this->assertIdentical($control, $result, "Assert when filter is FALSE extra attributes are passed through", $_control_group);
+    // END ASSERT
+
+    /**
+     * Assert when selector is NULL, attributes of root are returned
+     */
+    $_control_group = 'xml_field_attributes_as_array';
+    // Desired test result
+    $control = array_keys($_control_options);
+    // The test and result
+    $subject = xml_field_xml($_control_xml)->view;
+    $return = xml_field_attributes_as_array($subject, NULL, $_control_options, TRUE);
+    $result = array_keys($return);
+    $this->assertIdentical($control, $result, "Assert when selector is NULL, attributes of root are returned", $_control_group);
+    // END ASSERT
+  }
+
+  public function subtest__xml_field_children_as_array() {
+    $_control_options =  array(
+      'nid' => array('node_id', NULL),
+      'caption' => array('body', 'Lorem ipsum'),
+      'width' => array('width', NULL),
+      'align' => array('align', 'right'),
+    );
+    $_control_xml = <<<EOD
+<page>
+  <theme name="youtube">
+    <node_id>1099</node_id>
+    <caption>See how FertilAid helped this woman with PCOS conceive...</caption>
+    <width>200</width>
+    <bogus>child</bogus>
+  </theme>
+</page>
+EOD;
+
+    /**
+     * Assert child node_id with value 1099 is returned as nid
+     */
+    $_control_group = 'xml_field_children_as_array';
+    // Desired test result
+    $control = 1099;
+    // The test and result
+    $return = xml_field_children_as_array($_control_xml, 'theme', $_control_options, TRUE);
+    $result = $return['nid'];
+    $this->assertEqual($control, $result, "Assert child node_id with value 1099 is returned as nid", $_control_group);
+
+    // Assert missing attribute align returns default value of 'right'
+    $control = 'right';
+    $result = $return['align'];
+    $this->assertIdentical($control, $result, "Assert missing attribute align returns default value of 'right'", $_control_group);
+
+    // Assert all keys sent are present in return
+    $control = array_keys($_control_options);
+    $result = array_keys($return);
+    $this->assertIdentical($control, $result, "Assert all keys sent are present in return", $_control_group);
+    // END ASSERT
+
+    /**
+     * Assert when filter is passed as false, all children are returned
+     */
+    $_control_group = 'xml_field_children_as_array';
+    // Desired test result
+    $control = array('nid', 'caption', 'width', 'align', 'bogus');
+    // The test and result
+    $return = xml_field_children_as_array($_control_xml, 'theme', $_control_options);
+    $result = array_keys($return);
+    $this->assertIdentical($control, $result, "Assert when filter is passed as false, all children are returned", $_control_group);
+    // END ASSERT
+
+    /**
+     * Assert when selector is NULL, children of root are returned
+     */
+    $_control_group = 'xml_field_children_as_array';
+    // Desired test result
+    $control = array_keys($_control_options);
+    // The test and result
+    $subject = xml_field_xml($_control_xml)->theme;
+    $return = xml_field_children_as_array($subject, NULL, $_control_options, TRUE);
+    $result = array_keys($return);
+    $this->assertIdentical($control, $result, "Assert when selector is NULL, children of root are returned", $_control_group);
+    // END ASSERT
+  }
+
+  public function subtest__Classes() {
+    $_control_group = 'classes';
+
+    // Assert the class xmlFieldXMLElement has been autoloaded
+    $result = class_exists('xmlFieldXMLElement');
+    $this->assertTrue($result, "Assert the class xmlFieldXMLElement has been autoloaded", $_control_group);
+  }
+
+  /**
+   * Test xml_field_has
+   */
+  public function subtest__Has() {
+
+    $_control_subject = <<<EOD
+<section weight="1">
+  <title color="red">The Red Sea</title>
+  <page>
+    <page_title>The is the First Page</page_title>
+    <body color="red"></body>
+  </page>
+  <page>
+    <footer>The is the First Page</footer>
+  </page>
+</section>
+EOD;
+
+
+    /**
+     * ASSERT
+     *
+     * Assert that no XML returns FALSE
+     */
+    $_control_group = 'xml_field_has';
+    // Desired test result
+    $control = FALSE;
+    // The test and result
+    $return = xml_field_has('', '', '');
+    $result = $return;
+    $this->assertIdentical($control, $result, "Assert that no XML returns FALSE", $_control_group);
+    /**
+     * END ASSERT
+     */
+
+    /**
+     * ASSERT
+     *
+     * Assert that xml without selector returns false
+     */
+    $_control_group = 'xml_field_has';
+    // Desired test result
+    $control = FALSE;
+    // The test and result
+    $return = xml_field_has($_control_subject, 'subtitle');
+    $result = $return;
+    $this->assertIdentical($control, $result, "Assert that xml without selector returns false", $_control_group);
+    /**
+     * END ASSERT
+     */
+
+    /**
+     * ASSERT
+     *
+     * Assert xml with selector, without attribute returns false
+     */
+    $_control_group = 'xml_field_has';
+    // Desired test result
+    $control = FALSE;
+    // The test and result
+    $return = xml_field_has($_control_subject, 'title', 'length');
+    $result = $return;
+    $this->assertIdentical($control, $result, "Assert xml with selector, without attribute returns false", $_control_group);
+    /**
+     * END ASSERT
+     */
+
+    /**
+     * ASSERT
+     *
+     * Assert xml with compound selector with value returns true
+     */
+    $_control_group = 'xml_field_has';
+    // Desired test result
+    $control = TRUE;
+    // The test and result
+    $return = xml_field_has($_control_subject, 'page>page_title');
+    $result = $return;
+    $this->assertIdentical($control, $result, "Assert xml with compound selector with value returns true", $_control_group);
+    /**
+     * END ASSERT
+     */
+
+    /**
+     * ASSERT
+     *
+     * Assert xml with compound empty selector returns true
+     */
+    $_control_group = 'xml_field_has';
+    // Desired test result
+    $control = TRUE;
+    // The test and result
+    $return = xml_field_has($_control_subject, 'page>body');
+    $result = $return;
+    $this->assertIdentical($control, $result, "Assert xml with compound empty selector returns true", $_control_group);
+    /**
+     * END ASSERT
+     */
+
+    /**
+     * ASSERT
+     *
+     * Assert xml with compound invalid selector returns false
+     */
+    $_control_group = 'xml_field_has';
+    // Desired test result
+    $control = FALSE;
+    // The test and result
+    $return = xml_field_has($_control_subject, 'page>footer');
+    $result = $return;
+    $this->assertIdentical($control, $result, "Assert xml with compound invalid selector returns false", $_control_group);
+    /**
+     * END ASSERT
+     */
+
+    /**
+     * ASSERT
+     *
+     * Assert xml with compound valid selector using index returns true
+     */
+    $_control_group = 'xml_field_has';
+    // Desired test result
+    $control = TRUE;
+    // The test and result
+    $return = xml_field_has($_control_subject, 'page[1]>footer');
+    $result = $return;
+    $this->assertIdentical($control, $result, "Assert xml with compound valid selector using index returns true", $_control_group);
+    /**
+     * END ASSERT
+     */
+
+    /**
+     * ASSERT
+     *
+     * Assert xml with selector returns true
+     */
+    $_control_group = 'xml_field_has';
+    // Desired test result
+    $control = TRUE;
+    // The test and result
+    $return = xml_field_has($_control_subject, 'title');
+    $result = $return;
+    $this->assertIdentical($control, $result, "Assert xml with selector returns true", $_control_group);
+    /**
+     * END ASSERT
+     */
+
+    /**
+     * ASSERT
+     *
+     * Assert XML with no selector and parent attribute returns true
+     */
+    $_control_group = 'xml_field_has';
+    // Desired test result
+    $control = TRUE;
+    // The test and result
+    $return = xml_field_has($_control_subject, NULL, 'weight');
+    $result = $return;
+    $this->assertIdentical($control, $result, "Assert XML with no selector and parent attribute returns true", $_control_group);
+    /**
+     * END ASSERT
+     */
+
+    /**
+     * ASSERT
+     *
+     * Assert XML with selector with attribute returns true
+     */
+    $_control_group = 'xml_field_has';
+    // Desired test result
+    $control = TRUE;
+    // The test and result
+    $return = xml_field_has($_control_subject, 'title', 'color');
+    $result = $return;
+    $this->assertIdentical($control, $result, "Assert XML with selector with attribute returns true", $_control_group);
+    /**
+     * END ASSERT
+     */
+
+    /**
+     * ASSERT
+     *
+     * Assert XML with compound selector with attribute returns true
+     */
+    $_control_group = 'xml_field_has';
+    // Desired test result
+    $control = TRUE;
+    // The test and result
+    $return = xml_field_has($_control_subject, 'page>body', 'color');
+    $result = $return;
+    $this->assertIdentical($control, $result, "Assert XML with compound selector with attribute returns true", $_control_group);
+    /**
+     * END ASSERT
+     */
+
+    /**
+     * ASSERT
+     *
+     * Assert XML with compound selector with missing attribute returns false
+     */
+    $_control_group = 'xml_field_has';
+    // Desired test result
+    $control = FALSE;
+    // The test and result
+    $return = xml_field_has($_control_subject, 'page>body', 'size');
+    $result = $return;
+    $this->assertIdentical($control, $result, "Assert XML with compound selector with missing attribute returns false", $_control_group);
+    /**
+     * END ASSERT
+     */
+  }
+
+  /**
+   * Testing the function xml_field()
+   */
+  public function subtest__XMLFieldFunction() {
+    /**
+     * ASSERT
+     *
+     * Assert empty xml with FALSE callback returns the default string unprocessed
+     */
+    $_control_group = 'xml_field';
+    // Desired test result
+    $subject = "Aaron's <em>birthday</em> is in <big>August</big>";
+    $control = $subject;
+    // The test and result
+    $return = xml_field('', NULL, NULL, $subject, FALSE);
+    $result = $return;
+    $this->assertIdentical($control, $result, "Assert empty xml with FALSE callback returns the default string unprocessed", $_control_group);
+    /**
+     * END ASSERT
+     */
+
+    /**
+     * ASSERT
+     *
+     * Assert empty xml with no callback returns check_plain version of $default
+     */
+    $_control_group = 'xml_field';
+    // Desired test result
+    $subject = "Aaron's <em>birthday</em> is in <big>August</big>";
+    $control = check_plain($subject);
+    // The test and result
+    $return = xml_field('', NULL, NULL, $subject);
+    $result = $return;
+    $this->assertIdentical($control, $result, 'Assert empty xml with no callback returns check_plain version of $default', $_control_group);
+    /**
+     * END ASSERT
+     */
+
+    /**
+     * ASSERT
+     *
+     * Assert custom callback with arguments works correctly
+     */
+    $_control_group = 'xml_field';
+    // Desired test result
+    $subject = 'GOP PONDERS CEDING POWER TO OBAMA';
+    $control = 'GOP PONDERS CEDING POWER TO OB';
+    // The test and result
+    $return = xml_field('', NULL, NULL, $subject, array('trim', 'AM'));
+    $result = $return;
+    $this->assertIdentical($control, $result, "Assert custom callback with arguments works correctly", $_control_group);
+    /**
+     * END ASSERT
+     */
+
+    /**
+     * ASSERT
+     *
+     * Assert valid xml, no selector, no attribute, returns the default arg.
+     */
+    $_control_group = 'xml_field';
+    // Desired test result
+    $subject = '<big>';
+    $control = check_plain($subject);
+    // The test and result
+    $return = xml_field("<book><page>Aaron's Book</page></book>", NULL, NULL, $subject);
+    $result = $return;
+    $this->assertIdentical($control, $result);
+    // $this->assertIdentical($control, $result, "Assert valid xml, no selector, no attribute, no default returns an empty string", $_control_group);
+    /**
+     * END ASSERT
+     */
+
+    /**
+     * ASSERT
+     *
+     * Assert valid xml, no selector, no attribute, no default returns '';
+     */
+    $_control_group = 'xml_field';
+    // Desired test result
+    $control = '';
+    // The test and result
+    $return = xml_field("<book><page>Aaron's Book</page></book>");
+    $result = $return;
+    $this->assertIdentical($control, $result, "Assert valid xml, no selector, no attribute, returns the default", $_control_group);
+    /**
+     * END ASSERT
+     */
+
+    /**
+     * ASSERT
+     *
+     * Assert attribute is returned from parent when no selector is used
+     */
+    $_control_group = 'xml_field';
+    // Desired test result
+    $subject = '<xml location="library"><book id="1">The Bible</book></xml>';
+    $control = 'library';
+    // The test and result
+    $return = xml_field($subject, NULL, 'location');
+    $result = $return;
+    $this->assertIdentical($control, $result, "Assert attribute is returned from parent when no selector is used", $_control_group);
+    /**
+     * END ASSERT
+     */
+
+    /**
+     * ASSERT
+     *
+     * Assert attribute is returned from child when selector is used
+     */
+    $_control_group = 'xml_field';
+    // Desired test result
+    $subject = '<xml location="library"><book id="456">The Bible</book></xml>';
+    $control = '456';
+    // The test and result
+    $return = xml_field($subject, 'book', 'id');
+    $result = $return;
+    $this->assertIdentical($control, $result, "Assert attribute is returned from child when selector is used", $_control_group);
+    /**
+     * END ASSERT
+     */
+
+    /**
+     * ASSERT
+     *
+     * Assert value is returned from child when selector is used
+     */
+    $_control_group = 'xml_field';
+    // Desired test result
+    $subject = '<xml location="library"><book id="456">The Bible</book></xml>';
+    $control = 'The Bible';
+    // The test and result
+    $return = xml_field($subject, 'book');
+    $result = $return;
+    $this->assertIdentical($control, $result, "Assert value is returned from child when selector is used", $_control_group);
+    /**
+     * END ASSERT
+     */
+
+    /**
+     * ASSERT
+     *
+     * Assert value is returned from second child of same tag when selector is used
+     */
+    $_control_group = 'xml_field';
+    // Desired test result
+    $subject = '<xml location="library"><book id="456">The Bible</book><book id="789">The Dictionary</book></xml>';
+    $control = 'The Dictionary';
+    // The test and result
+    $return = xml_field($subject, 'book[1]');
+    $result = $return;
+    $this->assertIdentical($control, $result, "Assert value is returned from second child of same tag when selector is used", $_control_group);
+    /**
+     * END ASSERT
+     */
+
+    /**
+     * ASSERT
+     *
+     * Assert value is returned from second child of same tag when compound selector is used
+     */
+    $_control_group = 'xml_field';
+    // Desired test result
+    $subject = <<<EOD
+<xml location="library">
+  <south_wing>
+    <top_shelf>
+      <book id="456">The Bible</book>
+      <book id="789">The Dictionary</book>
+    </top_shelf>
+  </south_wing>
+</xml>
+EOD;
+    $control = 'The Dictionary';
+    // The test and result
+    $return = xml_field($subject, 'south_wing>top_shelf>book[1]');
+    $result = $return;
+    $this->assertIdentical($control, $result, "Assert value is returned from second child of same tag when compound selector is used", $_control_group);
+    /**
+     * END ASSERT
+     */
+
+    /**
+     * ASSERT
+     *
+     * Assert attribute is returned from second child of same tag when compound selector is used
+     */
+    $_control_group = 'xml_field';
+    // Desired test result
+    $subject = <<<EOD
+<xml location="library">
+  <south_wing>
+    <top_shelf>
+      <book id="456">The Bible</book>
+      <book id="789">The Dictionary</book>
+    </top_shelf>
+  </south_wing>
+</xml>
+EOD;
+    $control = 789;
+    // The test and result
+    $return = xml_field($subject, 'south_wing>top_shelf>book[1]', 'id');
+    $result = $return;
+    $this->assertEqual($control, $result, "Assert attribute is returned from second child of same tag when compound selector is used", $_control_group);
+    /**
+     * END ASSERT
+     */
+  }
+
+  /**
+   * Test collision of same sort value
+   */
+  public function subtest__SortDuplicates() {
+    $_control_subject = <<<EOD
+<list>
+  <milk sort="3"></milk>
+  <bread sort="2"></bread>
+  <eggs sort="2"></eggs>
+</list>
+EOD;
+
+    /**
+     * ASSERT
+     *
+     * Assert the duplicate sort values don't elimate the duplicates
+     */
+    $_control_group = 'xml_field_sort';
+    // Desired test result
+    $control = 3;
+    // The test and result
+    $return = xml_field_sort($_control_subject);
+    $result = count($return->children());
+    $this->assertIdentical($control, $result, "Assert the duplicate sort values don't elimate the duplicates.", $_control_group);
+    /**
+     * END ASSERT
+     */
+  }
+
+  /**
+   * Import functions
+   */
+  public function subtest__Sorting() {
+    $_control_subject = <<<EOD
+<family surname="Robinson">
+  <parent age="38">Dad</parent>
+  <parent age="35">Mom</parent>
+  <children>
+    <child birthorder="12" weight="90">Fritz</child>
+    <child birthorder="6" weight="100">Francis</child>
+    <child birthorder="7" weight="75">Ernst</child>
+  </children>
+</family>
+EOD;
+
+    //$this->assert(TRUE, xml_field_format($_control_subject, array(
+    //  'htmlentities' => TRUE,
+    //)), 'xml_field_sort');
+
+    /**
+     * ASSERT
+     *
+     * Assert non-existant selector returns FALSE
+     */
+    $_control_group = 'xml_field_sort';
+    // Desired test result
+    $control = FALSE;
+    // The test and result
+    $result = xml_field_sort($_control_subject, 'pizza');
+
+    $this->assertEqual($control, $result, "Assert non-existant selector returns FALSE", $_control_group);
+    /**
+     * END ASSERT
+     */
+
+    /**
+     * ASSERT
+     *
+     * Assert non-existant attribute returns FALSE
+     */
+    //$_control_group = 'xml_field_sort';
+    // Desired test result
+    $control = FALSE;
+    // The test and result
+    $result = xml_field_sort($_control_subject, 'children', 'hair_color');
+    $this->assertEqual($control, $result, "Assert non-existant attribute returns FALSE", $_control_group);
+    /**
+     * END ASSERT
+     */
+
+    /**
+     * ASSERT
+     *
+     * Assert the root node doesn't loose it's attributes
+     */
+    //$_control_group = 'xml_field_sort';
+    // Desired test result
+    $control = array(
+      'surname' => 'Robinson',
+    );
+    // The test and result
+    $return = xml_field_sort($_control_subject);
+    $result = (array)$return->attributes();
+    $result = $result['@attributes'];
+    $this->assertIdentical($control, $result, "Assert the root node doesn't loose it's attributes", $_control_group);
+    /**
+     * END ASSERT
+     */
+
+    /**
+     * ASSERT
+     *
+     * Assert sorting parents puts mom first
+     */
+    //$_control_group = 'xml_field_sort';
+    // Desired test result
+    $control = 'Mom';
+    // The test and result
+    $return = xml_field_sort($_control_subject, NULL, 'age');
+    $result = (string) $return->parent[0];
+    $this->assertEqual($control, $result, "Assert sorting parents puts mom first", $_control_group);
+    /**
+     * END ASSERT
+     */
+
+    /**
+     * ASSERT
+     *
+     * Assert omitting attribute sorts by weight
+     */
+    //$_control_group = 'xml_field_sort';
+    // Desired test result
+    $control = 'Ernst';
+    // The test and result
+    $return = xml_field_sort($_control_subject, 'children');
+    $result = (string) $return->child[0];
+    $this->assertIdentical($control, $result, "Assert omitting attribute sorts by weight", $_control_group);
+    /**
+     * END ASSERT
+     */
+
+    /**
+     * ASSERT
+     *
+     * Assert Ernst has all his attributes
+     */
+    //$_control_group = 'xml_field_sort';
+    // Desired test result
+    $control = array(
+      'birthorder' => 7,
+      'weight' => 75,
+    );
+    // The test and result
+    $return = xml_field_sort($_control_subject, 'children');
+    $output = $return->asXML();
+    $result = (array) $return->child[0]->attributes();
+    $result = $result['@attributes'];
+    $result = array_intersect_key($control, $result);
+    $this->assertIdentical($control, $result, "Assert Ernst has all his attributes", $_control_group);
+    /**
+     * END ASSERT
+     */
+
+    /**
+     * ASSERT
+     *
+     * Assert selector and attribute sorts children by birthorder
+     */
+    //$_control_group = 'xml_field_sort';
+    // Desired test result
+    $control = array(
+      'Francis', 'Ernst', 'Fritz',
+    );
+    // The test and result
+    $return = xml_field_sort($_control_subject, 'children', 'birthorder');
+    $result = array();
+    $result[] = (string)$return->child[0];
+    $result[] = (string)$return->child[1];
+    $result[] = (string)$return->child[2];
+    $this->assertIdentical($control, $result, "Assert selector and attribute sorts children by birthorder", $_control_group);
+    /**
+     * END ASSERT
+     */
+
+    /**
+     * ASSERT
+     *
+     * Assert xml with one child returns unchanged
+     */
+    $_control_group = 'xml_field_sort';
+    // Desired test result
+    $subject = '<sky><bird type="robin"/></sky>';
+    $control = xml_field_xml($subject);
+    $control = $control->asXML();
+    // The test and result
+    $return = xml_field_sort($subject);
+    $result = $return->asXML();
+    $this->assertEqual($control, $result, "Assert xml with one child returns unchanged", $_control_group);
+    /**
+     * END ASSERT
+     */
+  }
+
+  public function subtest__xml_field_load_string() {
+    /**
+     * Assert loading a valid xml string returns an xmlFieldXMLElement
+     */
+    $_control_group = 'xml_field_load_string';
+    // Desired test result
+    $control = TRUE;
+    // The test and result
+    $subject = '<page><title>The Bible</title></page>';
+    $return = xml_field_load_string($subject);
+    $result = is_a($return, 'xmlFieldXMLElement');
+    $this->assertIdentical($control, $result, "Assert loading a valid xml string returns an xmlFieldXMLElement", $_control_group);
+    // END ASSERT
+
+    /**
+     * Assert sending an invalid xml string returns FALSE
+     */
+    $_control_group = 'xml_field_load_string';
+    // Desired test result
+    $control = FALSE;
+    $subject = '<iframe width="450" height="285" src="http://www.youtube.com/embed/hzvtkYFnTuY?rel=0" frameborder="0" allowfullscreen></iframe>';
+    // The test and result
+    $return = xml_field_load_string($subject);
+    $result = $return;
+    $this->assertIdentical($control, $result, "Assert sending an invalid xml string returns FALSE", $_control_group);
+    // END ASSERT
+  }
+
+  public function setUp($modules = array()) {
+    if (!is_array($modules)) {
+      $modules = func_get_args();
+    }
+    // List the modules you need to enable for testing
+    $modules += array('xml_field', 'xml_field_extras', 'xml_field_test', 'xml_field_test_assets');
+    $modules = array_unique($modules);
+    parent::setUp($modules);
+  }
+
+  public function testGroup() {
+    $this->subtest_field_validation();
+    $this->subtest_fapi_elements_validation();
+    $this->subtest_field_schema_validation();
+    $this->subtest_fapi_elements_schema_validation();
+    $this->subtest_childrenInheritAutoCData();
+    $this->subtest__cdata();
+    $this->subtest_childrenWithCDataWorks();
+    $this->subtest_accessingCData();
+    $this->subtest__Classes();
+    $this->subtest__Has();
+    $this->subtest__XMLFieldFunction();
+    $this->subtest__SortDuplicates();
+    $this->subtest__Sorting();
+    $this->subtest__xml_field_explode();
+    $this->subtest__xml_field_load_string();
+    $this->subtest__xml_field_attributes_as_array();
+    $this->subtest__xml_field_children_as_array();
+    $this->subtest__validators();
+    $this->subtest__formatting();
+    $this->subtest_autoCData();    
+    $this->subtest_dontLooseZeroValue();
+    $this->subtest_cdataDoesntPersistAcrossInstances();
+    $this->subtest_autoCDataSettingPersistsAcrossInstances();
+  }
+
+  public static function getInfo() {
+    return array(
+      'name' => 'XML Field Integration tests',
+      'description' => 'Integration testing for the XML Field module.',
+      'group' => 'XML Field',
+    );
+  }
+}

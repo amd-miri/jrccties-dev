@@ -15,6 +15,8 @@
  *      where all items and categories are collected and printed out.
  *
  * Available variables:
+ * - $attributes: array of HTML attributes populated by modules, intended to
+ *   be added to the dt and dd tags of this template.
  * - $title: Field title for the profile item.
  * - $value: User defined value for the profile item or data from a module.
  * - $attributes: HTML attributes. Usually renders classes.

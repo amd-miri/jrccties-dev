@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link href='../build/out/fullcalendar.css' rel='stylesheet' />
+<link href='../build/out/fullcalendar.print.css' rel='stylesheet' media='print' />
+<script src='../lib/jquery/jquery.js'></script>
+<script src='../lib/jquery-ui/ui/jquery-ui.js'></script>
+<script src='../build/out/fullcalendar.js'></script>
+<script>
+
+	var date = new Date();
+	var d = date.getDate();
+	var m = date.getMonth();
+	var y = date.getFullYear();
+
+	var calendar;
+
+	$(document).ready(function() {
+		
+		calendar = $('#calendar').fullCalendar({
+			header: {
+				left: 'prev,next today',
+				center: 'title',
+				right: 'month,agendaWeek,basicWeek,agendaDay,basicDay'
+			},
+			defaultView: 'month',
+			
+			//firstDay: 1,
+			//isRTL: true,
+			//minTime: 7,
+			//weekends: false,
+			//allDaySlot: false,
+			//hiddenDays: [ 2, 4 ], // tuesdays and thursdays
+			
+			selectable: true,
+			/*
+			selectable: {
+				month: false,
+				agenda: true
+			},
+			*/
+			
+			selectHelper: true,
+			/*
+			selectHelper: function(start, end) {
+				return $("<div style='background:red' />").text(start+' '+end);
+			},
+			*/
+			
+			//unselectAuto: false,
+			//unselectCancel: '.fc',
+			
+			select: function(start, end, allDay, ev) {
+				console.log(
+					'---- selection ----\n' +
+					'start: ' + start + '\n' +
+					'end: ' + end + '\n' +
+					'allDay: ' + allDay
+				);
+				if (ev) {
+					//console.log('select mouse: ' + ev.pageX + ', ' + ev.pageY);
+				}
+			},
+			unselect: function(ev) {
+				console.log('unselect');
+				if (ev) {
+					//console.log('unselect mouse: ' + ev.pageX + ', ' + ev.pageY);
+				}
+			},
+			dayClick: function(date, allDay) {
+				console.log('DAYCLICK', date, allDay);
+				console.log(this);
+			},
+			editable: true,
+			events: [
+				{
+					title: 'All Day Event',
+					start: new Date(y, m, 1)
+				},
+				{
+					title: 'Long Event',
+					start: new Date(y, m, d-5, 5, 0),
+					end: new Date(y, m, d-2, 2, 0),
+					allDay: false
+				},
+				{
+					id: 999,
+					title: 'Repeating Event',
+					start: new Date(y, m, d-3, 16, 0),
+					allDay: false
+				},
+				{
+					id: 999,
+					title: 'Repeating Event',
+					start: new Date(y, m, d+4, 16, 0),
+					allDay: false
+				},
+				{
+					title: 'Meeting',
+					start: new Date(y, m, d, 10, 30),
+					allDay: false
+				},
+				{
+					title: 'Lunch',
+					start: new Date(y, m, d, 12, 5),
+					end: new Date(y, m, d, 14, 43),
+					allDay: false
+				},
+				{
+					title: 'Birthday Party',
+					start: new Date(y, m, d+1, 19, 0),
+					end: new Date(y, m, d+1, 22, 30),
+					allDay: false
+				},
+				{
+					title: 'Click for Google',
+					start: new Date(y, m, 28),
+					end: new Date(y, m, 29),
+					url: 'http://google.com/'
+				}
+			]
+		});
+		
+		
+	});
+
+</script>
+<style>
+
+	body {
+		font-size: 13px;
+		font-family: "Lucida Grande",Helvetica,Arial,Verdana,sans-serif;
+		}
+
+	#calendar {
+		width: 900px;
+		margin: 40px auto;
+		}
+
+</style>
+</head>
+<body>
+<button onclick="calendar.fullCalendar('select', new Date(y, m, d-1), new Date(y, m, d-1), true)">1day, allday</button>
+<button onclick="calendar.fullCalendar('select', new Date(y, m, d-1))">1day, noend, noallday</button>
+<button onclick="calendar.fullCalendar('select', new Date(y, m, d-1), null, false)">1day, noend, allday=false</button>
+<button onclick="calendar.fullCalendar('select', new Date(y, m, d, 5, 15), new Date(y, m, d, 15, 30), false)">1day, timed</button>
+<button onclick="calendar.fullCalendar('select', new Date(y, m, d-2), new Date(y, m, d), true)">3day, allday</button>
+<button onclick="calendar.fullCalendar('select', new Date(y, m, d-1, 5, 15), new Date(y, m, d+1, 15, 30), false)">3day, timed</button>
+<button onclick="calendar.fullCalendar('unselect')">unselect</button>
+<div id='calendar'></div>
+</body>
+</html>

@@ -1,0 +1,12 @@
+.CodeMirror { border: 1px solid #eee; height: auto; font-size: 14px; line-height: 1.2; }
+.CodeMirror-scroll { overflow-y: hidden; overflow-x: auto; }
+
+.xml-codemirror-formatter .form-item {
+  margin: 0;
+}
+.xml-codemirror-formatter .CodeMirror {
+  height: auto;
+}
+.xml-codemirror-formatter .CodeMirror-scroll {
+  height: auto;
+}

@@ -1,0 +1,33 @@
+
+<h2>xmltext</h2>
+
+<p>A FAPI element using a textarea with xml validation.</p>
+
+<pre><code>&lt;?php
+$form['xml_config'] = array(
+  '#type' =&gt; 'xmltext',
+  '#title' =&gt; 'XML config',
+  '#default_value' =&gt; variable_get('xml_config', ''),
+  '#xml_schema' =&gt; '&lt;xs:schema&gt;...&lt;/xs:schema&gt;',
+  '#xml_example' =&gt; '&lt;something&gt;...&lt;/something&gt;',
+);
+</code></pre>
+
+<h2>xml_codemirror</h2>
+
+<p>Enable <em>xml_field_codemirror</em> module to introduce this FAPI element, which creates a <a href="http://codemirror.net/index.html">CodeMirror</a> input field with xml validation.</p>
+
+<p>Refer to the <a href="http://codemirror.net/doc/manual.html#config">online API</a> for more info.</p>
+
+<p>You may alter the global default options using <em>hook_xml_field_codemirror_config_alter()</em>.  For fields you may alter some configuration options in the field UI.  To control the CodeMirror options at the element level add/alter the key <code>#codemirror_options</code>:</p>
+
+<pre><code>&lt;?php
+$form['xml_config'] = array(
+  '#type' =&gt; 'xml_codemirror',
+  '#title' =&gt; 'XML config',
+  '#default_value' =&gt; variable_get('xml_config', ''),
+  '#codemirror_options' =&gt; array(
+    'tabSize' =&gt; 2, 
+  );
+);
+</code></pre>

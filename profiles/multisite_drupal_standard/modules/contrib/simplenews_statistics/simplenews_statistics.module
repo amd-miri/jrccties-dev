@@ -1,0 +1,518 @@
+<?php
+
+/**
+ * @file
+ * Main simplenews statistics file.
+ */
+
+/**
+ * @todo: Find a way to use simplenews' message caching (token replacement).
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function simplenews_statistics_menu() {
+  // Admin.
+  $items['admin/config/services/simplenews/statistics'] = array(
+    'title' => 'Statistics',
+    'type' => MENU_LOCAL_TASK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('simplenews_statistics_admin_settings_form'),
+    'access arguments' => array('administer newsletter statistics'),
+    'file' => 'includes/simplenews_statistics.admin.inc',
+  );
+  $items['admin/config/services/simplenews/statistics/settings'] = array(
+    'title' => 'Settings',
+    'weight' => -15,
+    'type' => MENU_DEFAULT_LOCAL_TASK, // Visible once submodules are enabled.
+  );
+  // Statistics.
+  $items['admin/content/simplenews/newsletters'] = array(
+    'title' => 'Newsletters',
+    'type' => MENU_DEFAULT_LOCAL_TASK, // Default tab for content overview.
+    'weight' => -1,
+  );
+  $items['node/%node/simplenews_statistics'] = array(
+    'title' => 'Statistics',
+    'type' => MENU_LOCAL_TASK,
+    'page callback' => 'simplenews_statistics_embed_view',
+    'page arguments' => array('simplenews_statistics_overview', 'page'),
+    'access arguments' => array('view newsletter statistics', 1),
+    'access callback' => 'simplenews_statistics_node_tab_access',
+    'file' => 'includes/simplenews_statistics.pages.inc',
+    'weight' => 1,
+  );
+  // Tracking.
+  $items['track/open/%/%'] = array(
+    'type' => MENU_CALLBACK,
+    'page callback' => 'simplenews_statistics_open_page',
+    'page arguments' => array(2, 3),
+    'access arguments' => array('access content'),
+    'file' => 'includes/simplenews_statistics.pages.inc',
+  );
+  $items['track/click/%/%'] = array(
+    'type' => MENU_CALLBACK,
+    'page callback' => 'simplenews_statistics_click_page',
+    'page arguments' => array(2, 3),
+    'access arguments' => array('access content'),
+    'file' => 'includes/simplenews_statistics.pages.inc',
+  );
+
+  return $items;
+}
+
+/**
+ * Access callback for statistics landing page.
+ */
+function simplenews_statistics_node_tab_access($permission, $node) {
+  // Show warning about HTML.
+  if (isset($node->simplenews->tid)) {
+    $category = simplenews_category_load($node->simplenews->tid);
+    if ($category->format !== 'html') {
+      drupal_set_message(t('Newsletter category %name format has not been set to HTML. There will be no statistics recorded for this newsletter.', array('%name' => $category->name)), 'warning', FALSE);
+    }
+  }
+
+  return simplenews_check_node_types($node->type) && user_access($permission);
+}
+
+/**
+ * Implements hook_permission().
+ */
+function simplenews_statistics_permission() {
+  $permissions = array(
+    'administer newsletter statistics' => array(
+      'title' => t('Administer newsletter statistics'),
+      'description' => t('Allows user to administer newsletter statistics.'),
+    ),
+    'view newsletter statistics' => array(
+      'title' => t('View newsletter statistics'),
+      'description' => t('Allows user to access the statistics.'),
+    ),
+  );
+
+  return $permissions;
+}
+
+/**
+ * Implements hook_node_insert().
+ */
+function simplenews_statistics_node_insert($node) {
+  if ($node->type == 'simplenews') {
+    // Create corresponding record in {simplenews_statistics} table.
+    $record = array(
+      'nid' => $node->nid,
+    );
+    drupal_write_record('simplenews_statistics', $record);
+  }
+}
+
+/**
+ * Implements hook_node_delete().
+ */
+function simplenews_statistics_node_delete($node) {
+  if ($node->type == 'simplenews') {
+    // Delete all open and click records for this newsletter.
+    simplenews_statistics_delete_opens($node->nid);
+    simplenews_statistics_delete_clicks($node->nid);
+    // Delete corresponding record from {simplenews_statistics} table.
+    db_delete('simplenews_statistics')
+      ->condition('nid', $node->nid)
+      ->execute();
+  }
+}
+
+/**
+ * Implements hook_cron().
+ */
+function simplenews_statistics_cron() {
+  // Delete open and click records after a specified period of time.
+  $days = variable_get('simplenews_statistics_archive_days', 0);
+  if (is_numeric($days) && $days > 0) {
+    $timestamp = strtotime("-$days days");
+
+    // Only archive one per cron run.
+    $query = db_select('simplenews_statistics', 'ss')
+      ->fields('ss')
+      ->condition('ss.archived', 0)
+      ->condition('ss.send_end_timestamp', 0, '>')
+      ->condition('ss.send_end_timestamp', $timestamp, '<');
+    $record = $query->execute()->fetchObject();
+
+    if (empty($record)) {
+      return; // Nothing to archive.
+    }
+    $nid = $record->nid;
+    // Update simplenews_statistics record.
+    $record->archived = 1;
+    $record->unique_opens = simplenews_statistics_count_opens($nid, TRUE);
+    $record->total_opens = simplenews_statistics_delete_opens($nid);
+    $record->unique_clicks = simplenews_statistics_count_clicks($nid, TRUE);
+    $record->total_clicks = simplenews_statistics_delete_clicks($nid);
+    drupal_write_record('simplenews_statistics', $record, 'nid');
+
+    watchdog('simplenews_statistics', 'Newsletter %nid archived. Deleted %total_opens open records and %total_clicks click records.', array('%nid' => $nid, '%total_opens' => $record->total_opens, '%total_clicks' => $record->total_clicks));
+  }
+}
+
+/**
+ * Implements hook_views_api().
+ */
+function simplenews_statistics_views_api() {
+  return array(
+    'api' => '3.0',
+    'path' => drupal_get_path('module', 'simplenews_statistics') . '/includes/views',
+  );
+}
+
+/**
+ * Implements hook_admin_paths().
+ */
+function simplenews_statistics_admin_paths(){
+  $paths = array(
+    'node/*/simplenews_statistics*' => TRUE,
+  );
+
+  return $paths;
+}
+
+/**
+ * Implements hook_mail_alter().
+ *
+ * Parses all the links in the email so they can be tracked. Also adds a hidden
+ * image to the body to track opens.
+ */
+function simplenews_statistics_mail_alter(&$message) {
+  if ($message['id'] == 'simplenews_node' || $message['id'] == 'simplenews_test') {
+    $node = $message['params']['simplenews_source']->getNode();
+    $subscriber = $message['params']['simplenews_source']->getSubscriber();
+
+    // During testing the snid might be unset. Use 0 in that case. This will
+    // make sure that the link will still work but won't be counted.
+    $snid = isset($subscriber->snid) ? $subscriber->snid : 0;
+
+    // Optionally ignore $snid tracking for test sends.
+    $track_test = variable_get('simplenews_statistics_track_test', 0);
+    if ($track_test == 0 && $message['id'] == 'simplenews_test') {
+      $snid = 0;
+    }
+
+    // Parse links in body.
+    _simplenews_statistics_parse_links($message['body'], $node->nid, $snid);
+
+    // Add view image.
+    _simplenews_statistics_image_tag($message['body'], $node->nid, $snid);
+  }
+
+  // If this is a true newsletter send then we also want to update the
+  // newsletter record {simplenews_statistics} table.
+  if ($message['id'] == 'simplenews_node') {
+    $subscriber_count = simplenews_statistics_count_subscribers($node->nid);
+    // Set the send_start_timestamp if this is the first newsletter.
+    db_update('simplenews_statistics')
+      ->fields(array(
+        'send_start_timestamp' => time(),
+        'subscriber_count' => $subscriber_count,
+      ))
+      ->condition('nid', $node->nid)
+      ->condition('send_start_timestamp', 0)
+      ->execute();
+
+    // Set send_end_timestamp to time() for every newsletter sent.
+    db_update('simplenews_statistics')
+      ->fields(array('send_end_timestamp' => time()))
+      ->condition('nid', $node->nid)
+      ->execute();
+  }
+}
+
+/**
+ * Helper function to parse links in the body.
+ */
+function _simplenews_statistics_parse_links(&$body, $nid, $snid) {
+  if (is_array($body)) {
+    foreach ($body as $key => $element) {
+      _simplenews_statistics_parse_links($body[$key], $nid, $snid);
+    }
+  }
+  else {
+    // @todo: Try and write some cleaner code here.
+    $body = preg_replace_callback(
+      '/(<a[^>]+href=")([^"]*)/mi',
+      function($matches) use ($nid, $snid) {
+        $value = _simplenews_statistics_replace_url($matches[2], $nid, $snid);
+        return '<a href="' . $value;
+      },
+      $body
+    );
+  }
+}
+
+/**
+ * Add hidden image for open statistics.
+ */
+function _simplenews_statistics_image_tag(&$body, $nid, $snid) {
+  // @todo: Figure out why this construction was ever made.
+  if (is_array($body)) {
+    foreach ($body as $key => $element) {
+      _simplenews_statistics_image_tag($body[$key], $nid, $snid);
+      return;
+    }
+  }
+  else {
+    // Call possible encoders for snid & nid in modules implementing the hook.
+    $hook = 'simplenews_statistics_encode';
+    foreach (module_implements($hook) as $module) {
+      $function = $module . '_' . $hook;
+      if (function_exists($function)) {
+        $nid = $function($nid, 'nid');
+        $snid = $function($snid, 'snid');
+      }
+    }
+    $body .= '<img src="' . url('track/open/' . $nid . '/' . $snid, array('absolute' => TRUE)) . '" width="1" height="1" style="display: none;" />';
+  }
+}
+
+/**
+ * Alter link to go through statistics.
+ */
+function _simplenews_statistics_replace_url($url, $nid, $snid) {
+  // Do not replace anchor links.
+  $fragment_position = substr($url, 0, 1);
+  if ($fragment_position == '#') {
+    return $url;
+  }
+
+  // Do not replace 'mailto:' links unless it is configured.
+  $track_mailto = variable_get('simplenews_statistics_track_mailto', 1);
+  if ($track_mailto == 0) {
+    if (substr($url, 0, 7) == 'mailto:') {
+      return $url;
+    }
+  }
+
+  // Do not replace unsubscribe links.
+  if (strpos($url, '/newsletter/confirm/remove/') !== FALSE) {
+    return $url;
+  }
+
+  // Get the url record from the database. Uses Drupal's static caching if
+  // available. Create a new record in database and cache if there isn't one.
+  $url_record = simplenews_statistics_get_url($url, $nid);
+  if ($url_record == FALSE) {
+    $url_record = simplenews_statistics_set_url($url, $nid);
+  }
+
+  // Call possible encoders for urlid & snid in modules implementing the hook.
+  $hook = 'simplenews_statistics_encode';
+  foreach (module_implements($hook) as $module) {
+    $function = $module . '_' . $hook;
+    if (function_exists($function)) {
+      $url_record->urlid = $function($url_record->urlid, 'urlid');
+      $snid = $function($snid, 'snid');
+    }
+  }
+
+  return url('track/click/' . $url_record->urlid . '/' . $snid, array('absolute' => TRUE));
+}
+
+/**
+ * Gets an url record.
+ *
+ * The caching causes a slight performance hit on our main task: redirecting
+ * users. But whilst generating/sending mails it gives us a huge performance
+ * gain though!
+ *
+ * @param string $url
+ *   Complete url to search for.
+ * @param string $nid
+ *   Node ID that url should be for.
+ * @param bool $reset
+ *   (optional) Reset cache for this URL.
+ *
+ * @return object || FALSE
+ *   Object representing the url record or FALSE.
+ */
+function simplenews_statistics_get_url($url, $nid, $reset = FALSE) {
+  // We don't use the magic __FUNCTION__ as parameter because we want to use the
+  // static cache outside the scope of this function as well. Mainly in the
+  // simplenews_statistics_set_url() function.
+  $cached_urls = &drupal_static('simplenews_statistics_url');
+
+  if (!isset($cached_urls[$url]) || $reset) {
+    $query = db_select('simplenews_statistics_url', 'ssu')
+      ->fields('ssu', array('urlid'))
+      ->condition('url', $url)
+      ->condition('nid', $nid);
+    $record = $query->execute()->fetchObject();
+    if ($record !== FALSE) {
+      $cached_urls[$url] = $record;
+      return $record;
+    }
+  }
+  elseif (isset($cached_urls[$url])) {
+    // @todo: If multiple nodes are being sent simultaniously (e.g. by cron)
+    // then we could in odd cases be returning the wrong urlid.
+    return $cached_urls[$url];
+  }
+
+  return FALSE;
+}
+
+/**
+ * Creates an url record in the database.
+ *
+ * @param string $url
+ *   The URL.
+ * @param int $nid
+ *   The Simplenews nid this link belongs to.
+ * @return object || FALSE
+ *   Object representing the url record or FALSE.
+ */
+function simplenews_statistics_set_url($url, $nid) {
+  $record = new stdClass();
+  $record->nid = $nid;
+  $record->url = $url;
+
+  $result = drupal_write_record('simplenews_statistics_url', $record);
+  if ($result !== FALSE) {
+    // Immediately cache the record for later use.
+    $cached_urls = &drupal_static('simplenews_statistics_url');
+    $cached_urls[$url] = $record;
+    return $record;
+  }
+  return FALSE;
+}
+
+/**
+ * Get open count for the given node.
+ */
+function simplenews_statistics_count_opens($nid, $distinct = FALSE) {
+  // Check if newsletter is archived.
+  if (simplenews_statistics_is_archived($nid)) {
+    // Select and return aggregated count.
+    $query = db_select('simplenews_statistics', 'ss')
+      ->fields('ss', array('unique_opens', 'total_opens'))
+      ->condition('ss.nid', $nid);
+    $record = $query->execute()->fetchObject();
+    if ($distinct) {
+      return $record->unique_opens;
+    }
+    return $record->total_opens;
+  }
+  // Manual count.
+  $query = db_select('simplenews_statistics_open', 'sso')
+    ->condition('sso.nid', $nid);
+
+  if ($distinct) {
+    $query->fields('sso', array('snid'))->distinct();
+  }
+
+  return $query->countQuery()->execute()->fetchField();
+}
+
+/**
+ * Get subscriber count for the given newsletter node.
+ */
+function simplenews_statistics_count_subscribers($nid) {
+  module_load_include('inc', 'simplenews', 'includes/simplenews.admin');
+  $newsletter = simplenews_newsletter_load($nid);
+
+  return simplenews_count_subscriptions($newsletter->tid);
+}
+
+/**
+ * Counts the number of subscribers who have opened a link.
+ */
+function simplenews_statistics_count_clicks($nid, $distinct = FALSE) {
+  // @todo: Archived check.
+  $query = db_select('simplenews_statistics_click', 'ssc')
+    ->condition('ssu.nid', $nid);
+  $query->join('simplenews_statistics_url', 'ssu', 'ssu.urlid = ssc.urlid');
+
+  if ($distinct) {
+    $query->fields('ssc', array('snid'))->distinct();
+  }
+
+  return $query->countQuery()->execute()->fetchField();
+}
+
+/**
+ * Counts the number of unsubscribes for a newsletter category.
+ */
+function simplenews_statistics_count_unsubscribes($tid, $start = 0, $end = REQUEST_TIME, $source = '') {
+  $query = db_select('simplenews_subscription', 'ss')
+    ->condition('ss.tid', $tid)
+    ->condition('ss.timestamp', $start, '>')
+    ->condition('ss.timestamp', $end, '<')
+    ->condition('ss.status', 0);
+
+  if ($source != '') {
+    $query->condition('ss.source', $source);
+  }
+
+  return $query->countQuery()->execute()->fetchField();
+}
+
+/**
+ * Delete all open records for a newsletter.
+ */
+function simplenews_statistics_delete_opens($nid) {
+  return db_delete('simplenews_statistics_open')
+    ->condition('nid', $nid)
+    ->execute();
+}
+
+/**
+ * Delete all click records for a newsletter.
+ */
+function simplenews_statistics_delete_clicks($nid) {
+  // Get urlids for newsletter.
+  $urlids = array();
+
+  $query = db_select('simplenews_statistics_url', 'ssu')
+    ->fields('ssu', array('urlid'))
+    ->condition('ssu.nid', $nid);
+  $result = $query->execute();
+
+  foreach ($result as $record) {
+    // Archive click count.
+    $click_query = db_select('simplenews_statistics_click', 'ssc')
+      ->condition('ssc.urlid', $record->urlid);
+    $clicks = $query->countQuery()->execute()->fetchField();
+    db_update('simplenews_statistics_url')
+      ->fields(array('click_count' => $clicks))
+      ->condition('urlid', $record->urlid)
+      ->execute();
+    // Store ID in array.
+    $urlids[] = $record->urlid;
+  }
+
+  // Execute delete.
+  if (!empty($urlids)) {
+    $deleted = db_delete('simplenews_statistics_click')
+      ->condition('urlid', $urlids)
+      ->execute();
+  }
+  else {
+    $deleted = 0;
+  }
+
+  // Return count.
+  return $deleted;
+}
+
+/**
+ * Check if a given newsletter is archived.
+ */
+function simplenews_statistics_is_archived($nid) {
+  $query = db_select('simplenews_statistics', 'ss')
+    ->fields('ss', array('archived'))
+    ->condition('ss.nid', $nid);
+  if ($query->execute()->fetchField() == 1) {
+    return TRUE;
+  }
+
+  return FALSE;
+}

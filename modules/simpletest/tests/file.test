@@ -2363,6 +2363,13 @@ class FileDownloadTest extends FileTestCase {
     $file = $this->createFile(NULL, $contents, 'private');
     $url  = file_create_url($file->uri);
 
+    // Created private files without usage are by default not accessible for a
+    // user different from the owner, but createFile always uses UID 1 as the
+    // owner of the files. Therefore make it permanent to allow access if a
+    // module allows it.
+    $file->status = FILE_STATUS_PERMANENT;
+    file_save($file);
+
     // Set file_test access header to allow the download.
     file_test_set_return('download', array('x-foo' => 'Bar'));
     $this->drupalGet($url);

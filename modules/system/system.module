@@ -6,7 +6,7 @@
  */
 
 /**
- * Maximum age of temporary files in seconds.
+ * Default maximum age of temporary files in seconds.
  */
 define('DRUPAL_MAXIMUM_TEMP_FILE_AGE', 21600);
 
@@ -2521,6 +2521,16 @@ function _system_rebuild_theme_data() {
 
   // Find theme engines
   $engines = drupal_system_listing('/^' . DRUPAL_PHP_FUNCTION_PATTERN . '\.engine$/', 'themes/engines');
+  // Allow modules to add further theme engines.
+  if ($module_engines = module_invoke_all('system_theme_engine_info')) {
+    foreach ($module_engines as $name => $theme_engine_path) {
+      $engines[$name] = (object) array(
+        'uri' => $theme_engine_path,
+        'filename' => basename($theme_engine_path),
+        'name' => $name,
+      );
+    }
+  }
 
   // Set defaults for theme info.
   $defaults = array(
@@ -2883,7 +2893,7 @@ function confirm_form($form, $question, $path, $description = NULL, $yes = NULL,
 
   // Prepare cancel link.
   if (isset($_GET['destination'])) {
-    $options = drupal_parse_url(urldecode($_GET['destination']));
+    $options = drupal_parse_url($_GET['destination']);
   }
   elseif (is_array($path)) {
     $options = $path;
@@ -3047,23 +3057,28 @@ function system_cron() {
     ->condition('expiration', REQUEST_TIME, '<')
     ->execute();
 
-  // Remove temporary files that are older than DRUPAL_MAXIMUM_TEMP_FILE_AGE.
-  // Use separate placeholders for the status to avoid a bug in some versions
-  // of PHP. See http://drupal.org/node/352956.
-  $result = db_query('SELECT fid FROM {file_managed} WHERE status <> :permanent AND timestamp < :timestamp', array(
-    ':permanent' => FILE_STATUS_PERMANENT,
-    ':timestamp' => REQUEST_TIME - DRUPAL_MAXIMUM_TEMP_FILE_AGE
-  ));
-  foreach ($result as $row) {
-    if ($file = file_load($row->fid)) {
-      $references = file_usage_list($file);
-      if (empty($references)) {
-        if (!file_delete($file)) {
-          watchdog('file system', 'Could not delete temporary file "%path" during garbage collection', array('%path' => $file->uri), WATCHDOG_ERROR);
+  $age = variable_get('file_temporary_maximum_age', DRUPAL_MAXIMUM_TEMP_FILE_AGE);
+
+  // Only delete temporary files if older than $age. Note that automatic cleanup
+  // is disabled if $age set to 0.
+  if ($age) {
+    // Use separate placeholders for the status to avoid a bug in some versions
+    // of PHP. See http://drupal.org/node/352956.
+    $result = db_query('SELECT fid FROM {file_managed} WHERE status <> :permanent AND timestamp < :timestamp', array(
+      ':permanent' => FILE_STATUS_PERMANENT,
+      ':timestamp' => REQUEST_TIME - $age
+     ));
+    foreach ($result as $row) {
+      if ($file = file_load($row->fid)) {
+        $references = file_usage_list($file);
+        if (empty($references)) {
+          if (!file_delete($file)) {
+            watchdog('file system', 'Could not delete temporary file "%path" during garbage collection', array('%path' => $file->uri), WATCHDOG_ERROR);
+          }
         }
-      }
-      else {
-        watchdog('file system', 'Did not delete temporary file "%path" during garbage collection, because it is in use by the following modules: %modules.', array('%path' => $file->uri, '%modules' => implode(', ', array_keys($references))), WATCHDOG_INFO);
+        else {
+          watchdog('file system', 'Did not delete temporary file "%path" during garbage collection, because it is in use by the following modules: %modules.', array('%path' => $file->uri, '%modules' => implode(', ', array_keys($references))), WATCHDOG_INFO);
+        }
       }
     }
   }

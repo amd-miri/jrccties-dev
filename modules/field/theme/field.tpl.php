@@ -4,10 +4,14 @@
  * @file field.tpl.php
  * Default template implementation to display the value of a field.
  *
- * This file is not used and is here as a starting point for customization only.
- * @see theme_field()
+ * This file is not used by Drupal core, which uses theme functions instead for
+ * performance reasons. The markup is the same, though, so if you want to use
+ * template files rather than functions to extend field theming, copy this to
+ * your custom theme. See theme_field() for a discussion of performance.
  *
  * Available variables:
+ * - $attributes: array of HTML attributes populated by modules, intended to
+ *   be added to the main container tag of this template.
  * - $items: An array of field values. Use render() to output them.
  * - $label: The item label.
  * - $label_hidden: Whether the label display is set to 'hidden'.
@@ -23,7 +27,10 @@
  *     field type is "text" it would result in "field-type-text".
  *   - field-label-[label_display]: The current label position. For example, if
  *     the label position is "above" it would result in "field-label-above".
- *
+ * - $content_attributes: Same as attributes, except applied to the field
+ *   item that appears in the template.
+ * - $title_attributes: Same as attributes, except applied to the main field
+ *   label that appears in the template.
  * Other variables:
  * - $element['#object']: The entity to which the field is attached.
  * - $element['#view_mode']: View mode, e.g. 'full', 'teaser'...
@@ -45,7 +52,7 @@
  */
 ?>
 <!--
-THIS FILE IS NOT USED AND IS HERE AS A STARTING POINT FOR CUSTOMIZATION ONLY.
+This file is not used by Drupal core, which uses theme functions instead.
 See http://api.drupal.org/api/function/theme_field/7 for details.
 After copying this file to your theme's folder and customizing it, remove this
 HTML comment.

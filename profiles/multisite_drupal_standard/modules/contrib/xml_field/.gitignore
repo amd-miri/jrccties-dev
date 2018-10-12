@@ -1,0 +1,10 @@
+docs
+lib/loft_php_lib/tests
+lib/loft_php_lib/vendor
+lib/loft_php_lib/src/AKlump/LoftLib/*
+!lib/loft_php_lib/src/AKlump/LoftLib/Xml
+lib/loft_php_lib/.gitignore
+lib/loft_php_lib/.htaccess
+lib/loft_php_lib/.web_package/.gitignore
+lib/loft_php_lib/.web_package/config
+lib/loft_php_lib/composer.json

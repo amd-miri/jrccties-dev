@@ -20,9 +20,9 @@ class Config extends ConfigBase {
    * Set default comment setting for a specific content type.
    *
    * @param string $content_type
-   *    Content type machine name.
+   *   Content type machine name.
    * @param string $value
-   *    Value to be set (human readable).
+   *   Value to be set (human readable).
    */
   public function setDefaultCommentForContentType($content_type, $value) {
     switch ($value) {
@@ -40,6 +40,18 @@ class Config extends ConfigBase {
         break;
     }
     variable_set('comment_' . $content_type, $value_id);
+  }
+
+  /**
+   * Set threading comment setting for a specific content type.
+   *
+   * @param string $content_type
+   *   Content type machine name.
+   * @param string $value
+   *   Value to be set (boolean).
+   */
+  public function setThreadingCommentForContentType($content_type, $value) {
+    variable_set('comment_form_location_' . $content_type, $value);
   }
 
 }

@@ -1,0 +1,14 @@
+name = Integration CouchDB backend
+description = Provides a CouchDB backend for the Integration module.
+core = 7.x
+package = Integration
+
+dependencies[] = integration
+dependencies[] = integration_ui
+dependencies[] = registry_autoload
+registry_autoload[] = PSR-4
+
+; Information added by drush on 2016-07-26
+version = "dcadb1ea483cbdaa7f476f7e0e8530873f484616"
+project = "integration_couchdb"
+datestamp = "1469536493"

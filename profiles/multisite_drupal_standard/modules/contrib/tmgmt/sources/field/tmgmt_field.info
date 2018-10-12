@@ -1,0 +1,11 @@
+name = Translation Management Field
+description = Implements some hooks on behalf of the core Field modules that are required in the Translation Management module.
+package = Translation Management
+core = 7.x
+
+; Information added by Drupal.org packaging script on 2016-07-01
+version = "7.x-1.0-rc2"
+core = "7.x"
+project = "tmgmt"
+datestamp = "1467358441"
+

@@ -1,0 +1,51 @@
+<?php
+
+
+/**
+ * Implements hook_field_schema()
+ */
+function tweetbutton_field_schema($field) {
+  switch ($field['type']) {
+    case 'tweetbutton':
+      $columns = array(
+        'text' => array(
+          'type' => 'varchar',
+          'length' => 128,
+          'not null' => FALSE,
+        ),
+        'account' => array(
+          'type' => 'varchar',
+          'length' => 32,  
+          'not null' => FALSE,
+        ),
+      );
+      break;
+  }
+  return array(
+    'columns' => $columns,
+    'indexes' => array(
+      'account' => array('account'),
+      'text' => array('text'),
+    ),
+  );
+}
+
+/**
+ * Implementation of hook_uninstall()
+ */
+function tweetbutton_uninstall() {
+	variable_del('tweetbutton_button');
+  variable_del('tweetbutton_tweet_text');
+  variable_del('tweetbutton_tweet_url');
+  variable_del('tweetbutton_language');
+  variable_del('tweetbutton_account');
+  variable_del('tweetbutton_rel_account_name');
+  variable_del('tweetbutton_rel_account_description');
+  variable_del('tweetbutton_node_weight');
+  variable_del('tweetbutton_node_types');
+  variable_del('tweetbutton_node_location');  
+  variable_del('tweetbutton_shorten_service');
+  variable_del('tweetbutton_follow_show_count');
+  variable_del('tweetbutton_follow_screen_name');
+  variable_del('tweetbutton_follow_size');
+}

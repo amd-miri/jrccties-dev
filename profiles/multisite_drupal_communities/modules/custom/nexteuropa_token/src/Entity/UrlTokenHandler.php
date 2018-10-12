@@ -47,10 +47,11 @@ class UrlTokenHandler extends TokenAbstractHandler {
     $replacements = array();
 
     if ($this->isValidTokenType($type)) {
-      foreach ($tokens as $name => $original) {
+      $token_types = token_get_entity_mapping();
+      foreach ($tokens as $original) {
         if ($this->isValidToken($original)) {
           $entity_id = $this->getEntityIdFromToken($original);
-          $entity_type = ($type == 'term') ? 'taxonomy_term' : $type;
+          $entity_type = $token_types[$type];
 
           $entity_info = entity_get_info($entity_type);
           $entity = $entity_info['load hook']($entity_id);

@@ -1,0 +1,85 @@
+<h2>Problems with CDATA in SimpleXML</h2>
+
+<p><a href="http://blog.evandavey.com/2008/04/how-to-fix-simplexml-cdata-problem-in-php.html">http://blog.evandavey.com/2008/04/how-to-fix-simplexml-cdata-problem-in-php.html</a>
+<a href="http://stackoverflow.com/questions/2970602/php-how-to-handle-cdata-with-simplexmlelement">http://stackoverflow.com/questions/2970602/php-how-to-handle-cdata-with-simplexmlelement</a>
+<a href="http://stackoverflow.com/questions/6260224/how-to-write-cdata-using-simplexmlelement">http://stackoverflow.com/questions/6260224/how-to-write-cdata-using-simplexmlelement</a></p>
+
+<h2>Comparison against SimpleXML</h2>
+
+<h3>Doesn't print out the cdata correctly</h3>
+
+<p>This code snippet:</p>
+
+<pre><code>$xml = simplexml_load_string('&lt;demo/&gt;');
+$xml-&gt;addChild('cdata', '&lt;![CDATA[&lt;strong&gt;title&lt;/strong&gt;]]&gt;');
+print $xml-&gt;asXml();
+</code></pre>
+
+<p>Prints this out and transforms the cdata into escaped chars.</p>
+
+<pre><code>&lt;?xml version="1.0"?&gt;
+&lt;demo&gt;&lt;cdata&gt;&amp;lt;![CDATA[&amp;lt;strong&amp;gt;title&amp;lt;/strong&amp;gt;]]&amp;gt;&lt;/cdata&gt;&lt;/demo&gt;
+</code></pre>
+
+<p>However the extension class in this module handles this, observe:</p>
+
+<pre><code>$xml = xml_field_load_string('&lt;demo/&gt;');
+$xml-&gt;addChild('cdata', '&lt;![CDATA[&lt;strong&gt;title&lt;/strong&gt;]]&gt;');
+print $xml-&gt;asXml();
+</code></pre>
+
+<p>Will yield what you'd expect:</p>
+
+<pre><code>&lt;?xml version="1.0"?&gt;
+&lt;demo&gt;&lt;cdata&gt;&lt;![CDATA[&lt;strong&gt;title&lt;/strong&gt;]]&gt;&lt;/cdata&gt;&lt;/demo&gt;
+</code></pre>
+
+<h3>Automatic CDATA escaping when enabled.</h3>
+
+<p>This code snippet:</p>
+
+<pre><code>&lt;?php
+$xml = simplexml_load_string('&lt;demo/&gt;');
+$xml-&gt;addChild('special', '&lt;strong&gt;Do&amp;mdash;Re&lt;/strong&gt;');
+print $xml-&gt;asXml();
+</code></pre>
+
+<p>Yields the following output:</p>
+
+<pre><code>&lt;?xml version="1.0"?&gt;
+&lt;demo&gt;&lt;special&gt;&amp;lt;strong&amp;gt;Do&amp;mdash;Re&amp;lt;/strong&amp;gt;&lt;/special&gt;&lt;/demo&gt;
+</code></pre>
+
+<p>This code snippet (having enabled via <code>autoCData</code>), using our extension class: <code>xmlFieldXMLElement</code>:</p>
+
+<pre><code>&lt;?php
+$xml = xml_field_load_string('&lt;demo/&gt;');
+
+// Be aware this is a static setting and affects ALL instances.
+$xml::setConfig('autoCData', TRUE);
+
+$xml-&gt;addChild('special', '&lt;strong&gt;Do&amp;mdash;Re&lt;/strong&gt;');
+print $xml-&gt;asXml();
+</code></pre>
+
+<p>Will automatically wrap values that include <a href="http://xml.silmaril.ie/specials.html">the 5 special chars</a> with the CDATA tag:</p>
+
+<pre><code>&lt;?xml version="1.0"?&gt;
+&lt;demo&gt;&lt;special&gt;&lt;![CDATA[&lt;strong&gt;Do&amp;mdash;Re&lt;/strong&gt;]]&gt;&lt;/special&gt;&lt;/demo&gt;
+</code></pre>
+
+<p><strong>Be aware that this is a setting for all instances and should be disabled after use, unless you intend for a constant on.</strong></p>
+
+<h2>CDATA wrap a string</h2>
+
+<p>You can wrap a string with cdata by passing it through the static cdata method like this:</p>
+
+<pre><code>$wrapped = xmlFieldXMLElement::cdata('Pizza', TRUE);
+</code></pre>
+
+<p>This will return:</p>
+
+<pre><code>&lt;![CDATA[Pizza]]&gt;
+</code></pre>
+
+<p>Obviously there is no need for <em>Pizza</em> to be wrapped, which is why the second argument is set to TRUE.  If you omit the second argument (which forces the wrapping), only strings that need it will be wrapped, e.g. <code>&lt;strong&gt;title&lt;/strong&gt;</code>.</p>

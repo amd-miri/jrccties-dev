@@ -1,0 +1,71 @@
+
+<?php
+/**
+ * @file
+ * Handles installation steps for xml_field_codemirror
+ *
+ * @ingroup func_search
+ * @{
+ */
+
+/**
+ * Implements hook_requirements().
+ *
+ * Checks installation requirements and do status reporting.
+ * http://api.drupal.org/api/function/hook_requirements
+ *
+ * @param phase 'install' or 'runtime':
+ * @return A keyed array of requirements
+ */
+function xml_field_codemirror_requirements($phase) {
+  $reqs = array();
+  $t = get_t();
+  if ($phase == 'runtime') {
+    $info = libraries_detect('codemirror');
+    $reqs['xml_field_codemirror'] = array(
+      'title' => check_plain($info['name']),
+      'value' => check_plain($info['version']),
+      'description' => $t('Successfully loaded library from %path', array(
+        '%path' => libraries_get_path('codemirror'),
+      )),
+      'severity' => REQUIREMENT_OK,
+      );
+    if (!$info['installed']) {
+      $reqs['xml_field_codemirror']['title'] = $t('Code Mirror');
+      $reqs['xml_field_codemirror']['value'] = $t('Not Found!');
+      $reqs['xml_field_codemirror']['description'] = $t('The Code Mirror library is missing; see README for installation instructions.');
+      $reqs['xml_field_codemirror']['severity'] = REQUIREMENT_ERROR;
+    }
+  }
+  return $reqs;
+}
+
+/**
+ * Change instance settings key from 'cm' to 'codemirror'.
+ */
+function xml_field_codemirror_update_7201(&$sandbox) {
+  try {
+    $info = xml_field_xml_fields(TRUE);
+    foreach (array_keys($info) as $entity_type) {
+      foreach ($info[$entity_type] as $bundle_type => $field_data) {
+        foreach (array_keys($field_data) as $field_name) {
+          $instances = field_read_instances(array(
+            'entity_type' => $entity_type,
+            'bundle' => $bundle_type,
+            'field_name' => $field_name,
+          ));
+          foreach ($instances as $instance) {
+            if (isset($instance['widget']['settings']['cm'])) {
+              $instance['widget']['settings']['codemirror']       = $instance['widget']['settings']['cm'];
+              unset($instance['widget']['settings']['cm']);
+              field_update_instance($instance);
+            }
+          }
+        }
+      }
+    }
+  }
+  catch (Exception $e) {
+    throw new DrupalUpdateException('FAILED: Change instance settings key from "cm" to "codemirror".');
+  }
+}

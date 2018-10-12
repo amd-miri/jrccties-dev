@@ -6,6 +6,7 @@ core = 7.x
 base theme = ec_resp
 php = 5.2.4
 
+stylesheets[all][] = "css/layout.css"
 stylesheets[all][] = "css/jrccities_subtheme.css"
 stylesheets[all][] = "css/jrccities_communities_requests.css"
 scripts[] = "js/jrccities_private_messages.js"

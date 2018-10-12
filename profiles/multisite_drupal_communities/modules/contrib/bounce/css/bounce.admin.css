@@ -1,0 +1,21 @@
+.bounce-blocked-form-top .left {
+  float: left;
+  margin-right: 15px;
+}
+.bounce-blocked-form-top .right {
+  float: right;
+}
+.bounce-blocked-form-top .form-item-filterfield {
+  float: left;
+  margin-right: 15px;
+  padding-top: 5px;
+}
+#bounce-reports-table-wrapper {
+  float: left;
+  width: 40%;
+}
+#bounce-report-wrapper {
+  float: left;
+  margin-left: 20px;
+  width: 55%;
+}

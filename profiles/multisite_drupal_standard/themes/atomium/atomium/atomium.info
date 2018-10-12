@@ -1,0 +1,91 @@
+name = Atomium
+description = The NextEuropa base theme
+screenshot = assets/images/screenshot.png
+engine = phptemplate
+core = 7.x
+
+;-------------- F E A T U R E S -------------
+features[] = logo
+features[] = name
+features[] = slogan
+features[] = favicon
+
+;-------------- R E G I O N S -------------
+regions[header] = "Header"
+regions[highlighted] = "Highlighted"
+regions[help] = "Help"
+regions[content] = "Content"
+regions[sidebar_first] = "Sidebar first"
+regions[sidebar_second] = "Sidebar second"
+regions[footer] = "Footer"
+
+;-------------- P A N E L S -------------
+
+;-------------- C S S -------------
+
+;-------------- JS -------------
+
+;-------------- Default Settings for theme-settings.php -------------
+settings[theme_debug] = 0
+settings[atomium_rebuild_registry] = 0
+settings[allow_css_double_underscores] = 0
+settings[atomium_convert_inline_js_into_files] = 1
+
+; CSS
+; --------------
+
+; Alter configuration
+; -------------------
+settings[alter][css_alter][exclude][] = 'modules/block/block.css'
+settings[alter][css_alter][exclude][] = 'modules/node/node.css'
+settings[alter][css_alter][exclude][] = 'modules/system/admin.css'
+settings[alter][css_alter][exclude][] = 'modules/system/system.css'
+settings[alter][css_alter][exclude][] = 'modules/system/system.admin.css'
+settings[alter][css_alter][exclude][] = 'modules/system/system.base.css'
+settings[alter][css_alter][exclude][] = 'misc/vertical-tabs.css'
+settings[alter][css_alter][exclude][] = 'modules/aggregator/aggregator.css'
+settings[alter][css_alter][exclude][] = 'modules/book/book.css'
+settings[alter][css_alter][exclude][] = 'modules/block/block.css'
+settings[alter][css_alter][exclude][] = 'modules/comment/comment.css'
+settings[alter][css_alter][exclude][] = 'modules/dblog/dblog.css'
+settings[alter][css_alter][exclude][] = 'modules/field/theme/field.css'
+settings[alter][css_alter][exclude][] = 'modules/file/file.css'
+settings[alter][css_alter][exclude][] = 'modules/filter/filter.css'
+settings[alter][css_alter][exclude][] = 'modules/forum/forum.css'
+settings[alter][css_alter][exclude][] = 'modules/help/help.css'
+settings[alter][css_alter][exclude][] = 'modules/menu/menu.css'
+settings[alter][css_alter][exclude][] = 'modules/node/node.css'
+settings[alter][css_alter][exclude][] = 'modules/openid/openid.css'
+settings[alter][css_alter][exclude][] = 'modules/poll/poll.css'
+settings[alter][css_alter][exclude][] = 'modules/profile/profile.css'
+settings[alter][css_alter][exclude][] = 'modules/search/search.css'
+settings[alter][css_alter][exclude][] = 'modules/statistics/statistics.css'
+settings[alter][css_alter][exclude][] = 'modules/syslog/syslog.css'
+settings[alter][css_alter][exclude][] = 'modules/system/admin.css'
+settings[alter][css_alter][exclude][] = 'modules/system/maintenance.css'
+settings[alter][css_alter][exclude][] = 'modules/system/system.css'
+settings[alter][css_alter][exclude][] = 'modules/system/system.admin.css'
+settings[alter][css_alter][exclude][] = 'modules/system/system.maintenance.css'
+settings[alter][css_alter][exclude][] = 'modules/system/system.menus.css'
+settings[alter][css_alter][exclude][] = 'modules/system/system.messages.css'
+settings[alter][css_alter][exclude][] = 'modules/system/system.theme.css'
+settings[alter][css_alter][exclude][] = 'modules/taxonomy/taxonomy.css'
+settings[alter][css_alter][exclude][] = 'modules/tracker/tracker.css'
+settings[alter][css_alter][exclude][] = 'modules/update/update.css'
+settings[alter][css_alter][exclude][] = 'modules/user/user.css'
+
+settings[alter][field_attach_view_alter][keys] = field_type,formatter,field_name,entity_type,view_mode,bundle
+
+; Preprocess configuration
+; ------------------------
+settings[preprocess][block][classes_to_remove] = block
+settings[preprocess][html][classes_to_remove] = two-sidebars,one-sidebar,sidebar-first,sidebar-second,no-sidebars,toolbar,toolbar-drawer
+settings[preprocess][node][classes_to_remove] = node,node-sticky,node-unpublished,node-promoted
+settings[preprocess][region][classes_to_remove] = region
+
+
+; Information added by Drupal.org packaging script on 2018-04-11
+version = "7.x-2.8"
+core = "7.x"
+project = "atomium"
+datestamp = "1523455298"

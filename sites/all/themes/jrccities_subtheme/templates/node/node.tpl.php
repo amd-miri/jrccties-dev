@@ -79,6 +79,7 @@
  * @see template_process()
  */
 ?>
+<?php print render($og_subscribe); ?>
 <div id="node-<?php print $node->nid; ?>" class="<?php print $classes; ?> clearfix"<?php print $attributes; ?>>
 
   <?php print render($title_prefix); ?>
@@ -103,11 +104,11 @@
     ?>
 
     <?php print render($content); ?>
-    
+
     <div class="link-wrapper right">
       <?php print render($content['links']); ?>
     </div>
-    
+
     <?php if ($suffix_display): ?>
     <div class="row node-info">
       <div class="node-info-submitted col-lg-6 col-md-6 col-sm-6 col-xs-12 col-lg-offset-6 col-md-offset-6 col-sm-offset-6">
