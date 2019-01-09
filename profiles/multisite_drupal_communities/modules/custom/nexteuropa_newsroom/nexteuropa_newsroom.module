@@ -1010,7 +1010,7 @@ function nexteuropa_newsroom_block_view_alter(&$data, $block) {
       $data['content']['easy_breadcrumb']['#breadcrumb'] = [];
       if (!empty($type)) {
         $data['content']['easy_breadcrumb']['#breadcrumb'][] = [
-          'content' => $type->name,
+          'content' => NexteuropaNewsroomVocabularyHelper::getItemTypeInPlural($type->tid),
           'class' => [],
           'url' => $first_url_part . '/' . $type_url . '/all',
         ];

@@ -1008,7 +1008,7 @@ class NexteuropaNewsroomAgenda {
   protected function generateTitle() {
     $page_title = t('Agenda');
     if ($this->getTypeName()) {
-      $page_title = $this->getTypeName();
+      $page_title = NexteuropaNewsroomVocabularyHelper::getItemTypeInPlural($this->getTypeId());
     }
     if ($this->getTopicName()) {
       $page_title .= ' ' . t('about !topic_title', ['!topic_title' => $this->getTopicName()]);

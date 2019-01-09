@@ -8,7 +8,7 @@
 /**
  * Implements hook_preprocess_hook().
  */
-function atomium_preprocess_node(&$variables, $hook) {
+function atomium_preprocess_node(array &$variables, $hook) {
   // One unified node teaser template.
   $variables['theme_hook_suggestions'][] = 'node__' . $variables['view_mode'];
 

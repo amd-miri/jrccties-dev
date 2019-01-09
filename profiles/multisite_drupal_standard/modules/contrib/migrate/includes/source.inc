@@ -422,7 +422,7 @@ abstract class MigrateSource implements Iterator {
       // so we need to provide them with the necessary information (before and
       // after hashes).
       if ($this->trackChanges) {
-        $unhashed_row = clone ($row);
+        $unhashed_row = clone $row;
         // Remove all map data, otherwise we'll have a false positive on the
         // second import (attempt) on a row.
         foreach ($unhashed_row as $field => $data) {

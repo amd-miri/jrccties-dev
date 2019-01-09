@@ -89,3 +89,15 @@ function drush_simplenews_spool_send($limit = FALSE) {
   }
 
 }
+
+/**
+ * Implements hook_drush_sql_sync_sanitize().
+ */
+function simplenews_drush_sql_sync_sanitize($site) {
+  $pattern = drush_get_option(array('sanitize-email', 'destination-sanitize-email'), 'user+%uid@localhost.localdomain');
+
+  $sql  = "UPDATE simplenews_subscriber SET mail = REPLACE('$pattern', '%uid', snid);";
+  $sql .= "UPDATE simplenews_mail_spool SET mail = REPLACE('$pattern', '%uid', snid);";
+
+  drush_sql_register_post_sync_op('simplenews lists',dt('Sanitize the email lists of simplenews'), $sql);
+}

@@ -20,7 +20,7 @@ function atomium_atomium_theme_textfield() {
 /**
  * Implements hook_preprocess_hook().
  */
-function atomium_preprocess_textfield(&$variables, $hook) {
+function atomium_preprocess_textfield(array &$variables, $hook) {
   _form_set_class($variables['element'], array('form-text'));
   element_set_attributes(
     $variables['element'],
@@ -39,7 +39,7 @@ function atomium_preprocess_textfield(&$variables, $hook) {
 
   $attributes['type'] = 'text';
 
-  if ($variables['element']['#autocomplete_path'] &&
+  if (isset($variables['element']['#autocomplete_path']) &&
     !empty($variables['element']['#autocomplete_input'])) {
     drupal_add_library('system', 'drupal.autocomplete');
     $attributes['class'][] = 'form-autocomplete';

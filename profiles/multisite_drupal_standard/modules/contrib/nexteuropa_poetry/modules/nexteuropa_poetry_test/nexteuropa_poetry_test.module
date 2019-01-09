@@ -1,0 +1,23 @@
+<?php
+
+/**
+ * @file
+ * Module file.
+ */
+
+use EC\Poetry\Messages\Notifications\TranslationReceived;
+use EC\Poetry\Messages\Notifications\StatusUpdated;
+
+/**
+ * Implements hook_nexteuropa_poetry_notification_translation_received().
+ */
+function nexteuropa_poetry_test_nexteuropa_poetry_notification_translation_received(TranslationReceived $message) {
+  watchdog('nexteuropa_poetry_test', 'hook_nexteuropa_poetry_notification_translation_received');
+}
+
+/**
+ * Implements hook_nexteuropa_poetry_notification_status_updated().
+ */
+function nexteuropa_poetry_test_nexteuropa_poetry_notification_status_updated(StatusUpdated $message) {
+  watchdog('nexteuropa_poetry_test', 'hook_nexteuropa_poetry_notification_status_updated');
+}

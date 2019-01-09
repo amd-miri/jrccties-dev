@@ -1,0 +1,11 @@
+name = Feeds: Entity Translation
+description = Adds support for importing translations via Entity Translation.
+core = 7.x
+dependencies[] = "feeds"
+dependencies[] = "entity_translation"
+package = Feeds
+
+; Information added by drush on 2015-10-10
+version = "7.x-1.x-dev"
+project = "feeds_et"
+datestamp = "1444463932"

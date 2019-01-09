@@ -1,0 +1,9 @@
+imports:
+  - { resource: vendor/ec-europa/oe-code-review/dist/drupal-conventions.yml }
+parameters:
+  tasks.phpcs.ignore_patterns:
+    - build/
+    - vendor/
+  tasks.phpmd.exclude:
+    - build/
+    - vendor/

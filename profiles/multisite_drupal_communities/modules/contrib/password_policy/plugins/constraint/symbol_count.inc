@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @file
  * Symbol count constraint for Password Policy module.
@@ -11,7 +12,7 @@ $plugin = array(
   'prime value' => 'symbol_count',
   'config' => array(
     'symbol_count' => NULL,
-    'symbol_count_symbols' => "!@#$%^&*()_+=-|}{\"?:><,./;'\[]",
+    'symbol_count_symbols' => '`~!@#$%^&*()_+=-|}{"?:><,./;\'\\[]',
   ),
 );
 
@@ -33,7 +34,7 @@ function password_policy_symbol_count_admin_form($form, &$form_state, $constrain
     '#type' => 'textfield',
     '#title' => t('Symbol characters'),
     '#default_value' => $constraint->config['symbol_count_symbols'],
-    '#description' => t('Deteremine which charaters are symbols.'),
+    '#description' => t('Determine which characters are symbols.'),
   );
 
   return $sub_form;

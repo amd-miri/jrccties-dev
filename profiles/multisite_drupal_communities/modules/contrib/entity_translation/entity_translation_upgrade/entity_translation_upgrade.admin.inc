@@ -91,6 +91,10 @@ function entity_translation_upgrade_do($types, &$context) {
       $node = $nodes[$nid];
       $original = $nodes[$node->tnid];
       $handler = entity_translation_get_handler('node', $original);
+      // Instantiate the data and original properties of the translations.
+      if (empty($handler->getTranslations()->data)) {
+        $handler->initTranslations();
+      }
 
       if (!isset($instances[$node->type])) {
         $instances[$node->type] = field_info_instances('node', $node->type);

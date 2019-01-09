@@ -199,7 +199,10 @@ function hook_ctools_render_alter(&$info, &$page, &$context) {
  * or categories or to rename content on specific sites.
  */
 function hook_ctools_content_subtype_alter($subtype, $plugin) {
-  $subtype['render last'] = TRUE;
+  // Force a particular subtype of a particular plugin to render last.
+  if ($plugin['module'] == 'some_plugin_module' && $plugin['name'] == 'some_plugin_name' && $subtype['subtype_id'] == 'my_subtype_id') {
+    $subtype['render last'] = TRUE;
+  }
 }
 
 /**
@@ -261,6 +264,22 @@ function hook_ctools_cleanstring_alter(&$settings) {
 function hook_ctools_cleanstring_CLEAN_ID_alter(&$settings) {
   // Convert all strings to lower case.
   $settings['lower case'] = TRUE;
+}
+
+/**
+ * Let other modules modify the context handler before it is rendered.
+ *
+ * @param object $handler
+ *   A handler for a  current task and subtask,
+ * @param array $contexts
+ *   An associative array of contexts.
+ * @param array $args
+ *   An array for current args.
+ *
+ * @see ctools_context_handler_pre_render()
+ */
+function ctools_context_handler_pre_render($handler, $contexts, $args) {
+  $handler->conf['css_id'] = 'my-id';
 }
 
 /**

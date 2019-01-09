@@ -69,7 +69,7 @@ settings[toggle_secondary_menu] = 1
 
 settings[alter][css_alter][exclude][] = 'modules/aggregator/aggregator.css'
 settings[alter][css_alter][exclude][] = 'modules/book/book.css'
-settings[alter][css_alter][exclude][] = 'modules/block/block.css'
+;settings[alter][css_alter][exclude][] = 'modules/block/block.css'
 settings[alter][css_alter][exclude][] = 'modules/comment/comment.css'
 settings[alter][css_alter][exclude][] = 'modules/dblog/dblog.css'
 settings[alter][css_alter][exclude][] = 'modules/field/theme/field.css'
@@ -93,8 +93,8 @@ settings[alter][css_alter][exclude][] = 'modules/tracker/tracker.css'
 settings[alter][css_alter][exclude][] = 'modules/update/update.css'
 settings[alter][css_alter][exclude][] = 'modules/user/user.css'
 
-; Information added by Drupal.org packaging script on 2018-04-11
-version = "7.x-2.8"
+; Information added by Drupal.org packaging script on 2018-06-17
+version = "7.x-2.11"
 core = "7.x"
 project = "atomium"
-datestamp = "1523455298"
+datestamp = "1529244227"

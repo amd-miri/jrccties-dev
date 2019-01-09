@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @file
  * Drupal strength constraint for Password Policy module.
@@ -7,7 +8,7 @@
 $plugin = array(
   'admin form callback' => 'password_policy_drupal_strength_admin_form',
   'constraint callback' => 'password_policy_drupal_strength_constraint',
-  'message' => t('Password must match a Drupal strength level.'),
+  'message' => t('Password must match a strength level.'),
   'prime value' => 'drupal_strength',
   'config' => array(
     'drupal_strength' => NULL,
@@ -26,7 +27,7 @@ function password_policy_drupal_strength_admin_form($form, &$form_state, $constr
     '#type' => 'textfield',
     '#title' => t('Drupal strength level'),
     '#default_value' => $constraint->config['drupal_strength'],
-    '#description' => t('<p>Password will be required to have match this level or higher. 0 - 100</p>
+    '#description' => t('<p>Password will be required to have this level or higher. 0 - 100</p>
 <p>Starting from a base of 100 points:</p>
 <ul><li>Having only 3 out of 4 of uppercase, lowercase, digit, and symbol loses 12.5 points</li>
 <li>Having only 2 out of 4 of uppercase, lowercase, digit, and symbol loses 25 points</li>
@@ -101,13 +102,14 @@ function password_policy_drupal_strength_constraint($password, $account, $constr
  * Gets username against which to check password.
  */
 function _password_policy_drupal_strength_get_username($account) {
+  $username = '';
   if (isset($_POST['name'])) {
     // The username will not be displayed, so there is no need to filter it
     // with check_plain() or filter_xss() as suggested by Coder.
     // @ignore security_17
     $username = rawurldecode($_POST['name']);
   }
-  else {
+  elseif ($account->uid > 0) {
     // The username input will not be present on the same form as the password
     // input in some configurations (e.g., sites using Password Tab module). So
     // fall back to retrieving the username from the user object.

@@ -217,14 +217,19 @@ class TMGMTI18nStringDefaultSourceUIController extends TMGMTDefaultSourceUIContr
    * @return array
    */
   public function overviewRow($type, $data) {
-    // Set the default item key, assume it's the first.
-    $item_title = reset($data['object']);
+    // Set the default item key, assume it's the first unless its a view.
+    if ($type == 'views') {
+      $item_title = $data['wrapper']->get_object()->get_human_name();
+    }
+    else {
+      $item_title = reset($data['object'])->get_string();
+    }
 
     $type_label = i18n_object_info($type, 'title');
 
     $row = array(
       'id' => $data['id'],
-      'title' => $item_title->get_string() ? t('@title (@id)', array('@title' => $item_title->get_string(), '@id' => $data['id'])) : $data['id'],
+      'title' => $item_title ? t('@title (@id)', array('@title' => $item_title, '@id' => $data['id'])) : $data['id'],
       'type' => empty($type_label) ? t('Unknown') : $type_label,
     );
 

@@ -11,8 +11,8 @@
 
 namespace Symfony\Component\ExpressionLanguage\Tests;
 
-use Symfony\Component\ExpressionLanguage\ExpressionFunction;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\ExpressionLanguage\ExpressionFunction;
 use Symfony\Component\ExpressionLanguage\ExpressionLanguage;
 use Symfony\Component\ExpressionLanguage\ParsedExpression;
 use Symfony\Component\ExpressionLanguage\Tests\Fixtures\TestProvider;
@@ -144,6 +144,16 @@ class ExpressionLanguageTest extends TestCase
         $expressionLanguage = new ExpressionLanguage();
         eval(sprintf('$result = %s;', $expressionLanguage->compile($expression, $names)));
         $this->assertSame($expected, $result);
+    }
+
+    /**
+     * @expectedException \Symfony\Component\ExpressionLanguage\SyntaxError
+     * @expectedExceptionMessage Unexpected end of expression around position 6 for expression `node.`.
+     */
+    public function testParseThrowsInsteadOfNotice()
+    {
+        $expressionLanguage = new ExpressionLanguage();
+        $expressionLanguage->parse('node.', array('node'));
     }
 
     public function shortCircuitProviderEvaluate()

@@ -1,0 +1,7 @@
+name = NextEuropa Poetry Test
+description = NextEuropa Poetry test module.
+core = 7.x
+package = NextEuropa
+hidden = TRUE
+
+dependencies[] = nexteuropa_poetry

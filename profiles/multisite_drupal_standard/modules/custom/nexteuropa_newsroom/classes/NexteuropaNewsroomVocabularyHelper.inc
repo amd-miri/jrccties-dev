@@ -269,4 +269,27 @@ class NexteuropaNewsroomVocabularyHelper {
     return $taxonomy_term;
   }
 
+  /**
+   * Returns item type in plural.
+   *
+   * @param int $item_type_id
+   *   Taxonomy term ID.
+   *
+   * @return string
+   *   Taxonomy term in plural.
+   */
+  public static function getItemTypeInPlural($item_type_id) {
+    $the_type = self::getNewsroomType($item_type_id);
+
+    $plurals = [
+      250 => t('Events'),
+      520 => t('Consultations'),
+      253 => t('Funding opportunities'),
+      826 => t('Calls for proposals'),
+      825 => t('Calls for tenders'),
+    ];
+
+    return $plurals[$the_type->field_newsroom_type_id[LANGUAGE_NONE][0]['value']];
+  }
+
 }

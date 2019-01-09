@@ -1,10 +1,8 @@
 <?php
-
 /**
  * @file
  * nexteuropa_links_block_style.php.
  */
-
 /**
  * Views style plugin.
  *
@@ -16,14 +14,11 @@ class nexteuropa_link_blocks_style extends views_plugin_style {
    */
   function option_definition() {
     $options = parent::option_definition();
-
     $options['type'] = array('default' => 'ul');
     $options['class'] = array('default' => '');
     $options['wrapper_class'] = array('default' => 'other_class');
-
     return $options;
   }
-
   /**
    * Render the given style.
    */
@@ -50,13 +45,11 @@ class nexteuropa_link_blocks_style extends views_plugin_style {
       '#default_value' => $this->options['class'],
     );
   }
-
   /**
    * {@inheritdoc}
    */
   function render_grouping_sets($sets, $level = 0) {
     $output = array();
-
     foreach ($sets as $set) {
       $row = reset($set['rows']);
       // Render as a grouping set.
@@ -75,7 +68,6 @@ class nexteuropa_link_blocks_style extends views_plugin_style {
         if ($this->uses_row_plugin()) {
           foreach ($set['rows'] as $index => $row) {
             $this->view->row_index = $index;
-
             $set['rows'][$index]->link = array(
               '#theme' => 'link__' . $this->view->name . '__' . $this->view->current_display,
               '#text' => $set['rows'][$index]->users_name,
@@ -99,7 +91,6 @@ class nexteuropa_link_blocks_style extends views_plugin_style {
             );
           }
         }
-
         $output[] = array(
           '#theme' => 'link_blocks__' . $this->view->name . '__' . $this->view->current_display,
           '#view' => $this->view,
@@ -113,5 +104,4 @@ class nexteuropa_link_blocks_style extends views_plugin_style {
     unset($this->view->row_index);
     return $output;
   }
-
 }

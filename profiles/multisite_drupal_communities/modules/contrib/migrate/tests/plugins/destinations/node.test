@@ -392,5 +392,18 @@ class MigrateNodeUnitTest extends DrupalWebTestCase {
     foreach ($result as $row) {
       $this->error($row->message);
     }
+
+    // Test proper disableMailSystem()/restoreMailSystem() behavior.
+    // @see https://www.drupal.org/node/2499861
+    // This is not necessarily node-related, but it was shoved in the node test.
+    $migration->saveMailSystem();
+    $migration->disableMailSystem();
+    $ms = variable_get('mail_system', NULL);
+    $this->assertTrue(is_array($ms) && in_array('MigrateMailIgnore', $ms),
+      t('Migration has disabled mail system'));
+    $migration->restoreMailSystem();
+    $ms = variable_get('mail_system', NULL);
+    $this->assertFalse(is_array($ms) && in_array('MigrateMailIgnore', $ms),
+      t('Migration::restoreMailSystem restored mail system'));
   }
 }

@@ -189,7 +189,7 @@ function _rate_expiration_filter_widgets($item) {
 function rate_expiration_node_insert($node) {
   global $user;
 
-  $timezone = is_null($user->timezone) ? variable_get('date_default_timezone', 0) : $user->timezone;
+  $timezone = empty($user->timezone) ? variable_get('date_default_timezone', 0) : $user->timezone;
   if (!is_numeric($timezone)) {
     // Convert textual timezone to numeric offset.
     $timezone = new DateTimeZone($timezone);
@@ -200,7 +200,7 @@ function rate_expiration_node_insert($node) {
   $widgets = rate_get_active_widgets('node', $node->type);
   $widgets = array_filter($widgets, '_rate_expiration_filter_widgets');
   foreach ($widgets as $widget) {
-    $timezone = is_null($user->timezone) ? variable_get('date_default_timezone', 0) : $user->timezone;
+    $timezone = empty($user->timezone) ? variable_get('date_default_timezone', 0) : $user->timezone;
     $container = 'rate_expiration_' . $widget->name;
     $begin = "{$container}_begin";
     $end = "{$container}_end";
@@ -225,7 +225,7 @@ function rate_expiration_node_insert($node) {
 function rate_expiration_node_update($node) {
   global $user;
 
-  $timezone = is_null($user->timezone) ? variable_get('date_default_timezone', 0) : $user->timezone;
+  $timezone = empty($user->timezone) ? variable_get('date_default_timezone', 0) : $user->timezone;
   if (!is_numeric($timezone)) {
     // Convert textual timezone to numeric offset.
     $timezone = new DateTimeZone($timezone);

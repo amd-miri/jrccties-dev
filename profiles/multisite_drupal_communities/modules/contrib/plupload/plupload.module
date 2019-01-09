@@ -122,7 +122,7 @@ function plupload_element_value(&$element, $input = FALSE, $form_state = NULL) {
   }
   $files = array();
   foreach ($form_state['input'] as $key => $value) {
-    if (preg_match('/' . $id . '_([0-9]+)_(.*)/', $key, $reg)) {
+    if (preg_match('/' . $id . '-*\d*_([0-9]+)_(.*)/', $key, $reg)) {
       $i = $reg[1];
       $key = $reg[2];
 

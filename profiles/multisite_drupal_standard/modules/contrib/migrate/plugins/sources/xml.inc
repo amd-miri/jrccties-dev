@@ -813,7 +813,7 @@ class MigrateItemsXML extends MigrateItems {
         $this->getIdList();
       }
       foreach ($this->idsMap as $url => $ids) {
-        if (in_array($id, $ids)) {
+        if (in_array($id, $ids, TRUE)) {
           $this->currentItems = NULL;
           $this->currentUrl = $url;
           $items = $this->getAllItems();

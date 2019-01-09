@@ -5,6 +5,8 @@ Workbench Moderation module [2]. It allows to set a moderation state when
 Scheduler triggers automatic publication or unpublication of a node. It also
 adds a field to capture a default value for unpublication and adds a permission
 to determine which users can override this default value.
+When cron runs, the content scheduled will be published or unpublished. The
+content will only be published if the current status is allowed to be published.
 
 
 Requirements
@@ -36,6 +38,7 @@ Usage
 5. Go to People > Permissions and grant the permission "Override default
    scheduler time" to all user roles that should be able to enter a custom
    unpublish time.
+6. Access "admin/config/content/scheduler/scheduler_workbench" to configure the status that can be published. By default, the status allowed are those that allow a transition to "published".
 
 
 References

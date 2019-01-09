@@ -156,8 +156,8 @@ class MigrateSourceMultiItems extends MigrateSource {
     if ($this->idList) {
       $this->idsToProcess = $this->idList;
     }
-    else {
-      $this->idsToProcess = $this->itemsClass->getIdList();
+    elseif (!$this->idsToProcess = $this->itemsClass->getIdList()) {
+      $this->idsToProcess = array();
     }
     $this->idIterator = ($this->idsToProcess instanceof Iterator) ?
       $this->idsToProcess : new ArrayIterator($this->idsToProcess);

@@ -1,0 +1,53 @@
+{
+  "name": "drupol/drupal7_psr3_watchdog",
+  "description": "A PSR3 logger using Drupal 7 watchdog.",
+  "type": "library",
+  "license": "EUPL-1.1",
+  "keywords": ["log", "logging", "psr-3", "drupal", "watchdog"],
+  "homepage": "http://github.com/drupol/drupal7_psr3_watchdog",
+  "authors": [
+    {
+      "name": "Pol Dellaiera",
+      "email": "pol.dellaiera@protonmail.com"
+    }
+  ],
+  "require": {
+    "php" : "^5.6 || ^7.0 || ^7.1",
+    "psr/log": "^1.0"
+  },
+  "require-dev": {
+    "leanphp/phpspec-code-coverage": "^3.1",
+    "phpro/grumphp": "^0.12",
+    "squizlabs/php_codesniffer": "^3.0",
+    "scrutinizer/ocular": "^1.4",
+    "phpmd/phpmd": "^2.6",
+    "sebastian/phpcpd": "^3.0",
+    "sensiolabs/security-checker": "^4.1",
+    "friendsofphp/php-cs-fixer": "^2.7",
+    "drupal/drupal": "^7",
+    "phpspec/phpspec": "^3.4"
+  },
+  "repositories": [
+    {
+      "type": "composer",
+      "url": "https://packages.drupal.org/7"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "drupol\\drupal7_psr3_watchdog\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "drupol\\drupal7_psr3_watchdog\\tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "phpspec": "./vendor/bin/phpspec run",
+    "grumphp": "./vendor/bin/grumphp run"
+  },
+  "provide": {
+    "psr/log-implementation": "1.0.0"
+  }
+}

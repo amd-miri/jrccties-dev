@@ -1,0 +1,13 @@
+drupal:
+  core: "7"
+  root: build
+  base_url: http://127.0.0.1:8888
+  database:
+    host: "127.0.0.1"
+    port: "3306"
+    name: "drupal"
+    user: "root"
+    password: ""
+  post_install:
+    - "./vendor/bin/drush --root=$(pwd)/build en -y composer_autoloader nexteuropa_poetry nexteuropa_poetry_test"
+    - "./vendor/bin/drush --root=$(pwd)/build dis -y overlay update"

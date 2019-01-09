@@ -90,11 +90,6 @@ $errorlevel = error_reporting($errorlevel & ~E_NOTICE);
 
 //error_reporting(E_ALL);
 
-if (function_exists("date_default_timezone_set")) {
-	if (ini_get("date.timezone") == "") {
-		date_default_timezone_set("Europe/London");
-	}
-}
 
 if (!function_exists('mb_strlen')) {
 	throw new MpdfException('mPDF requires mb_string functions. Ensure that mb_string extension is loaded.');
@@ -9457,7 +9452,7 @@ class mPDF
 		$interval = 3600;
 		if ($handle = @opendir(preg_replace('/\/$/', '', _MPDF_TEMP_PATH))) { // mPDF 5.7.3
 			while (false !== ($file = readdir($handle))) {
-				if (($file != "..") && ($file != ".") && !is_dir($file) && ((filemtime(_MPDF_TEMP_PATH . $file) + $interval) < time()) && (substr($file, 0, 1) !== '.') && ($file != 'dummy.txt')) { // mPDF 5.7.3
+				if (($file != "..") && ($file != ".") && !is_dir(_MPDF_TEMP_PATH . $file) && ((filemtime(_MPDF_TEMP_PATH . $file) + $interval) < time()) && (substr($file, 0, 1) !== '.') && ($file != 'dummy.txt')) { // mPDF 5.7.3
 					unlink(_MPDF_TEMP_PATH . $file);
 				}
 			}

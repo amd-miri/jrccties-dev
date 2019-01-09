@@ -849,6 +849,13 @@ function _tmgmt_ui_review_form_element(&$form_state, $data, TMGMTJobItem $job_it
         if (isset($field['settings']['max_length'])) {
           $form[$target_key]['translation']['#maxlength'] = $field['settings']['max_length'];
         }
+        elseif (!empty($field['columns'])) {
+          foreach($field['columns'] as $column) {
+            if (isset($column['length'])) {
+              $form[$target_key]['translation']['#maxlength'] = $column['length'];
+            }
+          }
+        }
       }
 
       $form[$target_key]['source'] = array(

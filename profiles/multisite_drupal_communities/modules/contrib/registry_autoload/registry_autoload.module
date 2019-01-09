@@ -19,11 +19,11 @@ function registry_autoload_boot() {
  * Implements hook_module_implements_alter().
  */
 function registry_autoload_module_implements_alter(&$implementations, $hook) {
-  // Move our hook implementation to the bottom, so we are called last.
+  // Move our hook implementation to the top, so we are called first.
   if ($hook == 'registry_files_alter') {
     $group = $implementations['registry_autoload'];
     unset($implementations['registry_autoload']);
-    $implementations['registry_autoload'] = $group;
+    $implementations = array('registry_autoload' => $group) + $implementations;
   }
 }
 

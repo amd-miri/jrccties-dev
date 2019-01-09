@@ -83,6 +83,63 @@ define('PREG_CLASS_UNICODE_WORD_BOUNDARY',
   '\x{FF3B}-\x{FF40}\x{FF5B}-\x{FF65}\x{FFE0}-\x{FFFD}');
 
 /**
+ * Matches all 'L' Unicode character classes (letters).
+ *
+ * @see https://www.unicode.org/charts/nameslist/.
+ */
+define('PREG_CLASS_LETTERS',
+  '\x{40}-\x{7a}\x{c0}-\x{ff}\x{100}-\x{17f}\x{180}-\x{24f}\x{250}-\x{2Af}' .
+  '\x{370}-\x{3ff}\x{400}-\x{4ff}\x{500}-\x{527}\x{539}-\x{58f}\x{590}-\x{5ff}' .
+  '\x{600}-\x{6ff}\x{780}-\x{7bf}\x{900}-\x{97f}\x{980}-\x{9ff}\x{a00}-\x{a7f}' .
+  '\x{a80}-\x{aff}\x{b00}-\x{b7f}\x{b80}-\x{bff}\x{c00}-\x{c7f}\x{c80}-\x{cff}' .
+  '\x{d00}-\x{d7f}\x{d80}-\x{dff}\x{e00}-\x{e7f}\x{e81}-\x{eff}\x{f00}-\x{fff}' .
+  '\x{1000}-\x{109f}\x{10a0}-\x{10ff}\x{1200}-\x{137f}' .
+  '\x{13a0}-\x{13ff}\x{1400}-\x{167f}\x{1680}-\x{169f}\x{16a0}-\x{16ff}' .
+  '\x{1700}-\x{171f}\x{1720}-\x{173f}\x{1740}-\x{175f}\x{1760}-\x{177f}' .
+  '\x{1780}-\x{17ff}\x{1800}-\x{18af}\x{1900}-\x{194f}\x{1950}-\x{197f}' .
+  '\x{19e0}-\x{19ff}\x{1d00}-\x{1d7f}\x{1e00}-\x{1eff}\x{1f00}-\x{1fff}' .
+  '\x{30a0}-\x{30ff}\x{4E00}-\x{9FEF}\x{1100}-\x{11FF}\x{3040}-\x{309F}\x{30A1}-\x{318E}' .
+  '\x{31A0}-\x{31B7}\x{31F0}-\x{31FF}\x{3400}-\x{4DBF}\x{4E00}-\x{9FCF}' .
+  '\x{A000}-\x{A48F}\x{A4D0}-\x{A4FD}\x{A960}-\x{A97F}\x{AC00}-\x{D7FF}' .
+  '\x{F900}-\x{FAFF}\x{FF21}-\x{FF3A}\x{FF41}-\x{FF5A}\x{FF66}-\x{FFDC}' .
+  '\x{20000}-\x{2FFFD}\x{30000}-\x{3FFFD}');
+
+/**
+ * Matches all 'N' Unicode character classes (numbers)
+ */
+define('PREG_CLASS_NUMBERS',
+  '\x{30}-\x{39}\x{b2}\x{b3}\x{b9}\x{bc}-\x{be}\x{660}-\x{669}\x{6f0}-\x{6f9}' .
+  '\x{966}-\x{96f}\x{9e6}-\x{9ef}\x{9f4}-\x{9f9}\x{a66}-\x{a6f}\x{ae6}-\x{aef}' .
+  '\x{b66}-\x{b6f}\x{be7}-\x{bf2}\x{c66}-\x{c6f}\x{ce6}-\x{cef}\x{d66}-\x{d6f}' .
+  '\x{e50}-\x{e59}\x{ed0}-\x{ed9}\x{f20}-\x{f33}\x{1040}-\x{1049}\x{1369}-' .
+  '\x{137c}\x{16ee}-\x{16f0}\x{17e0}-\x{17e9}\x{17f0}-\x{17f9}\x{1810}-\x{1819}' .
+  '\x{1946}-\x{194f}\x{2070}\x{2074}-\x{2079}\x{2080}-\x{2089}\x{2153}-\x{2183}' .
+  '\x{2460}-\x{249b}\x{24ea}-\x{24ff}\x{2776}-\x{2793}\x{3007}\x{3021}-\x{3029}' .
+  '\x{3038}-\x{303a}\x{3192}-\x{3195}\x{3220}-\x{3229}\x{3251}-\x{325f}\x{3280}-' .
+  '\x{3289}\x{32b1}-\x{32bf}\x{ff10}-\x{ff19}');
+
+/**
+ * Matches CJK (Chinese, Japanese, Korean) letter-like characters.
+ *
+ * This list is derived from the "East Asian Scripts" section of
+ * http://www.unicode.org/charts/index.html, as well as a comment on
+ * http://unicode.org/reports/tr11/tr11-11.html listing some character
+ * ranges that are reserved for additional CJK ideographs.
+ *
+ * The character ranges do not include numbers, punctuation, or symbols, since
+ * these are handled separately in search. Note that radicals and strokes are
+ * considered symbols. (See
+ * http://www.unicode.org/Public/UNIDATA/extracted/DerivedGeneralCategory.txt)
+ *
+ * @see search_expand_cjk()
+ */
+define('PREG_CLASS_CJK', '\x{1100}-\x{11FF}\x{3040}-\x{309F}\x{30A1}-\x{318E}' .
+  '\x{31A0}-\x{31B7}\x{31F0}-\x{31FF}\x{3400}-\x{4DBF}\x{4E00}-\x{9FCF}' .
+  '\x{A000}-\x{A48F}\x{A4D0}-\x{A4FD}\x{A960}-\x{A97F}\x{AC00}-\x{D7FF}' .
+  '\x{F900}-\x{FAFF}\x{FF21}-\x{FF3A}\x{FF41}-\x{FF5A}\x{FF66}-\x{FFDC}' .
+  '\x{20000}-\x{2FFFD}\x{30000}-\x{3FFFD}');
+
+/**
  * Wrapper around _unicode_check().
  */
 function unicode_check() {
@@ -673,4 +730,18 @@ function drupal_substr($text, $start, $length = NULL) {
 
     return substr($text, $istart, max(0, $iend - $istart + 1));
   }
+}
+
+/**
+ * Detect if the pcre library is compiled with unicode support.
+ */
+function drupal_is_pcre_enabled_with_unicode() {
+  $pcre_with_unicode_support = &drupal_static('pcre_with_unicode_support');
+  if (!isset($pcre_with_unicode_support)) {
+    // This regular expression uses unicode selector.
+    // If there are no matches, pcre is not compiled with unicode support.
+    $pcre_with_unicode_support = (bool) @preg_match('/\p{L}/u', 'a');
+  }
+
+  return $pcre_with_unicode_support;
 }

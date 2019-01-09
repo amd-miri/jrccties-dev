@@ -259,7 +259,12 @@ function ctools_task_handler_default_contextual_link($handler, $plugin, $context
 /**
  * Called to execute actions that should happen before a handler is rendered.
  */
-function ctools_context_handler_pre_render($handler, $contexts, $args) { }
+function ctools_context_handler_pre_render($handler, $contexts, $args) {
+  foreach (module_implements('ctools_context_handler_pre_render') as $module) {
+    $function = $module . '_ctools_context_handler_pre_render';
+    $function($handler, $contexts, $args);
+  }
+}
 
 /**
  * Compare arguments to contexts for selection purposes.

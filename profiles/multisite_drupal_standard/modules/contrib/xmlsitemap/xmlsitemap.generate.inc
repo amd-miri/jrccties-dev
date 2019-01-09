@@ -14,9 +14,9 @@
  * at once so that only one database query is executed instead of several or
  * possibly thousands during sitemap generation.
  *
- * @param $path
+ * @param string $path
  *   An internal Drupal path.
- * @param $language
+ * @param string $language
  *   A language code to use when looking up the paths.
  */
 function xmlsitemap_get_path_alias($path, $language) {
@@ -70,13 +70,16 @@ function _xmlsitemap_regenerate_before() {
 
   if (variable_get('xmlsitemap_developer_mode', 0)) {
     watchdog('xmlsitemap', 'Starting XML sitemap generation. Memory usage: @memory-peak.', array(
-        '@memory-peak' => format_size(memory_get_peak_usage(TRUE)),
-      ),
+      '@memory-peak' => format_size(memory_get_peak_usage(TRUE)),
+    ),
       WATCHDOG_DEBUG
     );
   }
 }
 
+/**
+ * Get Memory Usage.
+ */
 function _xmlsitemap_get_memory_usage($start = FALSE) {
   static $memory_start;
   $current = memory_get_peak_usage(TRUE);
@@ -113,7 +116,7 @@ function _xmlsitemap_get_optimal_memory_limit() {
 /**
  * Calculate the optimal memory level for sitemap generation.
  *
- * @param $new_limit
+ * @param string $new_limit
  *   An optional PHP memory limit in bytes. If not provided, the value of
  *   _xmlsitemap_get_optimal_memory_limit() will be used.
  */
@@ -132,9 +135,9 @@ function _xmlsitemap_set_memory_limit($new_limit = NULL) {
 /**
  * Generate one page (chunk) of the sitemap.
  *
- * @param $sitemap
+ * @param object $sitemap
  *   An unserialized data array for an XML sitemap.
- * @param $page
+ * @param string $page
  *   An integer of the specific page of the sitemap to generate.
  */
 function xmlsitemap_generate_page(stdClass $sitemap, $page) {
@@ -147,20 +150,27 @@ function xmlsitemap_generate_page(stdClass $sitemap, $page) {
   catch (Exception $e) {
     watchdog_exception('xmlsitemap', $e);
     throw $e;
-    return FALSE;
   }
 
   return $writer->getSitemapElementCount();
 }
 
+/**
+ * Generate chunk.
+ */
 function xmlsitemap_generate_chunk(stdClass $sitemap, XMLSitemapWriter $writer, $chunk) {
-  $output_elements = drupal_map_assoc(variable_get('xmlsitemap_output_elements', array('lastmod', 'changefreq', 'priority')));
+  global $base_url;
+  $output_elements = drupal_map_assoc(variable_get('xmlsitemap_output_elements', array(
+    'lastmod',
+    'changefreq',
+    'priority',
+  )));
   $lastmod_format = variable_get('xmlsitemap_lastmod_format', XMLSITEMAP_LASTMOD_MEDIUM);
 
   $url_options = $sitemap->uri['options'];
   $url_options += array(
     'absolute' => TRUE,
-    'base_url' => variable_get('xmlsitemap_base_url', $GLOBALS['base_url']),
+    'base_url' => variable_get('xmlsitemap_base_url', $base_url),
     'language' => language_default(),
     'alias' => variable_get('xmlsitemap_prefetch_aliases', TRUE),
   );
@@ -169,7 +179,19 @@ function xmlsitemap_generate_chunk(stdClass $sitemap, XMLSitemapWriter $writer, 
   $link_count = 0;
 
   $query = db_select('xmlsitemap', 'x');
-  $query->fields('x', array('id', 'type', 'subtype', 'loc', 'lastmod', 'changefreq', 'changecount', 'priority', 'language', 'access', 'status'));
+  $query->fields('x', array(
+    'id',
+    'type',
+    'subtype',
+    'loc',
+    'lastmod',
+    'changefreq',
+    'changecount',
+    'priority',
+    'language',
+    'access',
+    'status',
+  ));
   $query->condition('x.access', 1);
   $query->condition('x.status', 1);
   $query->orderBy('x.language', 'DESC');
@@ -185,6 +207,9 @@ function xmlsitemap_generate_chunk(stdClass $sitemap, XMLSitemapWriter $writer, 
   while ($link = $links->fetchAssoc()) {
     $link['language'] = $link['language'] != LANGUAGE_NONE ? xmlsitemap_language_load($link['language']) : $url_options['language'];
     $link['original'] = $link['loc'];
+    $parsed_url = drupal_parse_url($link['loc']);
+    // Remove query or fragment.
+    $link['loc'] = $parsed_url['path'];
     if ($url_options['alias']) {
       $link['loc'] = xmlsitemap_get_path_alias($link['loc'], $link['language']->language);
     }
@@ -192,6 +217,8 @@ function xmlsitemap_generate_chunk(stdClass $sitemap, XMLSitemapWriter $writer, 
       'language' => $link['language'],
       'xmlsitemap_link' => $link,
       'xmlsitemap_sitemap' => $sitemap,
+      'query' => $parsed_url['query'],
+      'fragment' => $parsed_url['fragment'],
     );
     // @todo Add a separate hook_xmlsitemap_link_url_alter() here?
     $link_url = url($link['loc'], $link_options + $url_options);
@@ -212,7 +239,10 @@ function xmlsitemap_generate_chunk(stdClass $sitemap, XMLSitemapWriter $writer, 
     $element['loc'] = $link_url;
 
     if (xmlsitemap_var('multilingual')) {
-      $element['xhtml:link']['attributes'] = xmlsitemap_generate_multilingual($link);
+      $xhtml_links = xmlsitemap_generate_multilingual($link);
+      if (!empty($xhtml_links)) {
+        $element['xhtml:link']['attributes'] = $xhtml_links;
+      }
     }
 
     if ($link['lastmod']) {
@@ -247,7 +277,7 @@ function xmlsitemap_generate_chunk(stdClass $sitemap, XMLSitemapWriter $writer, 
 /**
  * Generate the index sitemap.
  *
- * @param $sitemap
+ * @param object $sitemap
  *   An unserialized data array for an XML sitemap.
  */
 function xmlsitemap_generate_index(stdClass $sitemap) {
@@ -260,18 +290,17 @@ function xmlsitemap_generate_index(stdClass $sitemap) {
   catch (Exception $e) {
     watchdog_exception('xmlsitemap', $e);
     throw $e;
-    return FALSE;
   }
 
   return $writer->getSitemapElementCount();
 }
 
-// BATCH OPERATIONS ------------------------------------------------------------
-
 /**
+ * BATCH OPERATIONS -----------------------------------------------------------.
+ *
  * Batch information callback for regenerating the sitemap files.
  *
- * @param $smids
+ * @param array $smids
  *   An optional array of XML sitemap IDs. If not provided, it will load all
  *   existing XML sitemaps.
  */
@@ -279,11 +308,8 @@ function xmlsitemap_regenerate_batch(array $smids = array()) {
   if (empty($smids)) {
     $smids = db_query("SELECT smid FROM {xmlsitemap_sitemap}")->fetchCol();
   }
-
-  //$t = get_t();
   $batch = array(
     'operations' => array(),
-    //'error_message' => $t('An error has occurred.'),
     'finished' => 'xmlsitemap_regenerate_batch_finished',
     'title' => t('Regenerating Sitemap'),
     'file' => drupal_get_path('module', 'xmlsitemap') . '/xmlsitemap.generate.inc',
@@ -367,7 +393,7 @@ function xmlsitemap_regenerate_batch_generate_index($smid, array &$context) {
 function xmlsitemap_regenerate_batch_finished($success, $results, $operations, $elapsed) {
   if ($success && !variable_get('xmlsitemap_regenerate_needed', FALSE)) {
     variable_set('xmlsitemap_generated_last', REQUEST_TIME);
-    //drupal_set_message(t('The sitemaps were regenerated.'));
+    // drupal_set_message(t('The sitemaps were regenerated.'));
     // Show a watchdog message that the sitemap was regenerated.
     watchdog('xmlsitemap',
       'Finished XML sitemap generation in @elapsed. Memory usage: @memory-peak.',
@@ -377,6 +403,7 @@ function xmlsitemap_regenerate_batch_finished($success, $results, $operations, $
       ),
       WATCHDOG_NOTICE
     );
+    module_invoke_all('xmlsitemap_regenerate_finished');
   }
   else {
     drupal_set_message(t('The sitemaps were not successfully regenerated.'), 'error');
@@ -398,7 +425,9 @@ function xmlsitemap_rebuild_batch(array $entities, $save_custom = FALSE) {
   $batch['operations'][] = array('xmlsitemap_batch_variable_set', array(array('xmlsitemap_rebuild_needed' => TRUE)));
 
   // Purge any links first.
-  $batch['operations'][] = array('xmlsitemap_rebuild_batch_clear', array($entities, (bool) $save_custom));
+  $batch['operations'][] = array('xmlsitemap_rebuild_batch_clear',
+    array($entities, (bool) $save_custom),
+  );
 
   // Fetch all the sitemap links and save them to the {xmlsitemap} table.
   foreach ($entities as $entity) {
@@ -473,8 +502,7 @@ function xmlsitemap_rebuild_batch_fetch($entity, &$context) {
 
   // PostgreSQL cannot have the ORDERED BY in the count query.
   $query->entityOrderBy('entity_id');
-
-  $limit = 20; //variable_get('xmlsitemap_batch_limit', 100)
+  $limit = 20;
   $query->range(0, $limit);
 
   $result = $query->execute();
@@ -483,7 +511,12 @@ function xmlsitemap_rebuild_batch_fetch($entity, &$context) {
   $info['xmlsitemap']['process callback']($ids);
   $context['sandbox']['last_id'] = end($ids);
   $context['sandbox']['progress'] += count($ids);
-  $context['message'] = t('Now processing %entity @last_id (@progress of @count).', array('%entity' => $entity, '@last_id' => $context['sandbox']['last_id'], '@progress' => $context['sandbox']['progress'], '@count' => $context['sandbox']['max']));
+  $context['message'] = t('Now processing %entity @last_id (@progress of @count).', array(
+    '%entity' => $entity,
+    '@last_id' => $context['sandbox']['last_id'],
+    '@progress' => $context['sandbox']['progress'],
+    '@count' => $context['sandbox']['max'],
+  ));
 
   if ($context['sandbox']['progress'] >= $context['sandbox']['max']) {
     $context['finished'] = 1;
@@ -505,6 +538,9 @@ function xmlsitemap_rebuild_batch_finished($success, $results, $operations, $ela
   }
 }
 
+/**
+ * Get Rebuildable link types.
+ */
 function xmlsitemap_get_rebuildable_link_types() {
   $rebuild_types = array();
   $entities = xmlsitemap_get_link_info();
@@ -564,43 +600,206 @@ function xmlsitemap_rebuild_clear(array $types, $save_custom) {
  * @return array
  */
 function xmlsitemap_generate_multilingual($link) {
-  if (xmlsitemap_var('multilingual_only_nodes')) {
-    if (module_exists('entity_translation')) {
-      $translation = db_select('entity_translation', 'et')->fields('et', array('language'))->condition('et.entity_type', $link['type'])->condition('et.entity_id', $link['id'])->execute()->fetchCol();
+  // If the language negotiation method is not based on URLs,
+  // no need to continue as it is the same URL for all languages.
+  if (!_xmlsitemap_is_url_based_language_negotiation()) {
+    return array();
+  }
+
+  if (xmlsitemap_var('multilingual_only_nodes') && $link['type'] != 'node') {
+    return array();
+  }
+
+  $original_path = $link['original'];
+  $original_language = $link['language'];
+  $languages = language_list('enabled');
+  $languages = reset($languages);
+  $xhtml_links = array();
+
+  // Default front page mechanism.
+  if ('frontpage'== $link['type'] && empty($original_path)) {
+    foreach ($languages as $lang) {
+      _xmlsitemap_add_xhtml_link($xhtml_links, '<front>', $lang);
     }
-    else {
-      $tnid = db_select('node', 'n')->fields('n', array('tnid'))->condition('n.nid', $link['id'])->execute()->fetchField();
-      $translation = db_select('node', 'n')->fields('n', array('language'))->condition('n.tnid', $tnid)->execute()->fetchCol();
+    _xmlsitemap_add_x_default_link($xhtml_links, $languages);
+
+    return $xhtml_links;
+  }
+
+  // Let's work with Entity translation first.
+  if (module_exists('entity_translation')) {
+    $available_link_languages = db_select('entity_translation', 'et')
+      ->fields('et', array('language'))
+      ->condition('et.entity_type', $link['type'])
+      ->condition('et.entity_id', $link['id'])
+      ->condition('et.status', 1)
+      ->execute()
+      ->fetchCol();
+
+    if (!empty($available_link_languages)) {
+      foreach ($languages as $lang_code => $lang) {
+        if (!in_array($lang_code, $available_link_languages)) {
+          continue;
+        }
+        _xmlsitemap_add_xhtml_link($xhtml_links, $original_path, $lang);
+      }
+      _xmlsitemap_add_x_default_link($xhtml_links, $languages);
+
+      return $xhtml_links;
     }
   }
 
-  // Only add hreflang if we have different URL's for different languages.
-  // For that locale-url has to be activated for language negotiation.
-  if (language_negotiation_get('language', 'nexteuropa_multilingual_url_suffix') || language_negotiation_get('language', 'locale-url')) {
-    foreach (language_list() as $lang) {
-      if (xmlsitemap_var('multilingual_only_nodes')) {
-        if (!$translation) {
-          continue;
-        }
-        if (!$lang->enabled || !in_array($lang->language, $translation)) {
-          continue;
-        }
+  switch ($link['type']) {
+    case 'node':
+      // Let's treat node types that use content translation.
+      if (!module_exists('translation') || !translation_supported_type($link['subtype'])) {
+        break;
       }
-      $xhtml_links[] = array(
-        'rel' => 'alternate',
-        'href' => url($link['original'], array('language' => $lang, 'absolute' => TRUE)),
-        'hreflang' => $lang->language,
-      );
-    }
-    $x_default = xmlsitemap_var('multilingual_x_default');
-    if ($x_default != 'none') {
-      $x_default_lang = $x_default == "default" ? language_default()->language : $x_default;
-      $xhtml_links[] = array(
-        'rel' => 'alternate',
-        'href' => url($link['original'], array('language' => $x_default_lang, 'absolute' => TRUE)),
-        'hreflang' => 'x-default',
-      );
+
+      $path_translations = translation_path_get_translations($original_path);
+      // Ensure that the original path is set. When the content is not
+      // translated yet, $path_translations is empty.
+      $path_translations[$original_language->language] = $original_path;
+
+      foreach ($languages as $lang_code => $lang) {
+        if (!isset($path_translations[$lang_code])) {
+          continue;
+        }
+        $href = $path_translations[$lang_code];
+        _xmlsitemap_add_xhtml_link($xhtml_links, $href, $lang);
+      }
+      _xmlsitemap_add_x_default_link($xhtml_links, $languages);
+
+      return $xhtml_links;
+
+    case 'taxonomy_term':
+      // If the module does not exist, then no need to continue because there
+      // is no other language set for the item and then no other URL.
+      if (!module_exists('i18n_taxonomy')) {
+        break;
+      }
+
+      // Let's cover situation where some taxonomy terms still use
+      // the mode "Translate. Different terms will be allowed for each
+      // language and they can be translated".
+      $path_translations = i18n_taxonomy_translate_path($original_path);
+
+      if (empty($path_translations)) {
+        break;
+      }
+
+      foreach ($languages as $lang_code => $lang) {
+        if (!isset($path_translations[$lang_code])) {
+          continue;
+        }
+        $href = $path_translations[$lang_code]['href'];
+        _xmlsitemap_add_xhtml_link($xhtml_links, $href, $lang);
+      }
+      _xmlsitemap_add_x_default_link($xhtml_links, $languages);
+
+      return $xhtml_links;
+  }
+
+  // Let's give a last chance to i18n module to retrieve the translation paths,
+  // if enabled.
+  if (!module_exists('i18n')) {
+    return array();
+  }
+
+  $path_translations = i18n_get_path_translations($original_path);
+
+  if (!empty($path_translations)) {
+    foreach ($languages as $lang_code => $lang) {
+      if (!isset($path_translations[$lang_code])) {
+        continue;
+      }
+      $menu_item = $path_translations[$lang_code];
+      $href = isset($menu_item['href']) ? $menu_item['href'] : $original_path;
+      _xmlsitemap_add_xhtml_link($xhtml_links, $href, $lang);
     }
   }
-  return isset($xhtml_links) ? $xhtml_links : array();
+
+  _xmlsitemap_add_x_default_link($xhtml_links, $languages);
+
+  return $xhtml_links;
+}
+
+/**
+ * Add a "xhtml:link" value to a existing list.
+ *
+ * @param array $xhtml_links
+ *   The "xhtml:link" list where to add the value.
+ * @param string $path
+ *   The raw path used to generate the "xhtml:link" value.
+ * @param object $language
+ *   The language object linked to the "xhtml:link" value.
+ *
+ * @see xmlsitemap_generate_multilingual()
+ */
+function _xmlsitemap_add_xhtml_link(array &$xhtml_links, $path, $language) {
+  $href = url($path, array(
+    'language' => $language,
+    'absolute' => TRUE,
+    'base_url' => variable_get('xmlsitemap_base_url', $GLOBALS['base_url']),
+  ));
+
+  $xhtml_links[$language->language] = array(
+    'rel' => 'alternate',
+    'href' => $href,
+    'hreflang' => $language->language,
+  );
+}
+
+/**
+ * Add the "hreflang='x-default'" link to "xhtml:link" list.
+ *
+ * @param array $xhtml_links
+ *   The "xhtml:link" list where to add the link.
+ * @param array $enabled_languages
+ *   The list of the enabled language objects.
+ */
+function _xmlsitemap_add_x_default_link(array &$xhtml_links, array $enabled_languages) {
+  $x_default = xmlsitemap_var('multilingual_x_default');
+  if ($x_default == 'none') {
+    return;
+  }
+
+  $x_default_lang = ($x_default == 'default') ? language_default() : $enabled_languages[$x_default];
+  if (empty($xhtml_links) || !isset($xhtml_links[$x_default_lang->language])) {
+    return;
+  }
+
+  $xhtml_links['x-default'] = array(
+    'rel' => 'alternate',
+    'href' => $xhtml_links[$x_default_lang->language]['href'],
+    'hreflang' => 'x-default',
+  );
+}
+
+/**
+ * Checks if the language negotiation method is based on urls or not.
+ *
+ * @return bool
+ *   TRUE if the language negotiation method is based on urls.
+ */
+function _xmlsitemap_is_url_based_language_negotiation() {
+  $is_url_based = &drupal_static(__FUNCTION__);
+
+  if (isset($is_url_based)) {
+    return (bool) $is_url_based;
+  }
+
+  $language_negotiation_method = array('locale-url');
+
+  drupal_alter('xmlsitemap_url_based_negotiation', $language_negotiation_method);
+
+  $is_url_based = FALSE;
+  foreach ($language_negotiation_method as $method) {
+    if (language_negotiation_get('language', $method)) {
+      $is_url_based = TRUE;
+      break;
+    }
+  }
+
+  return $is_url_based;
 }

@@ -1,19 +1,22 @@
 name = Media: AV Portal
-description = Provides AV Portal support for the Media module.
+description = Adds AV Portal as a supported media provider.
 package = "Media"
 core = 7.x
-files[] = includes/MediaInternetAvportalHandler.inc
+
+files[] = includes/MediaAvportalService.inc
+files[] = includes/MediaAvPortalMedia.inc
+files[] = includes/MediaAvPortalMalformedQueryException.inc
+files[] = includes/MediaAvPortalServiceException.inc
+files[] = includes/MediaAvportalMediaNotAccessibleException.inc
+files[] = includes/MediaAvportalHandler.inc
 files[] = includes/MediaAvportalStreamWrapper.inc
 
 dependencies[] = media
 dependencies[] = media_internet
-php = 5.2.4
+php = 5.6
 
-version = "7.x-1.0"
-
-; Information added by Drupal.org packaging script on 2017-05-05
-version = "7.x-1.2"
+; Information added by Drupal.org packaging script on 2018-10-01
+version = "7.x-1.3"
 core = "7.x"
 project = "media_avportal"
-datestamp = "1493984895"
-
+datestamp = "1538404383"

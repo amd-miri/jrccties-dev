@@ -304,7 +304,7 @@ abstract class MigrationBase {
   /**
    * An array to track 'mail_system' variable if disabled.
    */
-  protected $mailSystem = array();
+  protected $mailSystem;
 
   /**
    * Have we already warned about obsolete constructor argumentss on this request?
@@ -436,12 +436,6 @@ abstract class MigrationBase {
 
     // Record the time limit
     $this->timeLimit = ini_get('max_execution_time');
-
-    // Save the current mail system, prior to disabling emails.
-    $this->saveMailSystem();
-
-    // Prevent emails from being sent out during migrations.
-    $this->disableMailSystem();
 
     // Make sure we clear our semaphores in case of abrupt exit
     drupal_register_shutdown_function(array($this, 'endProcess'));
@@ -904,6 +898,12 @@ abstract class MigrationBase {
     // Try to make the semaphore handling atomic (depends on DB support)
     $transaction = db_transaction();
 
+    // Save the current mail system, prior to disabling emails.
+    $this->saveMailSystem();
+
+    // Prevent emails from being sent out during migrations.
+    $this->disableMailSystem();
+
     $this->starttime = microtime(TRUE);
 
     // Check to make sure there's no process already running for this migration
@@ -960,6 +960,10 @@ abstract class MigrationBase {
     }
     if ($this->processing) {
       $this->status = MigrationBase::STATUS_IDLE;
+
+      // Restore the previous mail handler.
+      $this->restoreMailSystem();
+
       $fields = array('class_name' => get_class($this), 'status' => MigrationBase::STATUS_IDLE);
       db_merge('migrate_status')
         ->key(array('machine_name' => $this->machineName))
@@ -1368,14 +1372,9 @@ abstract class MigrationBase {
   /**
    * Saves the current mail system, or set a system default if there is none.
    */
-  protected function saveMailSystem() {
+  public function saveMailSystem() {
     global $conf;
-    if (empty($conf['mail_system'])) {
-      $conf['mail_system']['default-system'] = 'MigrateMailIgnore';
-    }
-    else {
-      $this->mailSystem = $conf['mail_system'];
-    }
+    $this->mailSystem = empty($conf['mail_system']) ? NULL : $conf['mail_system'];
   }
 
   /**
@@ -1387,6 +1386,9 @@ abstract class MigrationBase {
       foreach ($conf['mail_system'] as $system => $class) {
         $conf['mail_system'][$system] = 'MigrateMailIgnore';
       }
+    }
+    else {
+      $conf['mail_system'] = array('default-system' => 'MigrateMailIgnore');
     }
   }
 

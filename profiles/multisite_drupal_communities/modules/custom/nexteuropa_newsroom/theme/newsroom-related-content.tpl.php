@@ -20,7 +20,7 @@
 
       <?php if ($cnt_children > 0): ?>
       <li>
-        <?php echo check_plain($current_item->title); ?>
+        <span><?php echo check_plain($current_item->title); ?></span>
         <ul>
           <?php foreach ($children_items as $item): ?>
             <li>

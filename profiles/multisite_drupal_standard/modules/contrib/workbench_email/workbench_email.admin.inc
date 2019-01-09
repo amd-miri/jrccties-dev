@@ -209,20 +209,15 @@ function workbench_email_form($form, &$form_state) {
         );
 
         // Use the token_tree_link theme if available.
-        // Introduced in Token 7.x-1.2
-        // went back against this since token doesn't support
-        // #token_types, so node and user variables are not
-        // outputted.
-        // https://drupal.org/node/1684984
-        // https://drupal.org/node/1842738
-        // if (function_exists('theme_token_tree_link')) {
-        // $token_tree_theme = 'token_tree_link';
-        // } else {
-        $token_tree_theme = 'token_tree';
-        // }
+        if (function_exists('theme_token_tree_link')) {
+          $token_tree_theme = 'token_tree_link';
+        }
+        else {
+          $token_tree_theme = 'token_tree';
+        }
         $form['emails']['token_set']['tokens'] = array(
           '#theme' => $token_tree_theme,
-          '#token_types' => array('node', 'user'),
+          '#token_types' => array('node' => 'node', 'user' => 'user'),
         );
       }
     }
@@ -361,7 +356,11 @@ function workbench_email_form_validate($form, &$form_state) {
  *   The form_state array
  */
 function workbench_email_form_submit($form, &$form_state) {
-  variable_set('workbench_email_queue_mail', $form_state['values']['config_container']['queue_mail']);
+  $use_queue_mail = FALSE;
+  if (isset($form_state['values']['config_container'])) {
+    $use_queue_mail = $form_state['values']['config_container']['queue_mail'];
+  }
+  variable_set('workbench_email_queue_mail', $use_queue_mail);
   $roles = workbench_email_determine_valid_roles();
   foreach ($form_state['values']['transitions'] as $transition) {
     foreach ($roles as $rid => $role) {

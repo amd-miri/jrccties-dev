@@ -1,0 +1,9 @@
+name = NextEuropa Poetry
+description = NextEuropa integration for Poetry Client.
+core = 7.x
+package = NextEuropa
+configure = admin/config/regional/poetry-client
+
+dependencies[] = registry_autoload
+
+registry_autoload[] = PSR-4

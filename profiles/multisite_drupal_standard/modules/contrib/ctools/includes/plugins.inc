@@ -200,18 +200,18 @@ function ctools_plugin_api_get_hook($owner, $api) {
 /**
  * Fetch a group of plugins by name.
  *
- * @param $module
- *   The name of the module that utilizes this plugin system. It will be
- *   used to call hook_ctools_plugin_$plugin() to get more data about the plugin.
- * @param $type
+ * @param string $module
+ *   The name of the module that utilizes this plugin system. It will be used to
+ *   get more data about the plugin as defined on hook_ctools_plugin_type().
+ * @param string $type
  *   The type identifier of the plugin.
- * @param $id
+ * @param string $id
  *   If specified, return only information about plugin with this identifier.
  *   The system will do its utmost to load only plugins with this id.
  *
- * @return
- *   An array of information arrays about the plugins received. The contents
- *   of the array are specific to the plugin.
+ * @return array
+ *   An array of information arrays about the plugins received. The contents of
+ *   the array are specific to the plugin.
  */
 function ctools_get_plugins($module, $type, $id = NULL) {
   // Store local caches of plugins and plugin info so we don't have to do full
@@ -224,10 +224,14 @@ function ctools_get_plugins($module, $type, $id = NULL) {
 
   $info = ctools_plugin_get_plugin_type_info();
 
-  // Bail out noisily if an invalid module/type combination is requested.
   if (!isset($info[$module][$type])) {
-    watchdog('ctools', 'Invalid plugin module/type combination requested: module @module and type @type', array('@module' => $module, '@type' => $type), WATCHDOG_ERROR);
-    return array();
+    // If we don't find the plugin we attempt a cache rebuild before bailing out
+    $info = ctools_plugin_get_plugin_type_info(TRUE);
+    // Bail out noisily if an invalid module/type combination is requested.
+    if (!isset($info[$module][$type])) {
+      watchdog('ctools', 'Invalid plugin module/type combination requested: module @module and type @type', array('@module' => $module, '@type' => $type), WATCHDOG_ERROR);
+      return array();
+    }
   }
 
   // Make sure our plugins array is populated.
@@ -235,8 +239,8 @@ function ctools_get_plugins($module, $type, $id = NULL) {
     $plugins[$module][$type] = array();
   }
 
-  // Attempt to shortcut this whole piece of code if we already have
-  // the requested plugin:
+  // Attempt to shortcut this whole piece of code if we already have the
+  // requested plugin:
   if ($id && array_key_exists($id, $plugins[$module][$type])) {
     return $plugins[$module][$type][$id];
   }
@@ -271,8 +275,8 @@ function ctools_get_plugins($module, $type, $id = NULL) {
     $plugins[$module][$type] = ctools_plugin_load_hooks($info[$module][$type]);
   }
 
-  // Then see if we should load all files. We only do this if we
-  // want a list of all plugins or there was a cache miss.
+  // Then see if we should load all files. We only do this if we want a list of
+  // all plugins or there was a cache miss.
   if (empty($setup[$module][$type]) && ($build_cache || !$id)) {
     $setup[$module][$type] = TRUE;
     $plugins[$module][$type] = array_merge($plugins[$module][$type], ctools_plugin_load_includes($info[$module][$type]));
@@ -296,8 +300,8 @@ function ctools_get_plugins($module, $type, $id = NULL) {
   }
 
 
-  // If we were told earlier that this is cacheable and the cache was
-  // empty, give something back.
+  // If we were told earlier that this is cacheable and the cache was empty,
+  // give something back.
   if ($build_cache) {
     cache_set("plugins:$module:$type", $plugins[$module][$type], $info[$module][$type]['cache table']);
   }
@@ -415,19 +419,20 @@ function ctools_get_plugins_reset() {
 /**
  * Load plugins from a directory.
  *
- * @param $info
+ * @param array $info
  *   The plugin info as returned by ctools_plugin_get_info()
- * @param $file
+ * @param string $filename
  *   The file to load if we're looking for just one particular plugin.
  *
- * @return
- *   An array of information created for this plugin.
+ * @return array
+ *   A (possibly empty) array of information created for this plugin.
  */
 function ctools_plugin_load_includes($info, $filename = NULL) {
   // Keep a static array so we don't hit file_scan_directory more than necessary.
   $all_files = &drupal_static(__FUNCTION__, array());
 
-  // store static of plugin arrays for reference because they can't be reincluded.
+  // Store static of plugin arrays for reference because they can't be
+  // reincluded, so there is no point in using drupal_static().
   static $plugin_arrays = array();
 
   if (!isset($all_files[$info['module']][$info['type']])) {
@@ -473,7 +478,6 @@ function ctools_plugin_load_includes($info, $filename = NULL) {
           $identifier = $plugin_arrays[$file->uri];
         }
         else {
-
           include_once DRUPAL_ROOT . '/' . $file->uri;
           // .inc files have a special format for the hook identifier.
           // For example, 'foo.inc' in the module 'mogul' using the plugin
@@ -492,7 +496,8 @@ function ctools_plugin_load_includes($info, $filename = NULL) {
           }
         }
 
-        $result = ctools_plugin_process($info, $module, $identifier, dirname($file->uri), basename($file->uri), $file->name);
+        $result = ctools_plugin_process($info, $module, $identifier,
+          dirname($file->uri), basename($file->uri), $file->name);
       }
       if (is_array($result)) {
         $plugins = array_merge($plugins, $result);
@@ -538,14 +543,14 @@ function ctools_plugin_get_directories($info) {
 }
 
 /**
- * Helper function to build a ctools-friendly list of themes capable of
- * providing plugins.
+ * Helper to build a ctools-friendly list of themes capable of providing plugins.
  *
  * @return array $themes
  *   A list of themes that can act as plugin providers, sorted parent-first with
  *   the active theme placed last.
  */
 function _ctools_list_themes() {
+  // @TODO: Use drupal_static() here?
   static $themes;
   if (is_null($themes)) {
     $current = variable_get('theme_default', FALSE);
@@ -599,9 +604,10 @@ function _ctools_list_themes() {
  *   The name of the theme whose base we are looking for.
  * @param $used_keys
  *   A recursion parameter preventing endless loops.
- * @return
+ *
+ * @return array
  *   Returns an array of all of the theme's ancestors; the first element's value
- *   will be NULL if an error occurred.
+ *   will be NULL if an error occurred. (Note: this is NOT $arr[0]).
  */
 function ctools_find_base_themes($themes, $key, $used_keys = array()) {
   $base_key = $themes[$key]->info['base theme'];
@@ -654,22 +660,28 @@ function ctools_plugin_load_hooks($info) {
 /**
  * Process a single hook implementation of a ctools plugin.
  *
- * @param $info
+ * @param array $info
  *   The $info array about the plugin as returned by ctools_plugin_get_info()
- * @param $module
+ * @param string $module
  *   The module that implements the plugin being processed.
- * @param $identifier
- *   The plugin identifier, which is used to create the name of the hook
- *   function being called.
- * @param $path
+ * @param string|array $identifier
+ *   Used to create the base setting of return value. If:
+ *    - $identifier is a string, a hook name is created from this and the 'hook'
+ *      key of the $info array, and the return value of that hook function is
+ *      used. The hook is called like this: $identifier_$hook($info);
+ *    - $identifier is an array, this array is used directly.
+ * @param string $path
  *   The path where files utilized by this plugin will be found.
- * @param $file
+ * @param string $file
  *   The file that was loaded for this plugin, if it exists.
- * @param $base
+ * @param string $base
  *   The base plugin name to use. If a file was loaded for the plugin, this
  *   is the plugin to assume must be present. This is used to automatically
  *   translate the array to make the syntax more friendly to plugin
  *   implementors.
+ *
+ * @return NULL|array
+ *   NULL on failure, otherwise an array containing the results keyed by name.
  */
 function ctools_plugin_process($info, $module, $identifier, $path, $file = NULL, $base = NULL) {
   if (is_array($identifier)) {
@@ -737,9 +749,19 @@ function _ctools_process_data($result, $plugin_type_info, $module, $path, $file)
   return $result;
 }
 
-
 /**
  * Process an info file for plugin information, rather than a hook.
+ *
+ * @param array $info
+ *   The $info array about the plugin as returned by ctools_plugin_get_info()
+ * @param string $module
+ *   The module that implements the plugin being processed.
+ * @param object $file
+ *   An object containing 'uri' and 'name' properties. 'uri' is the name of the
+ *   'info' file to process. 'name' is the plugin key-name.
+ *
+ * @return NULL|array
+ *   NULL on failure, otherwise an array containing the results keyed by name.
  */
 function ctools_plugin_process_info($info, $module, $file) {
   $result = drupal_parse_info_file($file->uri);
@@ -766,7 +788,7 @@ function ctools_plugin_get_info($module, $type) {
  * @param $function_name
  *   The identifier of the function. For example, 'settings form'.
  *
- * @return
+ * @return string
  *   The actual name of the function to call, or NULL if the function
  *   does not exist.
  */
@@ -783,7 +805,7 @@ function ctools_plugin_get_function($plugin_definition, $function_name) {
   }
 
   if (!isset($plugin_definition[$function_name])) {
-    return;
+    return NULL;
   }
 
   if (is_array($plugin_definition[$function_name]) && isset($plugin_definition[$function_name]['function'])) {
@@ -818,7 +840,7 @@ function ctools_plugin_get_function($plugin_definition, $function_name) {
  * @param $function_name
  *   The identifier of the function. For example, 'settings form'.
  *
- * @return
+ * @return string
  *   The actual name of the function to call, or NULL if the function
  *   does not exist.
  */
@@ -836,7 +858,7 @@ function ctools_plugin_load_function($module, $type, $id, $function_name) {
  * @param $class_name
  *   The identifier of the class. For example, 'handler'.
  *
- * @return
+ * @return string
  *   The actual name of the class to call, or NULL if the class does not exist.
  */
 function ctools_plugin_get_class($plugin_definition, $class_name) {
@@ -881,7 +903,7 @@ function ctools_plugin_get_class($plugin_definition, $class_name) {
  * @param $class_name
  *   The identifier of the class. For example, 'handler'.
  *
- * @return
+ * @return string
  *   The actual name of the class to call, or NULL if the class does not exist.
  */
 function ctools_plugin_load_class($module, $type, $id, $class_name) {

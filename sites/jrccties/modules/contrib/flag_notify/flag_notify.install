@@ -1,0 +1,84 @@
+<?php
+
+/**
+ * @file
+ * Install, update, and uninstall functions for the Flag Notify module.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function flag_notify_install() {
+  $t = get_t();
+  $default_notification_field_name = "flag_notify_field_defaults";
+  if (!field_info_field($default_notification_field_name)) {
+    // Check if the field already exists.
+    $description = $t('Select the ​​default notification options when you create a content or leave a comment. These default options can be overridden on each content or comment.');
+    $allowed_values = array(
+      'content' => $t('New comments and modifications on contents I create'),
+      'comment' => $t('Replies to my comments'),
+    );
+    $default_value = array(
+      0 => array('value' => 'comment'),
+      1 => array('value' => 'content'),
+    );
+
+    if (module_exists('og')) {
+      $description = $t('Select the ​​default notification options when you join a group, create a content or leave a comment. These default options can be overridden on each group, content or comment.');
+      $allowed_values = array(
+        'group'   => $t('Activity in the groups I join'),
+        'content' => $t('New comments and modifications on contents I create'),
+        'comment' => $t('Replies to my comments'),
+      );
+      $default_value = array(
+        0 => array('value' => 'group'),
+        1 => array('value' => 'comment'),
+        2 => array('value' => 'content'),
+      );
+    }
+
+    field_create_field(array(
+      'field_name' => $default_notification_field_name,
+      'cardinality' => FIELD_CARDINALITY_UNLIMITED,
+      'type' => 'list_text',
+      'settings' => array(
+        'allowed_values' => $allowed_values,
+      ),
+    ));
+
+    field_create_instance(array(
+      'field_name' => $default_notification_field_name,
+      'entity_type' => 'user',
+      'bundle' => 'user',
+      'label' => $t('Default notifications settings.'),
+      'description' => $description,
+      'required' => FALSE,
+      'widget' => array(
+        'type' => 'options_buttons',
+      ),
+      'default_value' => $default_value,
+    ));
+  }
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function flag_notify_uninstall() {
+
+  db_delete('variable')->where('name', "flag_notify_%", 'LIKE');
+
+  $default_notification_field_name = "flag_notify_field_defaults";
+  $field_instance = array(
+    'field_name' => $default_notification_field_name,
+    'entity_type' => 'user',
+    'bundle' => 'user',
+  );
+  field_delete_instance($field_instance);
+  field_delete_field($default_notification_field_name);
+
+  // http://stackoverflow.com/questions/13608852
+  // https://drupal.org/node/1203876
+  field_purge_batch(30);
+  field_purge_batch(30);
+}

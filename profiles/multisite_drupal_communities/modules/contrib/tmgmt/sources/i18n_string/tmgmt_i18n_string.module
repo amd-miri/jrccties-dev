@@ -44,7 +44,10 @@ function tmgmt_i18n_string_get_strings($type, $search_label = NULL, $target_lang
 
   $languages = drupal_map_assoc(array_keys(language_list()));
   $select = db_select('i18n_string', 'i18n_s');
-
+  if ($type == 'views') {
+    $select->addField('i18n_s', 'textgroup', 'type');
+    $select->addField('i18n_s', 'type', 'objectid');
+  }
   $select->addTag('tmgmt_sources_search');
   $select->addMetaData('plugin', 'i18n_string');
   $select->addMetaData('type', $type);
@@ -66,7 +69,7 @@ function tmgmt_i18n_string_get_strings($type, $search_label = NULL, $target_lang
     }
   }
 
-  if (isset($info['string translation']['type'])) {
+  if (isset($info['string translation']['type']) && $type != 'views') {
     $select->condition('i18n_s.type', $info['string translation']['type']);
   }
   elseif ($type == 'field' || $type == 'field_instance') {
@@ -92,12 +95,19 @@ function tmgmt_i18n_string_get_strings($type, $search_label = NULL, $target_lang
   }
   $select->fields("i18n_s", array('lid', 'textgroup', 'context', 'type', 'objectid'));
 
-  $select->addExpression("concat(i18n_s.textgroup, ':', i18n_s.type, ':', i18n_s.objectid)", 'job_item_id');
+  if ($type == 'views') {
+    $select->addExpression("concat(i18n_s.textgroup, ':', i18n_s.textgroup, ':', i18n_s.type)", 'job_item_id');
+  }
+  else {
+    $select->addExpression("concat(i18n_s.textgroup, ':', i18n_s.type, ':', i18n_s.objectid)", 'job_item_id');
+  }
 
   $select->orderBy('i18n_s.context');
 
   $select->groupBy('type');
-  $select->groupBy('objectid');
+  if ($type !== 'views') {
+    $select->groupBy('objectid');
+  }
 
   $select = $select->extend('PagerDefault')->limit(variable_get('tmgmt_source_list_limit', 20));
 

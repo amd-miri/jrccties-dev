@@ -191,7 +191,7 @@ class FormTest extends TestCase
             $values,
             array_map(
                 function ($field) {
-                    $class = get_class($field);
+                    $class = \get_class($field);
 
                     return array(substr($class, strrpos($class, '\\') + 1), $field->getValue());
                 },
@@ -376,15 +376,15 @@ class FormTest extends TestCase
     {
         $form = $this->createForm('<form><input type="text" name="foo" value="foo" /><input type="submit" /></form>');
         unset($form['foo']);
-        $this->assertFalse(isset($form['foo']), '->offsetUnset() removes a field');
+        $this->assertArrayNotHasKey('foo', $form, '->offsetUnset() removes a field');
     }
 
     public function testOffsetExists()
     {
         $form = $this->createForm('<form><input type="text" name="foo" value="foo" /><input type="submit" /></form>');
 
-        $this->assertTrue(isset($form['foo']), '->offsetExists() return true if the field exists');
-        $this->assertFalse(isset($form['bar']), '->offsetExists() return false if the field does not exist');
+        $this->assertArrayHasKey('foo', $form, '->offsetExists() return true if the field exists');
+        $this->assertArrayNotHasKey('bar', $form, '->offsetExists() return false if the field does not exist');
     }
 
     public function testGetValues()
@@ -948,12 +948,12 @@ class FormTest extends TestCase
     {
         $dom = new \DOMDocument();
         $dom->loadHTML('
-              <html>
-                  <form>
-                      <textarea name="example"></textarea>
-                  </form>
-              </html>
-          ');
+            <html>
+                <form>
+                    <textarea name="example"></textarea>
+                </form>
+            </html>'
+        );
 
         $nodes = $dom->getElementsByTagName('form');
         $form = new Form($nodes->item(0), 'http://example.com');

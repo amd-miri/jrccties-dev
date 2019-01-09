@@ -72,7 +72,7 @@ function migrate_migrations($reset = NULL) {
       }
     }
     else {
-      MigrationBase::displayMessage(t('Class !class no longer exists',
+      MigrationBase::displayMessage(t('Class !class could not be found',
                                     array('!class' => $row->class_name)));
     }
   }

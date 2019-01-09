@@ -1,0 +1,102 @@
+<?php
+
+/**
+ * @file
+ * Module file.
+ */
+
+use EC\Poetry\Poetry;
+use drupol\drupal7_psr3_watchdog\Logger\WatchdogLogger;
+use Drupal\nexteuropa_poetry\NotificationSubscriber;
+
+/**
+ * Implements hook_menu().
+ */
+function nexteuropa_poetry_menu() {
+  $items['admin/config/regional/poetry-client'] = array(
+    'title' => 'Poetry client',
+    'description' => "Settings for Poetry client integration.",
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('nexteuropa_poetry_client_settings_form'),
+    'access arguments' => array('configure poetry client'),
+    'weight' => 100,
+    'file' => 'includes/nexteuropa_poetry.admin.inc',
+  );
+
+  // Access restriction is handled on the soap callback.
+  $items['poetry/notification'] = array(
+    'page callback' => 'nexteuropa_poetry_notification_callback',
+    'access callback' => TRUE,
+  );
+
+  // Access restriction is handled on the soap callback.
+  $items['poetry/wsdl'] = array(
+    'page callback' => 'nexteuropa_poetry_wsdl_callback',
+    'access callback' => TRUE,
+  );
+  return $items;
+}
+
+/**
+ * Poetry client factory.
+ *
+ * @return \EC\Poetry\Poetry
+ *   Poetry client object.
+ */
+function nexteuropa_poetry_client() {
+  $options = array(
+    'absolute' => TRUE,
+    'language' => (object) array('language' => FALSE),
+  );
+
+  $log_level = variable_get('nexteuropa_poetry_log_level', 'none');
+  $log_level = ($log_level === 'none') ? FALSE : $log_level;
+
+  return new Poetry(array(
+    'notification.username' => variable_get('nexteuropa_poetry_notification_username', ''),
+    'notification.password' => variable_get('nexteuropa_poetry_notification_password', ''),
+    'service.username'      => variable_get('nexteuropa_poetry_service_username', ''),
+    'service.password'      => variable_get('nexteuropa_poetry_service_password', ''),
+    'service.wsdl'          => variable_get('nexteuropa_poetry_service_wsdl', ''),
+    'notification.endpoint' => url('poetry/notification', $options),
+    'client.wsdl'           => url('poetry/wsdl', $options),
+    'logger'                => new WatchdogLogger('nexteuropa_poetry'),
+    'log_level'             => $log_level,
+  ));
+}
+
+/**
+ * Implements hook_permission().
+ */
+function nexteuropa_poetry_permission() {
+  return array(
+    'configure poetry client' => array(
+      'title' => t('Configure Poetry client'),
+      'description' => t('Configure Poetry client global settings.'),
+    ),
+  );
+}
+
+/**
+ * Notification callback.
+ *
+ * @see nexteuropa_poetry_menu()
+ */
+function nexteuropa_poetry_notification_callback() {
+  $poetry = nexteuropa_poetry_client();
+  $poetry->getEventDispatcher()->addSubscriber(new NotificationSubscriber());
+  $poetry->getServer()->handle();
+  drupal_exit();
+}
+
+/**
+ * WSDL callback.
+ *
+ * @see nexteuropa_poetry_menu()
+ */
+function nexteuropa_poetry_wsdl_callback() {
+  $wsdl = nexteuropa_poetry_client()->getWsdl();
+  $wsdl->sendHeaders();
+  print $wsdl->getXml();
+  drupal_exit();
+}

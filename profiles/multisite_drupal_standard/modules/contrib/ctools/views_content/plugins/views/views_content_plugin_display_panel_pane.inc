@@ -247,8 +247,12 @@ class views_content_plugin_display_panel_pane extends views_plugin_display {
         ctools_include('dependent');
         $form['argument_input']['#tree'] = TRUE;
 
-        $converters = ctools_context_get_all_converters();
-        ksort($converters);
+        $context_options = array();
+        foreach (ctools_get_contexts() as $name => $context) {
+          $context_options[$context['title']][$name] = t('Argument from context');
+        }
+        $context_options = array_merge_recursive($context_options, ctools_context_get_all_converters());
+        ksort($context_options);
 
         foreach ($argument_input as $id => $argument) {
           $form['argument_input'][$id] = array(
@@ -277,7 +281,7 @@ class views_content_plugin_display_panel_pane extends views_plugin_display {
             '#title' => t('Required context'),
             '#description' => t('If "From context" is selected, which type of context to use.'),
             '#default_value' => $argument['context'],
-            '#options' => $converters,
+            '#options' => $context_options,
             '#dependency' => array($type_id => array('context')),
           );
 
@@ -450,7 +454,12 @@ class views_content_plugin_display_panel_pane extends views_plugin_display {
               $args[] = ctools_context_convert_context($contexts[$key], $converter, array('sanitize' => FALSE));
             }
             else {
-              $args[] = $contexts[$key]->argument;
+              if (isset($contexts[$key]->argument)) {
+                $args[] = $contexts[$key]->argument;
+              }
+              else {
+                $args[] = isset($arguments[$id]['exception']['value']) ? $arguments[$id]['exception']['value'] : 'all';
+              }
             }
           }
           else {
@@ -467,7 +476,17 @@ class views_content_plugin_display_panel_pane extends views_plugin_display {
           break;
 
         case 'user':
-          $args[] = (isset($conf['arguments'][$id])  && $conf['arguments'][$id] !== '') ? ctools_context_keyword_substitute($conf['arguments'][$id], array(), $contexts) : NULL;
+          if (isset($conf['arguments'][$id])) {
+            if ($conf['arguments'][$id] !== '') {
+              $args[] = ctools_context_keyword_substitute($conf['arguments'][$id], array(), $contexts);
+            }
+            else {
+              $args[] = isset($arguments[$id]['exception']['value']) ? $arguments[$id]['exception']['value'] : 'all';
+            }
+          }
+          else {
+            $args[] = NULL;
+          }
           break;
 
        case 'wildcard':

@@ -165,7 +165,7 @@ class MessageType extends Entity {
     }
 
     // Let the metadata wrapper deal with the language.
-    $property = $property->language($langcode)->$options['field name'];
+    $property = $property->language($langcode)->{$options['field name']};
 
     $delta = $options['partial delta'];
     $count = $field['cardinality'] == 1 ? 1 : $property->count();
@@ -234,5 +234,28 @@ class MessageType extends Entity {
       $property = $property->get($delta)->value;
     }
     return $property;
+  }
+}
+
+/**
+ * Class MessageTypeFeaturesController.
+ */
+class MessageTypeFeaturesController extends EntityDefaultFeaturesController {
+
+  /**
+   * Overridden to update message type instead of deleting.
+   *
+   * Deleting leads to new local IDs which leads to data loss when message type
+   * is reference with entity reference module.
+   */
+  public function revert($module = NULL) {
+    if ($defaults = features_get_default($this->type, $module)) {
+      foreach ($defaults as $name => $message_type) {
+        unset($message_type->is_new);
+        $modified = entity_load_single($this->type, $name);
+        $message_type->id = $modified->id;
+        entity_save($this->type, $message_type);
+      }
+    }
   }
 }

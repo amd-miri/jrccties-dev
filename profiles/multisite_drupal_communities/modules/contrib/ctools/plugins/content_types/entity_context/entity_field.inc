@@ -168,10 +168,20 @@ function ctools_entity_field_content_type_render($subtype, $conf, $panel_args, $
     $block->title = $field_output['#title'];
   }
 
+  $field_output['#ctools_context'] = $context;
+  $field_output['#post_render'][] = 'ctools_entity_field_content_type_substitute_keywords';
+
   $block->content = $field_output;
   $block->delta   = $ids[0];
 
   return $block;
+}
+
+/**
+ * Replace context keywords.
+ */
+function ctools_entity_field_content_type_substitute_keywords($markup, array $element) {
+  return ctools_context_keyword_substitute($markup, array(), array($element['#ctools_context']));
 }
 
 /**
@@ -229,6 +239,11 @@ function ctools_entity_field_content_type_formatter_styles($form, &$form_state) 
 
   ctools_form_include($form_state, 'field_ui.admin', 'field_ui', '');
   ctools_form_include($form_state, 'fields');
+
+  $form['ctools_keywords'] = array(
+    '#type' => 'item',
+    '#description' => t('You may use keywords for substitutions.'),
+  );
 
   $form['ctools_field_list'] = array(
     '#type' => 'value',

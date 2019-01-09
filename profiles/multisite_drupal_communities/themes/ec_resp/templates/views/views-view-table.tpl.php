@@ -21,8 +21,8 @@
 ?>
 <div class="table-responsive">
   <table class="table table-striped table-hover <?php if ($classes) : print $classes; endif; ?>" <?php print $attributes; ?>>
-    <?php if (!empty($title)) : ?>
-      <caption><?php print $title; ?></caption>
+    <?php if (!empty($title) || !empty($caption)) : ?>
+      <caption><?php print $caption . $title; ?></caption>
     <?php endif; ?>
     <thead>
       <tr>

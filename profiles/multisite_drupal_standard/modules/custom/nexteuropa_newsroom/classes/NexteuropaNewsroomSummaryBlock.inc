@@ -260,33 +260,35 @@ class NexteuropaNewsroomSummaryBlock {
     $display_highlights_begin = variable_get('nexteuropa_newsroom_display_highlights_begin', 0);
     $agenda_after_highlights = variable_get('nexteuropa_newsroom_agenda_after_highlights', 0);
     $order_by_last_update = variable_get('nexteuropa_newsroom_order_by_last_update', 0);
-    if ($a->getHighlighted() > $b->getHighlighted()) {
-      return $display_highlights_begin ? -1 : 1;
+
+    $type = !empty($a->getType()) && !empty($b->getType());
+
+    if ($display_highlights_begin && $a->getHighlighted() != $b->getHighlighted()) {
+      $value = $a->getHighlighted() > $b->getHighlighted() ? -1 : 1;
     }
-    elseif ($a->getIsAgenda() < $b->getIsAgenda()) {
-      return $agenda_after_highlights ? 1 : -1;
+    elseif ($agenda_after_highlights && $a->getIsAgenda() != $b->getIsAgenda()) {
+      $value = ((int) $a->getIsAgenda()) > ((int) $b->getIsAgenda()) ? -1 : 1;
     }
-    elseif ($a->getIsAgenda() > $b->getIsAgenda()) {
-      return $agenda_after_highlights ? -1 : 1;
+    elseif ($order_by_last_update && $a->getLatestDate() != $b->getLatestDate()) {
+      $value = $a->getLatestDate() > $b->getLatestDate() ? -1 : 1;
     }
-    elseif ($order_by_last_update) {
-      return $a->getLatestDate() < $b->getLatestDate() ? 1 : -1;
+    elseif ($type && $a->getType()->depth < $b->getType()->depth) {
+      $value = 1;
     }
-    elseif ($a->getType()->depth > $b->getType()->depth) {
-      return 1;
+    elseif ($type && $a->getType()->depth > $b->getType()->depth) {
+      $value = -1;
     }
-    elseif ($a->getType()->depth < $b->getType()->depth) {
-      return -1;
+    elseif ($type && $a->getType()->weight < $b->getType()->weight) {
+      $value = -1;
     }
-    elseif ($a->getType()->weight > $b->getType()->weight) {
-      return 1;
-    }
-    elseif ($a->getType()->weight < $b->getType()->weight) {
-      return -1;
+    elseif ($type && $a->getType()->weight > $b->getType()->weight) {
+      $value = 1;
     }
     else {
-      return 0;
+      $value = 0;
     }
+
+    return $value;
   }
 
 }

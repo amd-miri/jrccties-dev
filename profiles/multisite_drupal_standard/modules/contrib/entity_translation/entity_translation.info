@@ -5,6 +5,9 @@ core = 7.x
 configure = admin/config/regional/entity_translation
 dependencies[] = locale (>7.14)
 
+test_dependencies[] = pathauto:pathauto
+test_dependencies[] = title
+
 files[] = includes/translation.handler_factory.inc
 files[] = includes/translation.handler.inc
 files[] = includes/translation.handler.comment.inc
@@ -23,7 +26,9 @@ files[] = views/entity_translation_handler_filter_language.inc
 files[] = views/entity_translation_handler_filter_translation_exists.inc
 files[] = views/entity_translation_handler_field_field.inc
 
-; Information added by drush on 2017-05-12
-version = "7.x-1.0-beta6+7-dev"
+; Information added by Drupal.org packaging script on 2018-04-01
+version = "7.x-1.0"
+core = "7.x"
 project = "entity_translation"
-datestamp = "1494592315"
+datestamp = "1522600694"
+

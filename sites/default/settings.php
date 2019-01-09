@@ -269,7 +269,7 @@ $databases = array (
       'database' => 'jrccties',
       'username' => 'root',
       'password' => '',
-      'host' => 'localhost',
+      'host' => '127.0.0.1',
       'port' => '3306',
       'prefix' => '',
     ),
@@ -287,7 +287,7 @@ $databases = array (
  * After finishing the upgrade, be sure to open this file again and change the
  * TRUE back to a FALSE!
  */
-$update_free_access = FALSE;
+$update_free_access = false;
 
 /**
  * Salt for one-time login links and cancel links, form tokens, etc.
@@ -306,7 +306,7 @@ $update_free_access = FALSE;
  *   $drupal_hash_salt = file_get_contents('/home/example/salt.txt');
  *
  */
-$drupal_hash_salt = 'IJ8Bf58edA5ibLikKHkizuZIHRmEdhSLDa0D1ewWWJI';
+$drupal_hash_salt = '';
 
 /**
  * Base URL (optional).
@@ -363,7 +363,7 @@ ini_set('session.gc_maxlifetime', 200000);
  * created to the cookie expires, i.e. when the browser is expected to discard
  * the cookie. The value 0 means "until the browser is closed".
  */
-ini_set('session.cookie_lifetime', 2000000);
+ini_set('session.cookie_lifetime', 0);
 
 /**
  * If you encounter a situation where users post a large amount of text, and
@@ -507,6 +507,23 @@ ini_set('session.cookie_lifetime', 2000000);
  * below.
  */
 # $conf['block_cache_bypass_node_grants'] = TRUE;
+
+/**
+ * Expiration of cache_form entries:
+ *
+ * Drupal's Form API stores details of forms in cache_form and these entries are
+ * kept for at least 6 hours by default. Expired entries are cleared by cron.
+ * Busy sites can encounter problems with the cache_form table becoming very
+ * large. It's possible to mitigate this by setting a shorter expiration for
+ * cached forms. In some cases it may be desirable to set a longer cache
+ * expiration, for example to prolong cache_form entries for Ajax forms in
+ * cached HTML.
+ *
+ * @see form_set_cache()
+ * @see system_cron()
+ * @see ajax_get_form()
+ */
+# $conf['form_cache_expiration'] = 21600;
 
 /**
  * String overrides:
@@ -688,7 +705,7 @@ $local_settings = dirname(__FILE__) . '/settings.local.php';
 if (file_exists($local_settings)) {
   include $local_settings;
 }
-$conf['error_level'] = 1;
+$conf['error_level'] = 2;
 $conf['views_ui_show_sql_query'] = 1;
 $conf['views_ui_show_performance_statistics'] = 1;
 $conf['views_show_additional_queries'] = 1;
@@ -697,4 +714,5 @@ $conf['stage_file_proxy_origin_dir'] = 'sites/jrccties/files';
 $conf['stage_file_proxy_hotlink'] = 1;
 $conf['file_public_path'] = 'sites/default/files';
 $conf['file_private_path'] = 'sites/default/files/private_files';
-$conf['file_temporary_path'] = 'tmp';
+$conf['file_temporary_path'] = 'sites/default/tmp';
+$base_url = 'https://localhost/jrccties';

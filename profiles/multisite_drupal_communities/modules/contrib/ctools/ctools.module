@@ -314,23 +314,29 @@ function ctools_break_phrase($str) {
  * Set a token/value pair to be replaced later in the request, specifically in
  * ctools_page_token_processing().
  *
- * @param $token
+ * @param string $token
  *   The token to be replaced later, during page rendering.  This should
- *    ideally be a string inside of an HTML comment, so that if there is
- *    no replacement, the token will not render on the page.
- * @param $type
+ *   ideally be a string inside of an HTML comment, so that if there is
+ *   no replacement, the token will not render on the page.
+ *   If $token is NULL, the token set is not changed, but is still
+ *   returned.
+ * @param string $type
  *   The type of the token. Can be either 'variable', which will pull data
- *   directly from the page variables
- * @param $argument
- *   If $type == 'variable' then argument should be the key to fetch from
- *   the $variables. If $type == 'callback' then it should either be the
- *   callback, or an array that will be sent to call_user_func_array().
+ *   directly from the page variables, or 'callback', which causes a function
+ *   to be called to calculate the value. No other values are supported.
+ * @param string|array $argument
+ *   For $type of:
+ *   - 'variable': argument should be the key to fetch from the $variables.
+ *   - 'callback': then it should either be the callback function name as a
+ *     string, or an array that will be sent to call_user_func_array(). Argument
+ *     arrays must not use array keys (i.e. $a[0] is the first and $a[1] the
+ *     second element, etc.)
  *
- * @return
+ * @return array
  *   A array of token/variable names to be replaced.
  */
 function ctools_set_page_token($token = NULL, $type = NULL, $argument = NULL) {
-  static $tokens = array();
+  $tokens = &drupal_static('ctools_set_page_token', array());
 
   if (isset($token)) {
     $tokens[$token] = array($type, $argument);
@@ -339,13 +345,32 @@ function ctools_set_page_token($token = NULL, $type = NULL, $argument = NULL) {
 }
 
 /**
- * Easily set a token from the page variables.
+ * Reset the defined page tokens within this request.
+ *
+ * Introduced for simpletest purposes. Normally not needed.
+ */
+function ctools_reset_page_tokens() {
+  drupal_static_reset('ctools_set_page_token');
+}
+
+/**
+ * Set a replacement token from the containing element's children during #post_render.
  *
  * This function can be used like this:
- * $token = ctools_set_variable_token('tabs');
+ *   $token = ctools_set_variable_token('tabs');
  *
- * $token will then be a simple replacement for the 'tabs' about of the
- * variables available in the page template.
+ * The token "<!-- ctools-page-tabs -->" would then be replaced by the value of
+ * this element's (sibling) render array key 'tabs' during post-render (or be
+ * deleted if there was no such key by that point).
+ *
+ * @param string $token
+ *   The token string for the page callback, e.g. 'title'
+ *
+ * @return string
+ *   The constructed token.
+ *
+ * @see ctools_set_callback_token().
+ * @see ctools_page_token_processing().
  */
 function ctools_set_variable_token($token) {
   $string = '<!-- ctools-page-' . $token . ' -->';
@@ -354,10 +379,45 @@ function ctools_set_variable_token($token) {
 }
 
 /**
- * Easily set a token from the page variables.
+ * Set a replacement token from the value of a function during #post_render.
  *
  * This function can be used like this:
- * $token = ctools_set_variable_token('id', 'mymodule_myfunction');
+ *   $token = ctools_set_callback_token('id', 'mymodule_myfunction');
+ *
+ * Or this (from its use in ctools_page_title_content_type_render):
+ *   $token = ctools_set_callback_token('title', array(
+ *       'ctools_page_title_content_type_token', $conf['markup'], $conf['id'], $conf['class']
+ *     )
+ *   );
+ *
+ * The token (e.g: "<!-- ctools-page-id-1b7f84d1c8851290cc342631ac663053 -->")
+ * would then be replaced during post-render by the return value of:
+ *
+ *   ctools_page_title_content_type_token($value_markup, $value_id, $value_class);
+ *
+ * @param string $token
+ *   The token string for the page callback, e.g. 'title'
+ *
+ * @param string|array $callback
+ *   For callback functions that require no args, the name of the function as a
+ *   string; otherwise an array of two or more elements: the function name
+ *   followed by one or more function arguments.
+ *
+ *   NB: the value of $callback must be a procedural (non-class) function that
+ *   passes the php function_exists() check.
+ *
+ *   The callback function itself will be called with args dependent
+ *   on $callback. If:
+ *    - $callback is a string, the function is called with a reference to the
+ *      render array;
+ *    - $callback is an array, the function is called with $callback merged
+ *      with an array containing a reference to the render array.
+ *
+ * @return string
+ *   The constructed token.
+ *
+ * @see ctools_set_variable_token().
+ * @see ctools_page_token_processing().
  */
 function ctools_set_callback_token($token, $callback) {
   // If the callback uses arguments they are considered in the token.
@@ -756,12 +816,6 @@ function ctools_process(&$variables, $hook) {
   if (!empty($classes[$hook]['remove'])) {
     $remove_classes = array_map('drupal_clean_css_identifier', $classes[$hook]['remove']);
     $variables['classes_array'] = array_diff($variables['classes_array'], $remove_classes);
-  }
-
-  // Update the classes within the attributes array to match the classes array
-  if (isset($variables['attributes_array']['class'])) {
-    $variables['attributes_array']['class'] = array_unique(array_merge($variables['classes_array'], $variables['attributes_array']['class']));
-    $variables['attributes'] = $variables['attributes_array'] ? drupal_attributes($variables['attributes_array']) : '';
   }
 
   // Since this runs after template_process(), we need to re-implode the

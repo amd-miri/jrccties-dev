@@ -4,7 +4,7 @@
     "type": "library",
     "minimum-stability": "alpha",
     "prefer-stable": true,
-    "license": "EUPL-1.1",
+    "license": "EUPL-1.2",
     "require": {
         "php": ">=5.6",
         "ext-soap": "*",
@@ -17,8 +17,8 @@
         "psr/log": "^1.0"
     },
     "require-dev": {
-        "ec-europa/oe-code-review": "^0.0.2",
-        "phpunit/phpunit": "^5",
+        "openeuropa/code-review": "~0.2",
+        "phpunit/phpunit": "^5||^6",
         "peridot-php/leo": "^1.6",
         "mockery/mockery": "^0.9.9",
         "phpspec/phpspec": "^4.0",

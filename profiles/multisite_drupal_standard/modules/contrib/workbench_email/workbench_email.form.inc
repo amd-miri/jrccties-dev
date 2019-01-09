@@ -134,8 +134,8 @@ function workbench_email_notification_validate($form, &$form_state) {
   if (module_exists('workbench_access') && isset($form_state['values']['workbench_email'])) {
     // Get selected section(s)/selected user(s) and verify that
     // its a valid selection.
-    $selected_wb_email = $form_state['values']['workbench_email'];
-    $rid = key($selected_wb_email);
+    $selected_wb_emails = $form_state['values']['workbench_email'];
+    $rids = array_filter(array_keys($selected_wb_emails));
     $valid_sections = workbench_email_get_workbench_access_sections('form', array(
       'data' => array(
         'form' => $form,
@@ -143,14 +143,17 @@ function workbench_email_notification_validate($form, &$form_state) {
       ),
     ));
     if ($valid_sections) {
-      $editors = workbench_email_get_workbench_access_editors($rid, $valid_sections);
+      $editors = array();
+      foreach ($rids as $rid) {
+        $editors = array_merge(workbench_email_get_workbench_access_editors($rid, $valid_sections), $editors);
+      }
     }
     else {
       $editors = FALSE;
     }
-    if ($selected_wb_email && $editors) {
+    if ($selected_wb_emails && $editors) {
       $error_messages = array();
-      foreach ($selected_wb_email as $role_id => $wb_email) {
+      foreach ($selected_wb_emails as $role_id => $wb_email) {
         $mail = current($wb_email);
         // Handle the situation where "All Users" was selected or
         // no option was selected.

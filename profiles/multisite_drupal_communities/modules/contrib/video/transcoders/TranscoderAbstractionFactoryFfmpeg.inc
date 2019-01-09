@@ -112,9 +112,6 @@ class TranscoderAbstractionFactoryFfmpeg extends TranscoderAbstractionFactory im
         case 'pixel_format':
           $result = $this->transcoder->setPixelFormat($value);
           break;
-        case 'h264_profile':
-          $result = $this->transcoder->addCommand('-vprofile', $value);
-          break;
         case 'one_pass':
           if ($value == 1) {
             $this->multipass = FALSE;
@@ -236,6 +233,19 @@ class TranscoderAbstractionFactoryFfmpeg extends TranscoderAbstractionFactory im
           $this->transcoder->extractFrame($seek, FALSE, '%st');
           $result = $this->transcoder->setOutput(dirname($dstpath) . '/', basename($dstpath), PHPVideoToolkit::OVERWRITE_EXISTING);
           if ($result === PHPVideoToolkit::RESULT_OK) {
+            if (isset($file_info['video']['rotate'])) {
+              switch ($file_info['video']['rotate']) {
+                case 90 :
+                  $this->transcoder->addCommand('-vf', 'transpose=1');
+                  break;
+                case 180 :
+                  $this->transcoder->addCommand('-vf', 'vflip');
+                  break;
+                case 270 :
+                  $this->transcoder->addCommand('-vf', 'transpose=2');
+                  break;
+              }
+            }
             $result = $this->transcoder->execute() === PHPVideoToolkit::RESULT_OK;
           }
 
@@ -283,6 +293,11 @@ class TranscoderAbstractionFactoryFfmpeg extends TranscoderAbstractionFactory im
     $tmpdir = video_utility::createTempDir();
     chmod($tmpdir, 0777);
     chdir($tmpdir);
+
+    // Make sure that exec() is enabled.
+    if (!function_exists('exec')) {
+      watchdog('trancoder', 'Php can\'t use FFmpeg because php.ini has disabled the exec command. Please remove exec from the disable_functions directive (http://us1.php.net/manual/en/ini.core.php#ini.disable-functions)', WATCHDOG_ERROR);
+    }
 
     // Execute the command
     $result = $this->transcoder->execute($this->multipass);

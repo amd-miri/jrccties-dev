@@ -1,9 +1,17 @@
 <?php
+/**
+ * @file
+ * Page callback for the jPlayer protection statistics page.
+ *
+ * This page is useful in determining if a browser is misbehaving and blocking
+ * legitimiate file accesses, or if a user is trying to download a protected
+ * file.
+ */
 
 /**
- * Page callback for the jPlayer protection statistics page. This page is
- * useful in determining if a browser is misbehaving and blocking legitimiate
- * file accesses, or if a user is trying to download a protected file.
+ * Statistics of the page.
+ * @return string
+ * @throws \Exception
  */
 function jplayer_protection_statistics() {
   if (!variable_get('jplayer_protect', FALSE)) {
@@ -13,10 +21,10 @@ function jplayer_protection_statistics() {
   $output = '<p>' . t('This table shows the 50 top users who have been denied access to direct downloads of jPlayer files.') . '</p>';
 
   // TODO: convert to DBTNG.
-  $result = db_query("SELECT COUNT(1) as total, uid as user, MAX(timestamp) as timestamp FROM {jplayer_denied} GROUP BY uid ORDER BY total DESC, timestamp DESC LIMIT 50;");
+  $result = db_query("SELECT COUNT(1) as total, uid as user, MAX(timestamp) as timestamp FROM {jplayer_protect_denied} GROUP BY uid ORDER BY total DESC, timestamp DESC LIMIT 50;");
   $rows = array();
   foreach ($result as $denied) {
-    $denied = (array)$denied;
+    $denied = (array) $denied;
     // Format data from the query.
     $uid = $denied['user'];
     $denied['user'] = theme('username', array('account' => user_load($denied['user'])));
@@ -24,13 +32,13 @@ function jplayer_protection_statistics() {
 
     // Find the top-denied file for the user.
     // TODO: convert to DBTNG.
-    $top_file = db_query("SELECT COUNT(fid) as fid_count, fid FROM {jplayer_denied} WHERE uid = :uid GROUP BY fid ORDER BY fid_count DESC LIMIT 1", array(':uid' => $uid))->fetchObject();
+    $top_file = db_query("SELECT COUNT(fid) as fid_count, fid FROM {jplayer_protect_denied} WHERE uid = :uid GROUP BY fid ORDER BY fid_count DESC LIMIT 1", array(':uid' => $uid))->fetchObject();
     $top_file = file_load($top_file->fid);
     $denied['file'] = str_replace($GLOBALS['base_url'], '', file_create_url($top_file->uri));
 
     // Find the top hostname for the user.
     // TODO: convert to DBTNG.
-    $top_hostname = db_query("SELECT COUNT(hostname) as hostname_count, hostname FROM {jplayer_denied} WHERE uid = :uid GROUP BY hostname ORDER BY hostname_count DESC LIMIT 1", array(':uid' => $uid))->fetchObject();
+    $top_hostname = db_query("SELECT COUNT(hostname) as hostname_count, hostname FROM {jplayer_protect_denied} WHERE uid = :uid GROUP BY hostname ORDER BY hostname_count DESC LIMIT 1", array(':uid' => $uid))->fetchObject();
     $denied['hostname'] = $top_hostname->hostname;
 
     $rows[] = $denied;
@@ -90,4 +98,3 @@ function jplayer_protect_settings_form_validate($form, &$form_state) {
     form_error($form['jplayer_protect_access_time'], t('Access time must be at least 0 seconds.'));
   }
 }
-

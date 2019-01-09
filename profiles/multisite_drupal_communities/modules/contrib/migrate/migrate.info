@@ -51,7 +51,7 @@ files[] = tests/plugins/destinations/term.test
 files[] = tests/plugins/destinations/user.test
 files[] = tests/plugins/sources/xml.test
 
-; Information added by drush on 2015-07-24
-version = "7.x-2.8+4-dev"
+; Information added by drush on 2015-11-28
+version = "7.x-2.8+19-dev"
 project = "migrate"
-datestamp = "1437778133"
+datestamp = "1448743516"

@@ -21,7 +21,7 @@ class MessageTypeUIController extends EntityDefaultUIController {
     form_state_values_clean($form_state);
     foreach ($form_state['values'] as $key => $value) {
       if ($key != 'message_type_fields') {
-        $entity->$key = $value;
+        $entity->{$key} = $value;
       }
     }
     // Invoke all specified builders for copying form values to entity
@@ -35,6 +35,33 @@ class MessageTypeUIController extends EntityDefaultUIController {
     field_attach_submit('message_type', $entity, $form['message_type_fields'], $form_state);
     return $entity;
   }
+
+  /**
+   * @inheritdoc
+   *
+   * Overridden in order to prevent message types from loosing local IDs.
+   */
+  public function applyOperation($op, $message_type) {
+    if ($op == 'revert' && !empty($message_type->module)) {
+      $function = $message_type->module . '_default_message_type';
+      if (function_exists($function)) {
+        $defaults = $function();
+        $default = $defaults[$message_type->name];
+        unset($default->is_new);
+        $default->id = $message_type->id;
+        $default->status = ENTITY_IN_CODE;
+        $default->is_rebuild = TRUE;
+        entity_save('message_type', $default);
+        $label = entity_label($this->entityType, $message_type);
+        $vars = array('%entity' => $this->entityInfo['label'], '%label' => $label);
+        return t('Reverted %entity %label to the defaults.', $vars);
+      }
+    }
+    else {
+      return parent::applyOperation($op, $message_type);
+    }
+  }
+
 }
 
 /**
@@ -199,7 +226,9 @@ function message_admin_text_copy_validate($form, $form_state) {
  * Generates the message type editing form.
  */
 function message_type_form($form, &$form_state, $message_type, $op = 'edit') {
-  if ($op == 'clone') {
+  // Use isset($form_state['original_message_type']) because this function is called
+  // again by AJAX callbacks.
+  if ($op == 'clone' && !isset($form_state['original_message_type'])) {
     $message_type->description .= ' (cloned)';
     // Save the original message type into form state so that the submit
     // handler can clone its field instances.

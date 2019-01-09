@@ -147,6 +147,7 @@ function _nexteuropa_piwik_add_load_js_to_page() {
     drupal_add_js($smartloader_prurl, array(
       'type' => 'external',
       'scope' => 'header',
+      'defer' => TRUE,
       'weight' => 5,
     ));
   }
@@ -361,6 +362,7 @@ function nexteuropa_piwik_rule_label($piwik_rule) {
 
   return t('Rule ID: [NEW]');
 }
+
 /**
  * Access callback for the  rule entity..
  *
@@ -494,18 +496,6 @@ function _nexteuropa_piwik_get_regexp_path_rule($path, $lang_code) {
  *   FALSE if there is no rule for the currently processed path.
  */
 function _nexteuropa_piwik_filter_results($results, $path, $lang_code) {
-  // Log the overlapping rules case.
-  if (count($results) > 1) {
-    watchdog(
-      'nexteuropa_piwik',
-      'Overlapping PIWIK rules for the following path detected: @path. Overlapping rules IDs: @rules_ids',
-      array(
-        '@path' => $path,
-        '@rules_ids' => implode(', ', array_keys($results)),
-      ),
-      WATCHDOG_WARNING
-    );
-  }
   // Return PIWIK rule.
   $lang_code_rules = array();
   $lang_all_rules = array();
@@ -538,7 +528,7 @@ function _nexteuropa_piwik_filter_results($results, $path, $lang_code) {
  * @param array $rules_array
  *   An array with the PiwikRule objects keyed by the id.
  *
- * @return PiwikRule
+ * @return \Drupal\nexteuropa_piwik\Entity\PiwikRule
  *   PiwikRule entity.
  */
 function _nexteuropa_piwik_get_latest_rule($rules_array) {

@@ -3,8 +3,11 @@ description = Provides an upgrade path from node-based translation to field-base
 package = Multilingual - Entity Translation
 core = 7.x
 dependencies[] = entity_translation
+files[] = entity_translation_upgrade.test
 
-; Information added by drush on 2017-05-12
-version = "7.x-1.0-beta6+7-dev"
+; Information added by Drupal.org packaging script on 2018-04-01
+version = "7.x-1.0"
+core = "7.x"
 project = "entity_translation"
-datestamp = "1494592315"
+datestamp = "1522600694"
+

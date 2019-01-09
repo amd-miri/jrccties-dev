@@ -723,7 +723,9 @@ function facetapi_field_delete_instance($instance) {
  *   The key in the array being passed to drupal_map_assoc().
  */
 function facetapi_map_assoc(&$array, $name, $key) {
-  $array[$key] = drupal_map_assoc($array[$key]);
+  if (array_key_exists($key, $array)) {
+    $array[$key] = drupal_map_assoc($array[$key]);
+  }
 }
 
 /**
