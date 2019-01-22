@@ -13,6 +13,11 @@
  */
 function jrccities_subtheme_preprocess_region(&$variables) {
   $item = menu_get_item();
+
+  if (_jrccties_subtheme_hide_og_subscribe_button($item) === FALSE) {
+    return;
+  }
+
   // Case 0 : the main homepage.
   if ($item['path'] == "communities_directory") {
     return;
@@ -37,6 +42,24 @@ function jrccities_subtheme_preprocess_region(&$variables) {
     $nid = $item['page_arguments'][2];
     $variables['og_subscribe'] = _jrccities_subtheme_get_og_group_subscribe($nid);
     return;
+  }
+}
+
+/**
+ * Load node to see if we should show subscription widget or not.
+ */
+function _jrccties_subtheme_hide_og_subscribe_button($item) {
+  if (isset($item['page_arguments'][0]->nid) && isset($item['page_arguments'][0]->field_show_subscription_buttons)) {
+    $node = node_load($item['page_arguments'][0]->nid);
+    if ($item['page_arguments'][0]->field_show_subscription_buttons[LANGUAGE_NONE][0]['value'] == 0) {
+      return FALSE;
+    }
+  }
+  if (isset($item['page_arguments'][2])) {
+    $node = node_load($item['page_arguments'][2]);
+    if ($node->field_show_subscription_buttons[LANGUAGE_NONE][0]['value'] == 0) {
+      return FALSE;
+    }
   }
 }
 
@@ -97,7 +120,6 @@ function jrccities_subtheme_preprocess_node(&$variables) {
   )
     );
 
-  // Return $variables;.
 }
 
 /**
@@ -139,13 +161,41 @@ function _jrccties_subtheme_hide_from_non_editors($params, $user, &$variables) {
   if (isset($params['og_group_ref'])) {
     $gid = $params['og_group_ref'];
 
-    // Returns NID and GID.
-    // $groups = og_get_entity_groups('node', $gid);
     // Returns membership role.
     $role = array();
     $role = og_get_user_roles('node', $gid, $user->uid);
-
     $role_class = 'role-' . str_replace(' ', '-', end($role));
     $variables['classes_array'][] = $role_class;
+  }
+}
+
+/**
+ * Implements MODULE_preprocess_HOOK().
+ *
+ * Adds appropriate attributes to the list item.
+ *
+ * @see theme_menu_link()
+ */
+function jrccities_subtheme_preprocess_menu_link(&$variables) {
+  $menuLinks = [
+    'Home' => ['glyph' => 'home', 'title' => 'Home'],
+    'About' => ['glyph' => 'pencil', 'title' => 'About'],
+    'Articles' => ['glyph' => 'file', 'title' => 'Articles'],
+    'Events' => ['glyph' => 'calendar', 'title' => 'Events'],
+    'Upcoming Events' => ['glyph' => 'calendar', 'title' => 'Upcoming Events'],
+    'Past Events' => ['glyph' => 'calendar', 'title' => 'Past Events'],
+    'News' => ['glyph' => 'transfer', 'title' => 'News'],
+    'Forum' => ['glyph' => 'comment', 'title' => 'Forum'],
+    'Useful Links' => ['glyph' => 'link', 'title' => 'Useful Links'],
+    'Polls' => ['glyph' => 'list', 'title' => 'Polls'],
+    'Library' => ['glyph' => 'calendar', 'title' => 'Library'],
+    'Books' => ['glyph' => 'book', 'title' => 'Books'],
+    'Documents' => ['glyph' => 'book', 'title' => 'Documents'],
+    'Audios' => ['glyph' => 'volume-up', 'title' => 'Audios'],
+    'Photos' => ['glyph' => 'picture', 'title' => 'Photos'],
+    'Videos' => ['glyph' => 'facetime-video', 'title' => 'Videos'],
+  ];
+  if ($variables['element']['#title'] == $menuLinks[$variables['element']['#title']]['title']) {
+    $variables['element']['#title'] = '<span class="glyphicon glyphicon-' . $menuLinks[$variables['element']['#title']]['glyph'] . '"> </span> ' . $menuLinks[$variables['element']['#title']]['title'];
   }
 }

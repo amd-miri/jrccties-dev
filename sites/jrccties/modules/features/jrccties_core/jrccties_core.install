@@ -270,3 +270,15 @@ function jrccties_core_update_7016() {
     'og_menu_default_links',
   ), TRUE);
 }
+
+/**
+ * Disable metatag_mobile module.
+ */
+function jrccties_core_update_7017() {
+  module_disable(array(
+    'metatag_mobile',
+  ), FALSE);
+  drupal_uninstall_modules(array(
+    'metatag_mobile',
+  ), FALSE);
+}

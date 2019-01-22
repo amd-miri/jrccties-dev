@@ -287,7 +287,7 @@ $databases = array (
  * After finishing the upgrade, be sure to open this file again and change the
  * TRUE back to a FALSE!
  */
-$update_free_access = false;
+$update_free_access = TRUE;
 
 /**
  * Salt for one-time login links and cancel links, form tokens, etc.

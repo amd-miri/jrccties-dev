@@ -700,7 +700,7 @@ function _jrccties_core_action_skill_search($eform) {
   $dbase_or = db_or();
 
   foreach ($selectedfields as $selectedfield) {
-    $query->join('field_data_' . $selectedfield, $selectedfield, 'e.entityform_id = ' . $selectedfield . '.entity_id');
+    $query->leftJoin('field_data_' . $selectedfield, $selectedfield, 'e.entityform_id = ' . $selectedfield . '.entity_id');
   }
   foreach ($selectedExpertises as $selectedExpertise) {
     $dbase_or->condition($selectedfield . '_tid', $selectedExpertise->tid, '=');
@@ -708,7 +708,6 @@ function _jrccties_core_action_skill_search($eform) {
   $query->condition($dbase_or);
   $query->distinct();
   $result = $query->execute()->fetchAll();
-
   $user_list = _jrccties_core_get_user_from_eform($result);
 
   return array(
@@ -898,4 +897,12 @@ function jrccties_core_entityform_access_alter(&$access, $op, $context) {
       }
     }
   }
+}
+
+/**
+ * Implements hook_multisite_drupal_toolbox_filter_options_alter().
+ */
+function jrccties_core_multisite_drupal_toolbox_filter_options_alter(&$filter_options) {
+  // Enable the <object> tag, strongly not advised of course.
+  $filter_options['valid_elements']['iframe'] = array('*' => TRUE);
 }
