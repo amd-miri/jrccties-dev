@@ -11,7 +11,7 @@
 function jrccties_core_rules_action_info() {
   return array(
     'og_get_members_fixed' => array(
-      'label' => t('The fixed Get group members from group audience'),
+      'label' => t('Get the active group members from group audience'),
       'group' => t('Organic Groups extras'),
       'parameter' => array(
         'group_content' => array(

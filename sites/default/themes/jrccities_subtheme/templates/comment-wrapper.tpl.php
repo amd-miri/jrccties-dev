@@ -35,7 +35,7 @@
  */
 ?>
 <div id="comments" class="<?php print $classes; ?>"<?php print $attributes; ?>>
-  <?php if ($content['comments'] && $node->type != 'forum'): ?>
+  <?php if ($content['comments']['#sorted']): ?>
     <?php print render($title_prefix); ?>
     <h2 class="title"><?php print t('Comments'); ?></h2>
     <?php print render($title_suffix); ?>
@@ -44,7 +44,10 @@
   <?php print render($content['comments']); ?>
 
   <?php if ($content['comment_form']): ?>
-    <h2 class="title comment-form"><?php print t('Add new comment'); ?></h2>
-    <?php print render($content['comment_form']); ?>
+    <?php $rendered_content_form = render($content['comment_form']); ?>
+    <?php if (!empty($rendered_content_form)): ?>
+      <h2 class="title comment-form"><?php print t('Add new comment'); ?></h2>
+      <?php print $rendered_content_form; ?>
+    <?php endif; ?>
   <?php endif; ?>
 </div>

@@ -11,7 +11,6 @@ define('JRCCTIES_CORE_OG_ENTITYFORM_AUDIENCE_FIELD', 'og_group_ref');
  * Implements hook_form_FORM_ID_alter().
  */
 function jrccties_core_form_user_profile_form_alter(&$form, &$form_state, $form_id) {
-
   unset($form['contact']);
   unset($form['#metatags']);
   unset($form['redirect']);
@@ -20,18 +19,6 @@ function jrccties_core_form_user_profile_form_alter(&$form, &$form_state, $form_
   unset($form['privatemsg']);
   unset($form['status']);
   unset($form['roles']);
-}
-
-/**
- * Implements hook_form_FORM_ID_alter().
- */
-function jrccties_core_form_node_form_alter(&$form, &$form_state, $form_id) {
-  /* Hide the field_resource as it's useless and confusing for our users. */
-  $form['field_resource']['#access'] = FALSE;
-  /* Hide the revision_information field as it's also useless in our case. */
-  $form['revision_information']['#access'] = FALSE;
-  /* Change the name of the submit button for all content types. */
-  $form['actions']['submit']['#value'] = t('Save and publish');
 }
 
 /**
@@ -220,134 +207,6 @@ function jrccties_core_field_group_info_alter(&$groups) {
 }
 
 /**
- * Implements hook_og_context_negotiation_info().
- */
-function jrccties_core_og_context_negotiation_info() {
-  $providers = array();
-
-  $providers['jrccties_communities'] = array(
-    'name' => t('Jrccties Communities'),
-    'description' => t("Select group context for any url that start with 'community'"),
-    'callback' => 'jrccties_core_context_handler',
-    'menu path' => array('community/%'),
-  );
-
-  return $providers;
-}
-
-/**
- * Context handler; Get groups from events.
- *
- * @return array
- *   OG context
- */
-function jrccties_core_context_handler() {
-  global $language;
-
-  $keyword = 'community';
-
-  // Remove langcode on URL according the language negotiation type used.
-  if (language_negotiation_get_any('nexteuropa_multilingual_url_suffix')) {
-    $path = nexteuropa_multilingual_language_negotiation_split_suffix(request_path(), [$language]);
-  }
-  elseif (defined('MULTISITE_DRUPAL_LANGUAGE_NEGOCIATION_URL_SUFFIX') && language_negotiation_get_any(MULTISITE_DRUPAL_LANGUAGE_NEGOCIATION_URL_SUFFIX)) {
-    $path = language_url_split_suffix(request_path(), [$language]);
-  }
-  elseif (language_negotiation_get_any(LOCALE_LANGUAGE_NEGOTIATION_URL)) {
-    $path = language_url_split_prefix(request_path(), [$language]);
-  }
-  else {
-    $path = [FALSE, request_path()];
-  }
-
-  $path_args = explode('/', $path[1]);
-
-  // Look for the community keyword in the path.
-  if ($path_args[0] === $keyword) {
-
-    if (isset($path_args[1]) && is_numeric($path_args[1])) {
-      // Check that the node acts as a group.
-      $node = node_load($path_args[1]);
-
-      if (og_is_group('node', $node)) {
-        return [
-          'node' => [
-            $node->nid,
-          ],
-        ];
-      }
-    }
-  }
-  return [];
-}
-
-/**
- * Implements hook_module_implements_alter().
- */
-function jrccties_core_module_implements_alter(&$implementations, $hook) {
-  if ($hook == 'init') {
-    if (isset($implementations['update'])) {
-      unset($implementations['update']);
-    }
-  }
-}
-
-/**
- * Implements hook_init().
- */
-function jrccties_core_init() {
-  global $user;
-  if ($user->uid == '1') {
-    switch ($_GET['q']) {
-      // These pages don't need additional nagging.
-      case 'admin/appearance/update':
-      case 'admin/appearance/install':
-      case 'admin/modules/update':
-      case 'admin/modules/install':
-      case 'admin/reports/updates':
-      case 'admin/reports/updates/update':
-      case 'admin/reports/updates/install':
-      case 'admin/reports/updates/settings':
-      case 'admin/reports/status':
-      case 'admin/update/ready':
-        return;
-
-      // If we are on the appearance or modules list, display a report.
-      // Of the update status.
-      case 'admin/appearance':
-      case 'admin/modules':
-        $verbose = TRUE;
-        break;
-    }
-
-    module_load_install('update');
-    $status = update_requirements('runtime');
-    foreach (array('core', 'contrib') as $report_type) {
-      $type = 'update_' . $report_type;
-      if (!empty($verbose)) {
-        if (isset($status[$type]['severity'])) {
-          if ($status[$type]['severity'] == REQUIREMENT_ERROR) {
-            drupal_set_message($status[$type]['description'], 'error', FALSE);
-          }
-          elseif ($status[$type]['severity'] == REQUIREMENT_WARNING) {
-            drupal_set_message($status[$type]['description'], 'warning', FALSE);
-          }
-        }
-      }
-      // Otherwise, if we're on *any* admin page and there's a security.
-      // Update missing, print an error message about it.
-      else {
-        if (isset($status[$type])
-          && isset($status[$type]['reason'])
-          && $status[$type]['reason'] === UPDATE_NOT_SECURE) {
-          drupal_set_message($status[$type]['description'], 'error', FALSE);
-        }
-      }
-    }
-  }
-}
-
-/**
  * Custom switch for submit handler. First fill the questionair.
  */
 function jrccties_core_form_entityform_edit_form_alter(&$form, &$form_state) {
@@ -380,7 +239,7 @@ function jrccties_core_form_entityform_edit_form_alter(&$form, &$form_state) {
     else {
       $form['actions']['save']['#access'] = FALSE;
     }
-    // Prepopullate organic groups reference field with audience.
+    // Prepopulate organic groups reference field with audience.
     $form['og_group_ref'][LANGUAGE_NONE][0]['default']['#default_value'] = $gid;
     // Stash the groupId and redirect path in $form array for submit handler.
     $form['#stash_gid'] = $gid;
@@ -393,10 +252,9 @@ function jrccties_core_form_entityform_edit_form_alter(&$form, &$form_state) {
 }
 
 /**
- * Then join organic group programmatically from provided entityform.
+ * Join organic group programmatically from provided entityform.
  */
 function _jrccties_core_entityform_edit_form_submit(&$form, &$form_state) {
-  global $user;
   // Get Group ID stashed in form.
   $groupid = $form['#stash_gid'];
   $values = array(
@@ -411,18 +269,8 @@ function _jrccties_core_entityform_edit_form_submit(&$form, &$form_state) {
   $transaction = db_transaction();
 
   try {
-
-    $insert = db_insert('jrccties_core')
-      ->fields(array(
-    // TRUE. Form was built with EntityForm.
-        'is_eform' => '1',
-        'gid' => $groupid,
-        'uid' => $user->uid,
-      ));
-    $insert->execute();
-    og_group('node', $groupid, $values);
     // Join organic group programmatically.
-    return $insert;
+    og_group('node', $groupid, $values);
   }
   catch (Exception $e) {
     $transaction->rollback();
@@ -433,143 +281,126 @@ function _jrccties_core_entityform_edit_form_submit(&$form, &$form_state) {
 }
 
 /**
- * Custom form submit for non organic groups entityforms.
+ * Implements hook_form_FORM_ID_alter().
  */
-function jrccties_core_form_og_ui_confirm_subscribe_alter(&$form, &$form_state) {
-  $form['#submit'][] = '_jrccties_core_normal_ogform_submit';
+function jrccties_core_form_node_form_alter(&$form, &$form_state, $form_id) {
+  // Add a JS for users who leaves their edit page without saving.
+  $form['#attributes']['class'][] = 'js-confirm-pop-up';
+  $form['#attached']['js'] = array(
+    drupal_get_path('module', 'jrc_sh_core') . '/js/js_confirm_pop_up.js',
+  );
+
+  // Show the field_select_expertise only when it's not empty.
+  if (isset($form['field_select_expertise'][LANGUAGE_NONE]['#options'])) {
+    $form['field_select_expertise']['#access'] = TRUE;
+    // Except it has only one "_none" value in it.
+    if (isset($form['field_select_expertise'][LANGUAGE_NONE]['#options']['_none']) &&
+      count($form['field_select_expertise'][LANGUAGE_NONE]['#options']) == 1) {
+      $form['field_select_expertise']['#access'] = FALSE;
+    }
+  }
+
+  /* Hide the field_resource as it's useless and confusing for our users. */
+  $form['field_resource']['#access'] = FALSE;
+  /* Hide the revision_information field as it's also useless in our case. */
+  $form['revision_information']['#access'] = FALSE;
+  /* Change the name of the submit button for all content types. */
+  $form['actions']['submit']['#value'] = t('Save and publish');
 }
 
 /**
- * Custom submit function to remove entry from non-og entityforms.
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * When an admin try to unsubcribe a user manually
+ * from the subscription entityforms.
  */
-function _jrccties_core_normal_ogform_submit(&$form, &$form_state) {
-  global $user;
-
-  $transaction = db_transaction();
-
-  try {
-    // Form NOT built using Entityform.
-    $insert = db_insert('jrccties_core')
-      ->fields(array(
-    // FALSE. Form was NOT built with EntityForm.
-        'is_eform' => '0',
-        'gid' => $form['gid']['#value'],
-        'uid' => $user->uid,
-      ));
-    $insert->execute();
-
-    return $insert;
-  }
-  catch (Exception $e) {
-    $transaction->rollback();
-    watchdog_exception('To track non Eforms database', $e);
-  }
-
+function jrccties_core_form_og_ui_delete_membership_alter(&$form, &$form_state, $form_id) {
+  $form['#submit'] = array(
+    'jrccties_core_form_og_ui_delete_membership_submit',
+    'og_ui_delete_membership_submit',
+  );
 }
 
 /**
- * Implements hook_form_alter().
+ * Remove user from Entityform when admin unsubscribe him from the group.
  */
-function jrccties_core_form_alter(&$form, &$form_state, $form_id) {
-  $menu = menu_get_item();
+function jrccties_core_form_og_ui_delete_membership_submit(&$form, &$form_state) {
+  // First get the groupd id from url.
   $path = drupal_get_path_alias();
-  // Alter submit function form for unsubscribing entityforms from og.
-  // If path contains group and unsubscribe then proceed.
-  if ((strpos($path, 'group') !== FALSE) && (strpos($path, 'unsubscribe') !== FALSE)) {
-    $groupid = $menu['page_arguments']['1'];
-    $form['#groupid'] = $groupid;
-    $form['#submit'][] = 'jrccties_core_form_og_ui_confirm_unsubscribe_submit';
-  }
+  $path = explode('/', $path);
+  $gid = $path[2];
+  $og_memebership_id = $path[6];
 
-  $alias = request_uri();
-  // Extract group id from uri.
-  $find_gid_number = '([\d]+)';
-  preg_match_all($find_gid_number, $alias, $match);
-  if (isset($match[0][0])) {
-    $groupID = $match[0][0];
-    variable_set('jrccties_core_groupID', $groupID);
+  // Then we get the Type of the entityform via the groupd id.
+  $entityform_type = _jrccties_core_get_entityform_type_from_group($gid);
+
+  // Then we search for the actual user sumbmission.
+  $query = db_select('entityform', 'ef')
+    ->fields('ef', array('entityform_id'));
+  $query->join('og_membership', 'om', 'om.etid = ef.uid');
+  $query->condition('ef.type', $entityform_type->type, '=');
+  $query->condition('om.id', $og_memebership_id, '=');
+  $entityform_id = $query->execute()->fetch();
+
+  // If we find one, we erase it.
+  if (!empty($entityform_id)) {
+    db_delete('entityform')
+      ->condition('entityform_id', $entityform_id->entityform_id, '=')
+      ->execute();
   }
 }
 
 /**
- * Remove user from Entityform when unsubscribing the group.
+ * Get entityform type from a group.
+ *
+ * @param string $gid
+ *   The group id.
+ *
+ * @return string
+ *   The entityform type
+ */
+function _jrccties_core_get_entityform_type_from_group($gid) {
+  $query = db_select('entityform_type', 'et')
+    ->fields('et', array('type'));
+  $query->join('field_data_field_og_related_entityform', 'ore', 'ore.field_og_related_entityform_target_id = et.id');
+  $query->condition('ore.entity_id', $gid, '=');
+  $entityform_type = $query->execute()->fetch();
+  return $entityform_type;
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Add a function to delete the entityform submissions from DB,
+ * when unsubscribing from the community subscription entityforms.
+ */
+function jrccties_core_form_og_ui_confirm_unsubscribe_alter(&$form, &$form_state, $form_id) {
+  $form['#submit'][] = 'jrccties_core_form_og_ui_confirm_unsubscribe_submit';
+}
+
+/**
+ * Remove actual user from Entityform when unsubscribing the group.
  */
 function jrccties_core_form_og_ui_confirm_unsubscribe_submit(&$form, &$form_state) {
   global $user;
-  $groupid = $form_state['complete form']['#groupid'];
-
-  $query = db_select('jrccties_core', 'jc')
-    ->fields('jc',
-      array('eid',
-        'gid',
-        'uid',
-        'is_eform',
-      )
-    )
-    ->condition('jc.uid', $user->uid, '=')
-    ->condition('jc.gid', $groupid, '=')
-    ->execute()
-    ->fetch();
-
-  if ($query->is_eform == '1') {
-    _jrccties_core_delete_from_eform($groupid, $query);
+  // First we get the ID of the entityform.
+  $related_og_entityform_id = $form['group']['#value']->field_og_related_entityform[LANGUAGE_NONE][0]['target_id'];
+  // Then we search the actual user sumbmission
+  // inside the given entityform.
+  if ($related_og_entityform_id != NULL) {
+    $query = db_select('entityform', 'ef')
+      ->fields('ef', array('entityform_id'));
+    $query->join('entityform_type', 'et', 'ef.type = et.type');
+    $query->condition('ef.uid', $user->uid, '=');
+    $query->condition('et.id', $related_og_entityform_id, '=');
+    $entityform_id = $query->execute()->fetch();
+    // If we find one, we erase it.
+    if (!empty($entityform_id)) {
+      db_delete('entityform')
+        ->condition('entityform_id', $entityform_id->entityform_id, '=')
+        ->execute();
+    }
   }
-  else {
-    _jrccties_core_delete_from_record($groupid, $query);
-  }
-}
-
-/**
- * Find entityform user ID to find out which entityform ID to remove.
- */
-function _jrccties_core_delete_from_eform($groupid, $query) {
-  global $user;
-
-  $ef_query = db_select('entityform', 'ef')
-    ->fields('ef',
-    array('entityform_id',
-      'uid',
-    )
-    )
-    ->condition('ef.uid', $user->uid, '=')
-    ->execute()
-    ->fetch();
-
-  $eform_id = (array) $ef_query;
-
-  // Delete user from entityform table.
-  entityform_delete_multiple($eform_id);
-  // Delete user from jrccore_core table if form created with entityform.
-  $query = db_delete('jrccties_core')
-    ->condition('eid', $query->eid, '=')
-    ->condition('is_eform', '1', '=')
-    ->execute();
-}
-
-/**
- * OG subscribe is not a Entityform but still needs remove from record.
- */
-function _jrccties_core_delete_from_record($groupid, $query) {
-  global $user;
-  $query = db_select('jrccties_core', 'jc')
-    ->fields('jc',
-      array('eid',
-        'gid',
-        'uid',
-        'is_eform',
-      )
-    )
-    ->condition('jc.uid', $user->uid, '=')
-    ->condition('jc.gid', $groupid, '=')
-    ->condition('jc.is_eform', '0', '=')
-    ->execute()
-    ->fetch();
-
-  // Delete user from table if form is not created with entityform.
-  $query = db_delete('jrccties_core')
-    ->condition('is_eform', '0', '=')
-    ->condition('eid', $query->eid, '=')
-    ->execute();
 }
 
 /**
@@ -768,7 +599,8 @@ function jrccties_core_form_entityform_type_form_alter(&$form, &$form_state, $fo
   }
 
   if (isset($form['paths']['submit']['alias']['#default_value'])) {
-    $gid = explode('/', $form['paths']['submit']['alias']['#default_value'])[2];
+    $gid = explode('/', $form['paths']['submit']['alias']['#default_value']);
+    $gid = $gid[2];
   }
 
   $form['jrccties_core']['additional_settings'] = array(
@@ -786,7 +618,8 @@ function jrccties_core_form_entityform_type_form_alter(&$form, &$form_state, $fo
  */
 function _jrccties_core_save_eform_field_options($form, &$form_state) {
   // First we get the GID from the URI on the entityform settings.
-  $gid = explode('/', $form_state['values']['paths']['submit']['alias'])[2];
+  $gid = explode('/', $form_state['values']['paths']['submit']['alias']);
+  $gid = $gid[2];
   // We save the notification fields inside a dedicated group variable.
   variable_set('jrccties_core_additional_settings_' . $gid, $form_state['values']['jrccties_core']['additional_settings']);
   return system_settings_form($form);
@@ -797,27 +630,9 @@ function _jrccties_core_save_eform_field_options($form, &$form_state) {
  */
 function jrccties_core_og_permission() {
   return array(
-    'view og entityforms list' => array(
-      'title' => t('View the Forms tab'),
-      'description' => t("Allow user to view the group's list of Forms."),
-    ),
-    'view og entityforms' => array(
-      'title' => t('View entityform group forms'),
-      'description' => t("Allow user to view the group's forms."),
-    ),
-    'view og entityform submissions' => array(
-      'title' => t('View all entityform group submissions'),
-      'description' => t("Allow user to view the submissions to the group's forms."),
-      'restrict access' => TRUE,
-    ),
     'edit og entityform submissions' => array(
       'title' => t('Edit all entityform group submissions'),
       'description' => t("Allow user to edit the entityform submissions to the group's forms."),
-      'restrict access' => TRUE,
-    ),
-    'delete og entityform submissions' => array(
-      'title' => t('Delete all group form submissions'),
-      'description' => t("Allow user to delete the submissions to the group's forms."),
       'restrict access' => TRUE,
     ),
   );
@@ -905,4 +720,66 @@ function jrccties_core_entityform_access_alter(&$access, $op, $context) {
 function jrccties_core_multisite_drupal_toolbox_filter_options_alter(&$filter_options) {
   // Enable the <object> tag, strongly not advised of course.
   $filter_options['valid_elements']['iframe'] = array('*' => TRUE);
+}
+
+/**
+ * Implements hook_og_context_negotiation_info().
+ */
+function jrccties_core_og_context_negotiation_info() {
+  $providers = array();
+
+  $providers['jrccties_communities'] = array(
+    'name' => t('Jrccties Communities'),
+    'description' => t("Select group context for any url that start with 'community'"),
+    'callback' => 'jrccties_core_context_handler',
+    'menu path' => array('community/%'),
+  );
+
+  return $providers;
+}
+
+/**
+ * Context handler; Get groups from events.
+ *
+ * @return array
+ *   OG context
+ */
+function jrccties_core_context_handler() {
+  global $language;
+
+  $keyword = 'community';
+
+  // Remove langcode on URL according the language negotiation type used.
+  if (language_negotiation_get_any('nexteuropa_multilingual_url_suffix')) {
+    $path = nexteuropa_multilingual_language_negotiation_split_suffix(request_path(), array($language));
+  }
+  elseif (defined('MULTISITE_DRUPAL_LANGUAGE_NEGOCIATION_URL_SUFFIX') && language_negotiation_get_any(MULTISITE_DRUPAL_LANGUAGE_NEGOCIATION_URL_SUFFIX)) {
+    $path = language_url_split_suffix(request_path(), array($language));
+  }
+  elseif (language_negotiation_get_any(LOCALE_LANGUAGE_NEGOTIATION_URL)) {
+    $path = language_url_split_prefix(request_path(), array($language));
+  }
+  else {
+    $path = array(FALSE, request_path());
+  }
+
+  $path_args = explode('/', $path[1]);
+
+  // Look for the community keyword in the path.
+  if ($path_args[0] === $keyword) {
+
+    if (isset($path_args[1]) && is_numeric($path_args[1])) {
+      // Check that the node acts as a group.
+      $node = node_load($path_args[1]);
+
+      if (og_is_group('node', $node)) {
+        return array(
+          'node' => array(
+            $node->nid,
+          ),
+        );
+      }
+    }
+  }
+  return array();
 }

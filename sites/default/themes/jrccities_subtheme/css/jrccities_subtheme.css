@@ -1270,17 +1270,13 @@ ol {
 #comments .comment-permalink {
   display: none;
 }
-/*/// Twitter blocks //*/
+
+/* Twitter blocks */
 #block-bean-cop-bioeconomy-tweets .panel-body.content,
 #block-bean-enlightenment2-tweets .panel-body.content {
   max-height: 320px;
   overflow: auto;
   padding: 0;
-}
-
-.latest_group_members_button {
-  margin: 27px 0px 0px;
-  padding: 5px;
 }
 
 .nav-tabs {
@@ -1292,18 +1288,23 @@ ol {
   padding: 5px;
 }
 
-.role-contributor-member .hide_notify_from_non_editors {
-  display: none;
+/* fix the leftside bar block buttons */
+.left_sidebar_block_button {
+  width: 100%;
+  margin-top: 20px;
 }
 
+/* Hide some fields from some roles */
+.role-contributor-member .hide_notify_from_non_editors,
 .role-member .hide_notify_from_non_editors {
   display: none;
 }
 
-.entityform-menu #user-member-button {
-  display: inline;
+/* Add a class for showin/hidding the entityform features */
+.entityform-menu .enityform-feature {
+  display: block;
 }
 
-#user-member-button {
+.enityform-feature {
   display: none;
 }

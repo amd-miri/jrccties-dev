@@ -457,7 +457,6 @@ function entityform_edit_form($form, &$form_state, $entityform, $mode = 'submit'
   // Make sure the proper files are loaded if the form has an ajax callback.
   // This happens in image field upload for instance.
   $form['#after_build'][] = 'entityform_load_required_entityform_admin';
-  $form['#after_build'][] = 'entityform_clear_required';
   $form['#validate'][] = 'entityform_set_required';
   if ($form_context == 'preview') {
     _entityform_type_modify_preview_form($form);
@@ -478,22 +477,6 @@ function _entityform_type_modify_preview_form(&$form) {
       unset($form['actions'][$child_key]['#submit']);
     }
   }
-}
-
-/**
- * Called via after_build on entityforms.
- * This makes sure that required fields aren't required when saving a Draft.
- * A Draft is not complete so it shouldn't enforce required fields.
- *
- * @param array $form
- * @param array $form_state
- * @return array
- */
-function entityform_clear_required($form, &$form_state) {
-  if (!empty($form_state['triggering_element']['#entityform_draft'])) {
-    _entityform_set_all_nested_props($form, array('#required' => FALSE));
-  }
-  return $form;
 }
 
 /**

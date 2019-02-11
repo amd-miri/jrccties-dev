@@ -282,3 +282,24 @@ function jrccties_core_update_7017() {
     'metatag_mobile',
   ), FALSE);
 }
+
+/**
+ * Disable some modules.
+ */
+function jrccties_core_update_7018() {
+  module_disable(array(
+    'feeds_entity_processor',
+    'og_field_access',
+  ), FALSE);
+  drupal_uninstall_modules(array(
+    'feeds_entity_processor',
+    'og_field_access',
+  ), FALSE);
+}
+
+/**
+ * Erase the unused jrccties_core table.
+ */
+function jrccties_core_update_7019() {
+  db_delete('jrccties_core')->execute();
+}
