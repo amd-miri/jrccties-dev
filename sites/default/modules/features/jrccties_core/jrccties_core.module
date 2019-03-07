@@ -521,9 +521,8 @@ function _jrccties_core_action_skill_search($eform) {
   $gid = $eform->og_group_ref[LANGUAGE_NONE]['0']['target_id'];
   $selectedfields = variable_get('jrccties_core_additional_settings_' . $gid, array());
   $selectedfields = array_filter(array_values($selectedfields));
-  if (empty($selectedfields)) {
-    drupal_set_message(t("You must enable fields to search for in Entityform first"), 'warning');
-    return;
+  if (empty($selectedExpertises) || empty($selectedfields)) {
+    return FALSE;
   }
 
   $query = db_select('entityform', 'e')
@@ -532,11 +531,11 @@ function _jrccties_core_action_skill_search($eform) {
 
   foreach ($selectedfields as $selectedfield) {
     $query->leftJoin('field_data_' . $selectedfield, $selectedfield, 'e.entityform_id = ' . $selectedfield . '.entity_id');
+    $query->condition($dbase_or);
+    foreach ($selectedExpertises as $selectedExpertise) {
+      $dbase_or->condition($selectedfield . '_tid', $selectedExpertise->tid, '=');
+    }
   }
-  foreach ($selectedExpertises as $selectedExpertise) {
-    $dbase_or->condition($selectedfield . '_tid', $selectedExpertise->tid, '=');
-  }
-  $query->condition($dbase_or);
   $query->distinct();
   $result = $query->execute()->fetchAll();
   $user_list = _jrccties_core_get_user_from_eform($result);
@@ -782,4 +781,16 @@ function jrccties_core_context_handler() {
     }
   }
   return array();
+}
+
+/**
+ * Implements hook_url_outbound_alter().
+ */
+function jrccties_core_url_outbound_alter(&$path, &$options, $original_path) {
+  // Always make login links go back to the current page.
+  switch ($path) {
+    case 'ecas':
+      $options['query']['destination'] = $_GET['q'];
+      break;
+  }
 }

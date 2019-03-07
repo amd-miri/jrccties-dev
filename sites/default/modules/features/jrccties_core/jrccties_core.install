@@ -303,3 +303,23 @@ function jrccties_core_update_7018() {
 function jrccties_core_update_7019() {
   db_delete('jrccties_core')->execute();
 }
+
+/**
+ * Merge date fields in Alumni entityform.
+ */
+function jrccties_core_update_7020() {
+  $query = new EntityFieldQuery();
+  $entityFormSubmissionIds = $query->entityCondition('entity_type', 'entityform')
+    ->entityCondition('bundle', 'alumni_network')
+    ->execute();
+
+  $entityform_ids = array_keys($entityFormSubmissionIds['entityform']);
+
+  foreach ($entityform_ids as $entityform) {
+    $wrapper = entity_metadata_wrapper('entityform', $entityform);
+    if (!empty($wrapper->field_date2->raw())) {
+      $wrapper->field_jrc_career_date->value2 = strtotime(date("d-m-Y", $wrapper->field_date2->raw()));
+      $wrapper->save();
+    }
+  }
+}
