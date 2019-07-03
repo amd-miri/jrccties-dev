@@ -10,6 +10,6 @@ files[] = wysiwyg.module
 files[] = tests/wysiwyg.test
 
 ; Information added by drush on 2018-11-11
-version = "unknown"
+version = "18832abda6a2a6df93b72a6edb8b980d1e948605"
 project = "wysiwyg"
 datestamp = "1541896142"

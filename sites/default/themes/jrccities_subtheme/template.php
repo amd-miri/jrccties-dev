@@ -173,7 +173,8 @@ function jrccities_subtheme_preprocess_menu_link(&$variables) {
     'Photos' => array('glyph' => 'picture', 'title' => 'Photos'),
     'Videos' => array('glyph' => 'facetime-video', 'title' => 'Videos'),
   );
-  if ($variables['element']['#title'] == $menuLinks[$variables['element']['#title']]['title']) {
+  if (isset($menuLinks[$variables['element']['#title']]['title'])
+      && $variables['element']['#title'] == $menuLinks[$variables['element']['#title']]['title']) {
     $variables['element']['#title'] = '<span class="glyphicon glyphicon-' . $menuLinks[$variables['element']['#title']]['glyph'] . '"> </span> ' . $menuLinks[$variables['element']['#title']]['title'];
   }
 }

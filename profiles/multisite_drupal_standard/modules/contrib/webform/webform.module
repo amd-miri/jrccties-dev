@@ -2199,20 +2199,17 @@ function theme_webform_view_messages($variables) {
       // The user is anonymous, so (at least) needs to log in to view the form.
       // ecas login handling
       if(module_exists('ecas')) {
-        $account_request_url = variable_get('ecas_account_request_url', ECAS_DEFAULT_ACCOUNT_REQUEST_URL);
         $login = url('ecas', array('absolute' => TRUE));
-        $register = str_replace('%local_ecas_url%', $login, $account_request_url);
       }
       else {
         $login = url('user/login', array('query' => drupal_get_destination()));
-        $register = url('user/register', array('query' => drupal_get_destination()));
       }
 
       if (variable_get('user_register', 1) == 0) {
         $message = t('You must <a href="!login">login</a> to view this form.', array('!login' => $login));
       }
       else {
-        $message = t('You must <a href="!login">login</a> or <a href="!register">register</a> to view this form.', array('!login' => $login, '!register' => $register));
+        $message = t('You must <a href="!login">login</a> to view this form.', array('!login' => $login));
       }
     }
     else {

@@ -34,10 +34,6 @@ function print_pdf_mpdf_pdf_tool_info() {
  * Implements hook_pdf_tool_version().
  */
 function print_pdf_mpdf_pdf_tool_version($pdf_tool) {
-  if (file_exists(DRUPAL_ROOT . '/' . $pdf_tool)) {
-    include_once DRUPAL_ROOT . '/' . $pdf_tool;
-  }
-
   if (defined('mPDF_VERSION')) {
     return mPDF_VERSION;
   }

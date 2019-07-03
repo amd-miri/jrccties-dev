@@ -649,6 +649,41 @@ class OgGroupAndUngroup extends DrupalWebTestCase {
     $user_roles = og_get_user_roles('entity_test', $entity1->pid, $user1->uid, FALSE);
     $this->assertEqual($og_roles, $user_roles, t('Group manager was granted default role.'));
   }
+
+  /**
+   * Test group behaviour when the group owner is not active.
+   */
+  public function testGroupManagerNotActive() {
+    // Create the user.
+    $user1 = $this->drupalCreateUser();
+
+    // Create the group; the group owner is the previously created user.
+    $entity1 = entity_create('entity_test', array('name' => 'main', 'uid' => $user1->uid));
+    $wrapper = entity_metadata_wrapper('entity_test', $entity1);
+    $wrapper->{OG_GROUP_FIELD}->set(1);
+    $wrapper->save();
+
+    // Ensure that the user owner membership for the group has active status.
+    $og_membership = og_get_membership('entity_test', $entity1->pid, 'user', $user1->uid);
+    $this->assertEqual($og_membership->state, OG_STATE_ACTIVE, 'Owner Membership status is Active');
+
+    // Move the user owner membership to blocked.
+    $og_membership->state = OG_STATE_BLOCKED;
+    $og_membership->save();
+
+    $og_membership = og_membership_load($og_membership->identifier());
+    $this->assertEqual($og_membership->state, OG_STATE_BLOCKED, 'Owner Membership status is Blocked');
+
+    // Save the group entity.
+    $wrapper = entity_metadata_wrapper('entity_test', $entity1);
+    $wrapper->save();
+
+    // Ensure that the user owner membership for the group still has blocked
+    // status.
+    $og_membership = og_membership_load($og_membership->identifier());
+    $this->assertEqual($og_membership->state, OG_STATE_BLOCKED, 'Owner Membership status is Blocked');
+  }
+
 }
 
 class OgPermissionsTestCase extends DrupalWebTestCase {
@@ -767,6 +802,29 @@ class OgPermissionsTestCase extends DrupalWebTestCase {
     $roles = og_get_user_roles('entity_test', $entity->pid, $user2->uid);
     $this->assertEqual($roles,  array(), 'Blocked member has no roles.');
     $this->assertFalse(og_user_access('entity_test', $entity->pid, 'update group', $user2), 'Blocked member has no access.');
+  }
+
+  function testGrantRolesTwiceForPendingUsers() {
+    // Create user.
+    $user1 = $this->drupalCreateUser();
+
+    // Create an entity.
+    $entity = entity_create('entity_test', array('name' => 'main', 'uid' => $user1->uid));
+    $wrapper = entity_metadata_wrapper('entity_test', $entity);
+    $wrapper->{OG_GROUP_FIELD}->set(1);
+    $wrapper->save();
+
+    $og_roles = og_roles('entity_test', 'main');
+
+    //Add the user to the group.
+    $values = array('entity_type' => 'user', 'entity' => $user1, 'state' => OG_STATE_PENDING);
+    $rid = array_search(OG_ADMINISTRATOR_ROLE, $og_roles);
+    og_group('entity_test', $entity->pid, $values);
+
+    // Try granting the admin role to a pending user twice.
+    og_role_grant('entity_test', $entity->pid, $user1->uid, $rid);
+    og_role_grant('entity_test', $entity->pid, $user1->uid, $rid);
+    $this->pass('Granting a role twice should not throw an exception.');
   }
 }
 
@@ -1097,7 +1155,7 @@ class OgFieldWidgetTestCase extends DrupalWebTestCase {
    * Test "field widget settings" of the OG reference widget.
    */
   function testFieldSettings() {
-    $user = $this->drupalCreateUser(array('administer content types', 'administer group', 'access content', ));
+    $user = $this->drupalCreateUser(array('administer content types', 'administer group', 'access content', 'administer fields'));
     $this->drupalLogin($user);
 
     $widgets = field_info_widget_types();
@@ -2025,6 +2083,82 @@ class OgDeleteOrphansTestCase extends DrupalWebTestCase {
 
     $this->assertEqual($gid, $second_group->nid, 'The group content moved to another group.');
   }
+
+  /**
+   * Tests editing content that belongs to a deleted group.
+   *
+   * Tests if content belonging to multiple groups can be edited without issues
+   * after deleting one of the groups.
+   */
+  public function testEditGroupContentAfterDeletingGroup() {
+    $account = $this->drupalCreateUser(array('edit own ' . $this->node_type . ' content'));
+    $this->drupalLogin($account);
+
+    // Create two groups.
+    $first_group = $this->drupalCreateNode(array('type' => $this->group_type));
+    $second_group = $this->drupalCreateNode(array('type' => $this->group_type));
+
+    // Create group content, assign it to both groups.
+    $group_content = $this->drupalCreateNode(array(
+      'type' => $this->node_type,
+      'title' => 'Lorem ipsum',
+      'uid' => $account->uid,
+    ));
+    og_group('node', $first_group, array('entity_type' => 'node', 'entity' => $group_content));
+    og_group('node', $second_group, array('entity_type' => 'node', 'entity' => $group_content));
+
+    // Try to edit the group content node, using the UI.
+    $this->drupalPost('node/' . $group_content->nid . '/edit', array(), 'Save');
+    $this->assertText($this->node_type . ' Lorem ipsum has been updated.');
+
+    // Delete the first group.
+    node_delete($first_group->nid);
+
+    // Try again to edit the group content node.
+    $this->drupalPost('node/' . $group_content->nid . '/edit', array(), 'Save');
+    $this->assertText($this->node_type . ' Lorem ipsum has been updated.');
+  }
+
+  /**
+   * Tests calling node_access() on content that belongs to a deleted group.
+   *
+   * Tests if node_access() can be called for content that has a reference to a
+   * no longer existing group when OG is configured to use the delete queue.
+   */
+  public function testGroupContentNodeAccessAfterDeletingGroupAndWhenUsingQueue() {
+    // Configure OG to use queue for deleting pending content.
+    variable_set('og_use_queue', TRUE);
+
+    $account = $this->drupalCreateUser(array('access content', 'edit own ' . $this->node_type . ' content'));
+    $this->drupalLogin($account);
+
+    // Create two groups.
+    $first_group = $this->drupalCreateNode(array('type' => $this->group_type));
+    $second_group = $this->drupalCreateNode(array('type' => $this->group_type));
+
+    // Create group content, assign it to both groups.
+    $group_content = $this->drupalCreateNode(array(
+      'type' => $this->node_type,
+      'title' => 'Lorem ipsum',
+      'uid' => $account->uid,
+    ));
+    og_group('node', $first_group, array('entity_type' => 'node', 'entity' => $group_content));
+    og_group('node', $second_group, array('entity_type' => 'node', 'entity' => $group_content));
+
+    // Display a list of my nodes, that uses node_access() to check if links may
+    // be displayed.
+    $this->drupalGet('og_test/my_content');
+    $this->assertText('Lorem ipsum');
+
+    // Delete the first group.
+    node_delete($first_group->nid);
+
+    // Display a list of my nodes again, to ensure nothing changed.
+    $this->drupalGet('og_test/my_content');
+    $this->assertNoText('EntityMalformedException');
+    $this->assertText('Lorem ipsum');
+  }
+
 }
 
 /**

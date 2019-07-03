@@ -29,7 +29,6 @@ regions[footer] = "Footer"
 settings[theme_debug] = 0
 settings[atomium_rebuild_registry] = 0
 settings[allow_css_double_underscores] = 0
-settings[atomium_convert_inline_js_into_files] = 1
 
 ; CSS
 ; --------------
@@ -84,8 +83,8 @@ settings[preprocess][node][classes_to_remove] = node,node-sticky,node-unpublishe
 settings[preprocess][region][classes_to_remove] = region
 
 
-; Information added by Drupal.org packaging script on 2018-06-17
-version = "7.x-2.11"
+; Information added by Drupal.org packaging script on 2019-02-28
+version = "7.x-2.12"
 core = "7.x"
 project = "atomium"
-datestamp = "1529244227"
+datestamp = "1551357787"

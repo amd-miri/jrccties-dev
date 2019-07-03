@@ -2,7 +2,7 @@
 
 namespace Drupal\Tests\atomium\Unit;
 
-use drupal\atomium\AttributesContainer;
+use Drupal\atomium\AttributesContainer;
 
 /**
  * Class AttributesContainerTest.
@@ -16,7 +16,8 @@ class AttributesContainerTest extends AbstractUnitTest {
    */
   public function testAttributesContainer() {
     $attributesContainer = new AttributesContainer();
-    expect($attributesContainer)->to->be->instanceof('drupal\atomium\AttributesContainer');
+
+    self::assertInstanceOf('drupal\atomium\AttributesContainer', $attributesContainer);
   }
 
   /**
@@ -25,7 +26,8 @@ class AttributesContainerTest extends AbstractUnitTest {
   public function testSetAttributes() {
     $attributesContainer = new AttributesContainer();
     $attributesContainer['attributes'] = array('class', 'example');
-    expect($attributesContainer['attributes'])->to->be->instanceof('drupal\atomium\Attributes');
+
+    self::assertInstanceOf('drupal\atomium\Attributes', $attributesContainer['attributes']);
   }
 
   /**
@@ -33,8 +35,9 @@ class AttributesContainerTest extends AbstractUnitTest {
    */
   public function testOffsetGet() {
     $container = new AttributesContainer();
-    $container['foo'] = ['bar'];
-    expect($container->offsetGet('foo'))->to->be->instanceof('drupal\atomium\Attributes');
+    $container['foo'] = array('bar');
+
+    self::assertInstanceOf('drupal\atomium\Attributes', $container->offsetGet('foo'));
   }
 
   /**
@@ -42,12 +45,14 @@ class AttributesContainerTest extends AbstractUnitTest {
    */
   public function testOffsetUnset() {
     $container = new AttributesContainer();
-    $container['foo'] = ['class' => 'bar'];
-    expect($container->offsetGet('foo')['class'])->to->equal(['bar']);
+    $container['foo'] = array('class' => 'bar');
+
+    self::assertEquals(array('bar'), $container->offsetGet('foo')['class']);
 
     unset($container['foo']);
-    expect($container['foo'])->to->be->instanceof('drupal\atomium\Attributes');
-    expect($container['foo']->getStorage())->to->be->empty();
+
+    self::assertInstanceOf('drupal\atomium\Attributes', $container['foo']);
+    self::assertEmpty($container['foo']->getStorage());
   }
 
   /**
@@ -55,14 +60,14 @@ class AttributesContainerTest extends AbstractUnitTest {
    */
   public function testStorage() {
     $container = new AttributesContainer();
-    $container['foo'] = ['class' => 'bar'];
-    $container['bar'] = ['class' => 'foo'];
+    $container['foo'] = array('class' => 'bar');
+    $container['bar'] = array('class' => 'foo');
 
-    expect($container['foo'])->to->be->instanceof('drupal\atomium\Attributes');
-    expect($container['bar'])->to->be->instanceof('drupal\atomium\Attributes');
+    self::assertInstanceOf('drupal\atomium\Attributes', $container['foo']);
+    self::assertInstanceOf('drupal\atomium\Attributes', $container['bar']);
 
-    expect($container['foo']->toArray())->to->be->equal(['class' => ['bar']]);
-    expect($container['bar']->toArray())->to->be->equal(['class' => ['foo']]);
+    self::assertEquals(array('class' => array('bar')), $container['foo']->toArray());
+    self::assertEquals(array('class' => array('foo')), $container['bar']->toArray());
   }
 
 }

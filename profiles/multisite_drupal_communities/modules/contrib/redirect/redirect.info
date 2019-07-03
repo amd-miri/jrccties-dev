@@ -14,7 +14,7 @@ files[] = views/redirect_handler_field_redirect_link_delete.inc
 configure = admin/config/search/redirect/settings
 suggests[] = mpac
 
-; Information added by drush on 2015-10-03
-version = "7.x-1.0-rc3+4-dev"
+; Information added by drush on 2018-10-13
+version = "7.x-1.0-rc3+8-dev"
 project = "redirect"
-datestamp = "1443904435"
+datestamp = "1539391080"

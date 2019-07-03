@@ -53,17 +53,32 @@ class MediaAvportalHandler extends MediaInternetBaseHandler {
   public function parse($embedCode) {
     $listPatterns = array(
       // url: http://ec.europa.eu/avservices/video/player.cfm.
-      '@ec\.europa\.eu/avservices/video/player\.cfm\?(.+)@i',
+      '2017' => '@ec\.europa\.eu/avservices/video/player\.cfm\?(.+)@i',
       // url: http://ec.europa.eu/avservices/play.cfm.
-      '@ec\.europa\.eu/avservices/play\.cfm\?(.+)@i',
+      '2018' => '@ec\.europa\.eu/avservices/play\.cfm\?(.+)@i',
+      // url: https://audiovisual.ec.europa.eu/en/video/I-167885
+      '2019' => '@audiovisual\.ec\.europa\.eu/(.+)/video/(.+)@i',
     );
 
-    foreach ($listPatterns as $pattern) {
+    foreach ($listPatterns as $y => $pattern) {
       if (preg_match($pattern, $embedCode)) {
-        // Found the URL type used, let's get the query parameter from URL.
-        $parsed_url = drupal_parse_url($embedCode);
-        $queryParams = (!empty($parsed_url['query'])) ? $parsed_url['query'] : array();
 
+        // Found the URL type used, let's get the query parameter from URL.
+        if ($y == '2019') {
+          $parse_url = parse_url($embedCode);
+          $query = explode('/', $parse_url['path']);
+          $parsed_url = array(
+            'query' => array (
+              'sitelang' => $query[1],
+              'ref' => $query[3],
+            ),
+          );
+        }
+        else {
+          $parsed_url = drupal_parse_url($embedCode);
+        }
+
+        $queryParams = (!empty($parsed_url['query'])) ? $parsed_url['query'] : array();
         if (isset($queryParams['ref']) && $this->validId($queryParams['ref'])) {
           return file_stream_wrapper_uri_normalize('avportal://v/' . $queryParams['ref']);
         }

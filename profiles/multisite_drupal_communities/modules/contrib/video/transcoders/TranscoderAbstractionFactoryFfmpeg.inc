@@ -553,6 +553,13 @@ class TranscoderAbstractionFactoryFfmpeg extends TranscoderAbstractionFactory im
         $errorhelp = '<br/>' . t('Visit the <a href="@ffmpeg-debug-page">FFmpeg debug page</a> for information thay may help you find the cause of this problem.', array('@ffmpeg-debug-page' => url('admin/config/media/video/ffmpeg-info', array('query' => array('ffmpegpath' => $v['video_ffmpeg_path'])))));
       }
 
+      if (!file_exists($v['video_ffmpeg_path']) || !is_executable($v['video_ffmpeg_path'])) {
+        form_error($form['ffmpeg']['video_ffmpeg_path'], t('The path @path must point to an executable file.', array(
+          '@path' => $v['video_ffmpeg_path'],
+        )));
+        return;
+      }
+
       $toolkit = new PHPVideoToolkit($v['video_ffmpeg_path']);
       $ffmpeg = $toolkit->getFFmpegInfo(FALSE);
       $ffmpegoravconv = NULL;

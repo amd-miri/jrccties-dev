@@ -1300,11 +1300,15 @@ ol {
   display: none;
 }
 
-/* Add a class for showin/hidding the entityform features */
-.entityform-menu .enityform-feature {
-  display: block;
+/* Switch the export links if the community has a custom og-memebership. */
+#block-menu-menu-group-admin-tools-menu #export-member-submissions {
+  display: none;
 }
 
-.enityform-feature {
+.custom-og-membership #block-menu-menu-group-admin-tools-menu #export-member-submissions {
+  display: block !important;
+}
+
+.custom-og-membership #block-menu-menu-group-admin-tools-menu #export-member-profile {
   display: none;
 }

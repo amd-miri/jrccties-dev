@@ -37,10 +37,10 @@ function print_pdf_mpdf_print_pdf_generate($html, $meta, $paper_size = NULL, $pa
     // Deprecated since mpdf v7.x.
     if (variable_get('print_pdf_autoconfig', PRINT_PDF_AUTOCONFIG_DEFAULT)) {
       if (!defined('_MPDF_TTFONTDATAPATH')) {
-        define('_MPDF_TTFONTDATAPATH', drupal_realpath('public://print_pdf/print_pdf_mpdf/ttfontdata/'));
+        define('_MPDF_TTFONTDATAPATH', drupal_realpath('public://print_pdf/print_pdf_mpdf/ttfontdata/') . '/');
       }
       if (!defined('_MPDF_TEMP_PATH')) {
-        define('_MPDF_TEMP_PATH', drupal_realpath('public://print_pdf/print_pdf_mpdf/tmp/'));
+        define('_MPDF_TEMP_PATH', drupal_realpath('public://print_pdf/print_pdf_mpdf/tmp/') . '/');
       }
     }
   }

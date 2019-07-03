@@ -181,7 +181,7 @@ function _easy_breadcrumb_obtain_page_title($page_text) {
  *   the generated breadcrumb item.
  */
 function _easy_breadcrumb_build_item($item_title, $item_classes, $item_url, $as_link = TRUE) {
-  $item = array('content' => $item_title, 'class' => $item_classes);
+  $item = array('content' => filter_xss($item_title), 'class' => $item_classes);
   if ($as_link) {
     $item['url'] = $item_url;
   }
@@ -262,9 +262,10 @@ function _easy_breadcrumb_obtain_segment_title($normal_path, $valid_path, $segme
  *   normalized title.
  */
 function _easy_breadcrumb_normalize_text($raw_text) {
-
+  // Filter the raw text against XSS.
+  $normalized_text = check_url($raw_text);
   // Transforms '-hello--world_javascript-' on 'hello world javascript'.
-  $normalized_text = str_replace(array('-', '_'), ' ', $raw_text);
+  $normalized_text = str_replace(array('-', '_'), ' ', $normalized_text);
   $normalized_text = trim($normalized_text);
   $normalized_text = preg_replace('/\s{2,}/', ' ', $normalized_text);
 

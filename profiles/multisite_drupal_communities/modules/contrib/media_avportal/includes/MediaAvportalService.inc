@@ -16,7 +16,7 @@ class MediaAvportalService {
    *
    * @var string
    */
-  private $serviceUrl = 'https://ec.europa.eu/tools/b2services/proxy/avssearch/avsportal/avshandler';
+  private $serviceUrl = 'https://gfdwwnbuul.execute-api.eu-west-1.amazonaws.com/avsportal/avsportal';
 
   /**
    * MediaAvportalService constructor.

@@ -404,7 +404,12 @@ function locale_form_comment_form_alter(&$form, &$form_state, $form_id) {
     global $language_content;
     $form['language']['#value'] = $language_content->language;
     $submit_callback = 'locale_field_comment_form_submit';
-    array_unshift($form['actions']['preview']['#submit'], $submit_callback);
+    // We cannot always assume a Preview button is available.  For example, another custom hook_form_comment_form_alter
+    // could unset the Preview button.  In these cases, the conditional below will prevent the following log message:
+    // Warning: array_unshift() expects parameter 1 to be array, null given in locale_form_comment_form_alter()...
+    if (isset($form['actions']['preview']['#submit'])) {
+      array_unshift($form['actions']['preview']['#submit'], $submit_callback);
+    }
     array_unshift($form['#submit'], $submit_callback);
   }
 }

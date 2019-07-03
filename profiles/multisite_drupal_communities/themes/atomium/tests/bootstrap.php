@@ -8,8 +8,9 @@
 require_once './vendor/autoload.php';
 
 // Directory change necessary since Drupal often uses relative paths.
-chdir(DRUPAL_ROOT);
-require_once 'includes/bootstrap.inc';
+\chdir(DRUPAL_ROOT);
+
+require_once DRUPAL_ROOT . '/includes/bootstrap.inc';
 
 /**
  * Return template file and variables array for testing purposes.
@@ -23,10 +24,10 @@ require_once 'includes/bootstrap.inc';
  *   Template file and variables array for testing purposes.
  */
 function atomium_test_render_template($template_file, $variables) {
-  return [
+  return array(
     'template' => $template_file,
     'variables' => $variables,
-  ];
+  );
 }
 
 drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);

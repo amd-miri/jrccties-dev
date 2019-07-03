@@ -7,6 +7,7 @@ $baseDir = dirname($vendorDir);
 
 return array(
     'drupol\\drupal7_psr3_watchdog\\' => array($vendorDir . '/drupol/drupal7_psr3_watchdog/src'),
+    'cweagans\\Composer\\' => array($vendorDir . '/cweagans/composer-patches/src'),
     'Symfony\\Polyfill\\Mbstring\\' => array($vendorDir . '/symfony/polyfill-mbstring'),
     'Symfony\\Polyfill\\Ctype\\' => array($vendorDir . '/symfony/polyfill-ctype'),
     'Symfony\\Polyfill\\Apcu\\' => array($vendorDir . '/symfony/polyfill-apcu'),

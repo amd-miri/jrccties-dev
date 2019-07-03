@@ -638,6 +638,11 @@ function redirect_settings_form($form, &$form_state) {
     '#default_value' => variable_get('redirect_passthrough_querystring', 1),
     '#description' => t('For example, given a redirect from %source to %redirect, if a user visits %sourcequery they would be redirected to %redirectquery. The query strings in the redirection will always take precedence over the current query string.', array('%source' => 'source-path', '%redirect' => 'node?a=apples', '%sourcequery' => 'source-path?a=alligators&b=bananas', '%redirectquery' => 'node?a=apples&b=bananas')),
   );
+  $form['redirect_delete_by_source_path'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Automatically delete redirects when an entity with the redirect\'s source has been deleted.'),
+    '#default_value' => variable_get('redirect_delete_by_source_path', TRUE),
+  );
   $form['redirect_warning'] = array(
     '#type' => 'checkbox',
     '#title' => t('Display a warning message to users when they are redirected.'),

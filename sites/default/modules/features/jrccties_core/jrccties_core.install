@@ -323,3 +323,231 @@ function jrccties_core_update_7020() {
     }
   }
 }
+
+/**
+ * Update og field tables.
+ */
+function jrccties_core_update_7021() {
+  db_update('og_membership')
+    ->fields(array('type' => 'alumni_network'))
+    ->condition('gid', 2, '=')
+    ->execute();
+  db_update('og_membership')
+    ->fields(array('type' => 'bioeconomy'))
+    ->condition('gid', 1330, '=')
+    ->execute();
+  db_update('og_membership')
+    ->fields(array('type' => 'enlightenment'))
+    ->condition('gid', 1855, '=')
+    ->execute();
+
+  // 1) First get the Alumni entityform submissions.
+  $alumni_submissions = entity_load('entityform', FALSE, array('type' => 'alumni_network'));
+  // Migrate each submission.
+  foreach ($alumni_submissions as $alumni_submission) {
+    // Load the related user og membership.
+    $og_membership = entity_load('og_membership', FALSE, array(
+      'etid' => $alumni_submission->uid,
+      'type' => 'alumni_network',
+      'entity_type' => 'user',
+    ));
+    if (empty($og_membership)) {
+      $og_membership = entity_create('og_membership', array(
+        'type' => 'alumni_network',
+        'etid' => $alumni_submission->uid,
+        'entity_type' => 'user',
+        'gid' => 2,
+        'group_type' => 'node',
+        'state' => 1,
+        'created' => time(),
+        'field_name' => 'og_user_node',
+        'language' => 'en',
+      ));
+    }
+    else {
+      $og_membership = reset($og_membership);
+    }
+
+    $og_membership_wrapper = entity_metadata_wrapper('og_membership', $og_membership);
+
+    // Migrate data from entityforms into og_memberships.
+    $og_membership_wrapper->field_current_position_organis->set($alumni_submission->field_current_position_organis[LANGUAGE_NONE][0]['value']);
+    $og_membership_wrapper->field_type_of_organisation->set($alumni_submission->field_type_of_organisation[LANGUAGE_NONE][0]['value']);
+    $og_membership_wrapper->field_specify_other->set($alumni_submission->field_specify_other[LANGUAGE_NONE][0]['value']);
+    if (!isset($alumni_submission->field_jrc_career[LANGUAGE_NONE][0]['value'])) {
+      $og_membership_wrapper->field_jrc_career->set("- None -");
+    }
+    else {
+      $og_membership_wrapper->field_jrc_career->set($alumni_submission->field_jrc_career[LANGUAGE_NONE][0]['value']);
+    }
+    if (!isset($alumni_submission->field_jrc_directorate_institute[LANGUAGE_NONE][0]['value'])) {
+      $og_membership_wrapper->field_jrc_directorate_institute->set("- None -");
+    }
+    else {
+      $og_membership_wrapper->field_jrc_directorate_institute->set($alumni_submission->field_jrc_directorate_institute[LANGUAGE_NONE][0]['value']);
+    }
+    if (!isset($alumni_submission->field_jrc_career_date[LANGUAGE_NONE][0]['value']) && isset($alumni_submission->field_jrc_career_date[LANGUAGE_NONE][0]['value2'])) {
+      $og_membership_wrapper->field_jrc_career_date->set(array(
+        'value' => $alumni_submission->field_jrc_career_date[LANGUAGE_NONE][0]['value2'],
+        'value2' => $alumni_submission->field_jrc_career_date[LANGUAGE_NONE][0]['value2'],
+      ));
+    }
+    else {
+      $og_membership_wrapper->field_jrc_career_date->set(array(
+        'value' => $alumni_submission->field_jrc_career_date[LANGUAGE_NONE][0]['value'],
+        'value2' => $alumni_submission->field_jrc_career_date[LANGUAGE_NONE][0]['value2'],
+      ));
+    }
+    $og_membership_wrapper->field_management_positio->set($alumni_submission->field_management_positio[LANGUAGE_NONE][0]['value']);
+    $og_membership_wrapper->field_add_position_managment->set($alumni_submission->field_add_position_managment[LANGUAGE_NONE][0]['value']);
+    $og_membership_wrapper->field_upload_cv->set($alumni_submission->field_upload_cv[LANGUAGE_NONE][0]);
+    if (!isset($alumni_submission->field_field_of_expertise[LANGUAGE_NONE])) {
+      $og_membership_wrapper->field_field_of_expertise->set(array(array('tid' => '394')));
+    }
+    else {
+      $og_membership_wrapper->field_field_of_expertise->set($alumni_submission->field_field_of_expertise[LANGUAGE_NONE]);
+    }
+    $og_membership_wrapper->field_question_fields_expertise->set($alumni_submission->field_question_fields_expertise[LANGUAGE_NONE][0]['value']);
+    $og_membership_wrapper->field_other_field_of_expertise->set($alumni_submission->field_other_field_of_expertise[LANGUAGE_NONE][0]['value']);
+    $og_membership_wrapper->field_fields_of_interest->set($alumni_submission->field_fields_of_interest[LANGUAGE_NONE]);
+    $og_membership_wrapper->field_question_fields_interest->set($alumni_submission->field_question_fields_interest[LANGUAGE_NONE][0]['value']);
+    $og_membership_wrapper->field_other_fields_of_interest->set($alumni_submission->field_other_fields_of_interest[LANGUAGE_NONE][0]['value']);
+    $og_membership_wrapper->field_are_you_interested_to_coll->set($alumni_submission->field_are_you_interested_to_coll[LANGUAGE_NONE][0]['value']);
+    $og_membership_wrapper->field_interest_in_collaboration_->set($alumni_submission->field_interest_in_collaboration_[LANGUAGE_NONE][0]['value']);
+    $og_membership_wrapper->field_how_do_you_intend_to_get_i->set($alumni_submission->field_how_do_you_intend_to_get_i[LANGUAGE_NONE][0]['value']);
+    $og_membership_wrapper->field_do_you_have_any_other_sugg->set($alumni_submission->field_do_you_have_any_other_sugg[LANGUAGE_NONE][0]['value']);
+    $og_membership_wrapper->field_languages->set($alumni_submission->field_languages[LANGUAGE_NONE]);
+    if (!isset($alumni_submission->field_country_of_residence[LANGUAGE_NONE][0]['tid'])) {
+      $og_membership_wrapper->field_country_of_residence->set('134');
+    }
+    else {
+      $og_membership_wrapper->field_country_of_residence->set($alumni_submission->field_country_of_residence[LANGUAGE_NONE][0]['tid']);
+    }
+    // Save the data.
+    $og_membership_wrapper->save();
+  }
+
+  // 2) First get the Bioeconomy entityform submissions.
+  $bioeconomy_submissions = entity_load('entityform', FALSE, array('type' => 'bioeconomy'));
+  // Migrate each submission.
+  foreach ($bioeconomy_submissions as $bioeconomy_submission) {
+    // Load the related user og membership.
+    $og_membership = entity_load('og_membership', FALSE, array(
+      'etid' => $bioeconomy_submission->uid,
+      'type' => 'bioeconomy',
+      'entity_type' => 'user',
+    ));
+
+    if (empty($og_membership)) {
+      $og_membership = entity_create('og_membership', array(
+        'type' => 'bioeconomy',
+        'etid' => $bioeconomy_submission->uid,
+        'entity_type' => 'user',
+        'gid' => 1330,
+        'group_type' => 'node',
+        'state' => 1,
+        'created' => time(),
+        'field_name' => 'og_user_node',
+        'language' => 'en',
+      ));
+    }
+    else {
+      $og_membership = reset($og_membership);
+    }
+
+    $og_membership_wrapper = entity_metadata_wrapper('og_membership', $og_membership);
+
+    // Migrate data from entityforms into og_memberships.
+    if (isset($bioeconomy_submission->field_scientific_and_technical_s[LANGUAGE_NONE])) {
+      $og_membership_wrapper->field_scientific_and_technical_s->set($bioeconomy_submission->field_scientific_and_technical_s[LANGUAGE_NONE]);
+    }
+    if (isset($bioeconomy_submission->field_thematic_dimension[LANGUAGE_NONE])) {
+      $og_membership_wrapper->field_thematic_dimension->set($bioeconomy_submission->field_thematic_dimension[LANGUAGE_NONE]);
+    }
+
+    // Save the data.
+    $og_membership_wrapper->save();
+  }
+
+  // 3) First get the enlightenment entityform submissions.
+  $enlightenment_submissions = entity_load('entityform', FALSE, array('type' => 'enlightenment'));
+  // Migrate each submission.
+  foreach ($enlightenment_submissions as $enlightenment_submission) {
+    // Load the related user og membership.
+    $og_membership = entity_load('og_membership', FALSE, array(
+      'etid' => $enlightenment_submission->uid,
+      'type' => 'enlightenment',
+      'entity_type' => 'user',
+    ));
+
+    if (empty($og_membership)) {
+      $og_membership = entity_create('og_membership', array(
+        'type' => 'enlightenment',
+        'etid' => $enlightenment_submission->uid,
+        'entity_type' => 'user',
+        'gid' => 1855,
+        'group_type' => 'node',
+        'state' => 1,
+        'created' => time(),
+        'field_name' => 'og_user_node',
+        'language' => 'en',
+      ));
+    }
+    else {
+      $og_membership = reset($og_membership);
+    }
+
+    $og_membership_wrapper = entity_metadata_wrapper('og_membership', $og_membership);
+
+    // Migrate data from entityforms into og_memberships.
+    if (isset($enlightenment_submission->field_areas[LANGUAGE_NONE])) {
+      $og_membership_wrapper->field_areas->set($enlightenment_submission->field_areas[LANGUAGE_NONE]);
+    }
+
+    // Save the data.
+    $og_membership_wrapper->save();
+  }
+}
+
+/**
+ * Update og field tables.
+ */
+function jrccties_core_update_7022() {
+  module_disable(array(
+    'entityform',
+  ), FALSE);
+  drupal_uninstall_modules(array(
+    'entityform',
+  ), FALSE);
+
+  // Move country field to Alumni og-membership.
+  $alumni_og_memberships = entity_load('og_membership', FALSE, array('type' => 'alumni_network', 'entity_type' => 'user'));
+  foreach ($alumni_og_memberships as $alumni_og_membership) {
+    // Get the related nationality value..
+    $profile = entity_load('user', FALSE, array(
+      'uid' => $alumni_og_membership->etid,
+    ));
+    $profile = reset($profile);
+    // Update the og_membership.
+    if (isset($profile->field_nationality)) {
+      $alumni_og_membership->field_nationality = $profile->field_nationality;
+      // Save the data.
+      entity_save('og_membership', $alumni_og_membership);
+    }
+  }
+  $field = field_read_field('og_group_ref');
+  $field['settings']['handler_settings']['behaviors']['views-select-list']['status'] = 1;
+  field_update_field($field);
+}
+
+/**
+ * Disable multisite_audio.
+ */
+function jrccties_core_update_7023() {
+  module_disable(array(
+    'multisite_audio',
+  ), FALSE);
+  drupal_uninstall_modules(array(
+    'multisite_audio',
+  ), FALSE);
+}

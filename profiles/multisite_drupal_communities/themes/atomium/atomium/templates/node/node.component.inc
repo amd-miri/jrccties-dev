@@ -7,6 +7,9 @@
 
 /**
  * Implements hook_preprocess_hook().
+ *
+ * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+ * @SuppressWarnings(PHPMD.NPathComplexity)
  */
 function atomium_preprocess_node(array &$variables, $hook) {
   // One unified node teaser template.
@@ -52,8 +55,8 @@ function atomium_preprocess_node(array &$variables, $hook) {
 
   // Remove class from the ul that holds the links <ul class="inline links">.
   // This is generated in the node_build_content() function in the node.module.
-  $variables['content']['links']['#attributes']['class'] = array_values(array_diff($variables['content']['links']['#attributes']['class'], array('inline')));
-  $variables['content']['links']['#attributes']['class'] = array_values(array_diff($variables['content']['links']['#attributes']['class'], array('links')));
+  $variables['content']['links']['#attributes']['class'] = \array_values(\array_diff($variables['content']['links']['#attributes']['class'], array('inline')));
+  $variables['content']['links']['#attributes']['class'] = \array_values(\array_diff($variables['content']['links']['#attributes']['class'], array('links')));
 
   // Remove the class attribute it its empty.
   if (isset($variables['content']['links']['#attributes']['class']) && empty($variables['content']['links']['#attributes']['class'])) {

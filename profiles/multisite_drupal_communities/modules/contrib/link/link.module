@@ -10,7 +10,6 @@ define('LINK_INTERNAL', 'internal');
 define('LINK_FRONT', 'front');
 define('LINK_EMAIL', 'email');
 define('LINK_NEWS', 'news');
-define('LINK_DOMAINS', 'aero|arpa|asia|biz|build|com|cat|ceo|coop|edu|gov|info|int|jobs|mil|museum|name|nato|net|org|post|pro|tel|travel|mobi|local|xxx');
 
 define('LINK_TARGET_DEFAULT', 'default');
 define('LINK_TARGET_NEW_WINDOW', '_blank');
@@ -274,6 +273,15 @@ function link_field_validate($entity_type, $entity, $field, $instance, $langcode
   if ($instance['settings']['validate_url'] !== 0 || is_null($instance['settings']['validate_url']) || !isset($instance['settings']['validate_url'])) {
     foreach ($items as $delta => $value) {
       _link_validate($items[$delta], $delta, $field, $entity, $instance, $langcode, $optional_field_found, $errors);
+    }
+  }
+  foreach ($items as $delta => $value) {
+    if (isset($value['attributes']) && is_string($value['attributes'])) {
+      $errors[$field['field_name']][$langcode][$delta][] = array(
+        'error' => 'link_required',
+        'message' => t('String values are not acceptable for attributes.'),
+        'error_element' => array('url' => TRUE, 'title' => FALSE),
+      );
     }
   }
 
@@ -1372,6 +1380,9 @@ function link_url_type($text) {
   if (preg_match($internal_pattern . $end, $text)) {
     return LINK_INTERNAL;
   }
+  if (drupal_valid_path($text) && url_is_external($text) == FALSE) {
+    return LINK_INTERNAL;
+  }
   if (preg_match($external_pattern . $end, $text)) {
     return LINK_EXTERNAL;
   }
@@ -1383,11 +1394,16 @@ function link_url_type($text) {
 }
 
 /**
- * Returns the list of allowed domains, including domains added by admins via variable_set/$config.
+ * Returns the list of allowed domains.
+ *
+ * If the variable link_allowed_domains is set, restrict allowed domains to the
+ * strings in that array. If the variable link_allowed_domains is not set, allow
+ * all domains between 2 and 63 characters in length.
+ * See https://tools.ietf.org/html/rfc1034.
  */
 function _link_domains() {
-  $link_extra_domains = variable_get('link_extra_domains', array());
-  return empty($link_extra_domains) ? LINK_DOMAINS : LINK_DOMAINS . '|' . implode('|', $link_extra_domains);
+  $link_allowed_domains = variable_get('link_allowed_domains', array());
+  return empty($link_allowed_domains) ? '[a-z][a-z0-9-]{1,62}' : implode('|', $link_allowed_domains);
 }
 
 /**

@@ -12,6 +12,7 @@ stylesheets[all][] = "css/jrccities_communities_requests.css"
 scripts[] = "js/jrccities_private_messages.js"
 scripts[] = "js/jrccities_dropdown_click.js"
 scripts[] = "js/jrccities_private_pdf_download_link.js"
+scripts[] = "js/jrccties_anchor.js"
 
 regions[header_top] = "Header Top"
 regions[header_right] = "Header Right"

@@ -93,6 +93,17 @@ function og_help($path, $arg) {
 function og_menu() {
   $items = array();
 
+  // Add a page to choose the related memebership type of the group.
+  $items['group/%/%/admin/og-membership'] = array(
+    'title' => 'OG Membership',
+    'description' => 'Related OG membership',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('_og_related_og_membership_form', 2),
+    'access callback' => 'og_ui_user_access_group',
+    'access arguments' => array('add user', 1, 2),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
   // Add our own autocomplete callback to pass also the group and
   // vocabulary info.
   $items['og/autocomplete/single/%/%/%/%'] = array(
@@ -112,6 +123,75 @@ function og_menu() {
 
   return $items;
 }
+
+/**
+ * Settings for the custom block.
+ *
+ * @param array $form
+ *   The form.
+ * @param array &$form_state
+ *   The form states.
+ *
+ * @return array
+ *   Returns the settings form.
+ */
+function _og_related_og_membership_form(array $form, array &$form_state, $gid) {
+  $form = array();
+
+  $membership_types = db_select('og_membership_type', 'om')
+                      ->fields('om', array('name','description'))
+                      ->execute()
+                      ->fetchAllKeyed(0,1);
+
+  $form['related_og_membership_type'] = array(
+    '#type' => 'select',
+    '#title' => t('Related OG membership type'),
+    '#options' => $membership_types,
+    '#default_value' => variable_get('og_membership_type_'.$gid),
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE,
+  );
+
+  $form['gid'] = array('#type' => 'value', '#value' => $gid);
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save'),
+  );
+
+  return $form;
+}
+
+/**
+ * Custom search block submit.
+ *
+ * @param array $form
+ *   The form.
+ * @param array &$form_state
+ *   The form states.
+ */
+function _og_related_og_membership_form_submit(array $form, array &$form_state) {
+  $gid = $form_state['values']['gid'];
+  variable_set('og_membership_type_'.$gid, $form_state['values']['related_og_membership_type']);
+}
+
+
+/**
+ * Implements hook_og_ui_get_group_admin().
+ */
+function og_og_ui_get_group_admin($group_type, $gid) {
+  $items = array();
+  if (og_user_access($group_type, $gid, 'update group')) {
+    $items['og_membership'] = array(
+      'title' => t('OG membership'),
+      'description' => t('Configure the related OG membership type.'),
+      'href' => 'admin/og-membership',
+    );
+  }
+  return $items;
+}
+
+
 
 /**
  * Implements hook_entity_info().
@@ -870,7 +950,7 @@ function og_entity_update($entity, $entity_type) {
   }
 
   list($id, , $bundle) = entity_extract_ids($entity_type, $entity);
-  if (!empty($entity->uid) && !og_is_member($entity_type, $entity, 'user', $entity->uid)) {
+  if (!empty($entity->uid) && !og_is_member($entity_type, $id, 'user', $entity->uid)) {
     // Subscribe the group manager, in case the owner changed.
     og_group($entity_type, $id, array('entity' => $entity->uid));
     // Assign roles to group manager.
@@ -1273,8 +1353,14 @@ function og_membership_create($group_type, $gid, $entity_type, $etid, $field_nam
   }
 
   // Get the type from the field.
-  $field = field_info_field($field_name);
-  $values['type'] = $field['settings']['handler_settings']['membership_type'];
+  $og_membership_type_id = variable_get('og_membership_type_'.$gid);
+  // Set the OG Membership type's ID to "Default", if it's not set yet.
+  if ($og_membership_type_id == '') {
+    $og_membership_type_id = 1;
+  }
+  $membership_type_entities = entity_load('og_membership_type', array($og_membership_type_id));
+  $membership_type_entity = array_pop($membership_type_entities);
+  $values['type'] = $membership_type_entity->name;
 
   $wrapper = entity_property_values_create_entity('og_membership', $values);
   return $wrapper->value();

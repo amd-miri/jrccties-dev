@@ -178,15 +178,6 @@ feature_sets[multisite_maxlength][font] = 'multisite-icon-keyboard'
 feature_sets[multisite_maxlength][enable][] = multisite_maxlength
 feature_sets[multisite_maxlength][disable][] = multisite_maxlength
 
-feature_sets[nexteuropa_notices][title] = 'Notices'
-feature_sets[nexteuropa_notices][description] = 'Allow web masters to create and manage notices on the web site.'
-feature_sets[nexteuropa_notices][documentation] = ''
-feature_sets[nexteuropa_notices][category] = 'Information to users'
-feature_sets[nexteuropa_notices][icon] = ''
-feature_sets[nexteuropa_notices][font] = 'multisite-icon-bubble2'
-feature_sets[nexteuropa_notices][enable][] = nexteuropa_notices
-feature_sets[nexteuropa_notices][disable][] = nexteuropa_notices
-
 feature_sets[nexteuropa_geofield][title] = 'GIS field'
 feature_sets[nexteuropa_geofield][description] = 'Allow web masters to manage geoJSON data in a field with an interactive map as widget.'
 feature_sets[nexteuropa_geofield][documentation] = 'https://webgate.ec.europa.eu/fpfis/wikis/display/MULTISITE/GIS+field+-+documentation'
@@ -252,15 +243,6 @@ feature_sets[ec_embedded_image][icon] = ''
 feature_sets[ec_embedded_image][font] = 'multisite-icon-embed-image'
 feature_sets[ec_embedded_image][enable][] = ec_embedded_image
 feature_sets[ec_embedded_image][disable][] = ec_embedded_image
-
-feature_sets[multisite_audio][title] = 'Audio'
-feature_sets[multisite_audio][description] = 'Attach audio files to nodes and reproduce playlists.'
-feature_sets[multisite_audio][documentation] = 'https://webgate.ec.europa.eu/fpfis/wikis/x/KpSvAw'
-feature_sets[multisite_audio][category] = 'Media'
-feature_sets[multisite_audio][icon] = ''
-feature_sets[multisite_audio][font] = 'multisite-icon-music'
-feature_sets[multisite_audio][enable][] = multisite_audio
-feature_sets[multisite_audio][disable][] = multisite_audio
 
 feature_sets[multisite_mediagallery_community][title] = 'Media Gallery'
 feature_sets[multisite_mediagallery_community][description] = 'Contributors can add picture galleries.'
