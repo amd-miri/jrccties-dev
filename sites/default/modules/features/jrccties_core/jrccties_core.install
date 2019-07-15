@@ -551,3 +551,23 @@ function jrccties_core_update_7023() {
     'multisite_audio',
   ), FALSE);
 }
+
+/**
+ * Move title from user to alumni_network.
+ */
+function jrccties_core_update_7024() {
+  $alumni_og_memberships = entity_load('og_membership', FALSE, array('type' => 'alumni_network', 'entity_type' => 'user'));
+  foreach ($alumni_og_memberships as $alumni_og_membership) {
+    // Get the related nationality value..
+    $profile = entity_load('user', FALSE, array(
+      'uid' => $alumni_og_membership->etid,
+    ));
+    $profile = reset($profile);
+    // Update the og_membership.
+    if (isset($profile->field_title) && !(empty($profile->field_title))) {
+      $alumni_og_membership->field_title = $profile->field_title;
+      // Save the data.
+      entity_save('og_membership', $alumni_og_membership);
+    }
+  }
+}

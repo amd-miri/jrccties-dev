@@ -22,6 +22,15 @@ function jrccties_core_form_user_profile_form_alter(&$form, &$form_state, $form_
 }
 
 /**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function jrccties_core_form_og_ui_confirm_subscribe_alter(&$form, &$form_state, $form_id) {
+  global $user;
+  $account = user_load($user->uid);
+  $form['field_title'][LANGUAGE_NONE]['#suffix'] = '<div class="realname">' . $account->realname . '</div>';
+}
+
+/**
  * Implements hook_og_features_default_roles_alter().
  */
 function jrccties_core_og_features_default_roles_alter(&$roles) {

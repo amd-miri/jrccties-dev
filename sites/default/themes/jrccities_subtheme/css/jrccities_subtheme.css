@@ -1312,3 +1312,13 @@ ol {
 .custom-og-membership #block-menu-menu-group-admin-tools-menu #export-member-profile {
   display: none;
 }
+
+#og-ui-confirm-subscribe #edit-field-title-und {
+  max-width: 100px;
+  float: left;
+  margin-right: 20px;
+}
+
+#og-ui-confirm-subscribe .realname {
+  padding-top: 7px;
+}
