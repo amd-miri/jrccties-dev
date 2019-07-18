@@ -564,7 +564,7 @@ function jrccties_core_update_7024() {
     ));
     $profile = reset($profile);
     // Update the og_membership.
-    if (isset($profile->field_title) && !(empty($profile->field_title))) {
+    if (isset($profile->field_title) && !(empty($profile->field_title)) && empty($alumni_og_membership->field_title)) {
       $alumni_og_membership->field_title = $profile->field_title;
       // Save the data.
       entity_save('og_membership', $alumni_og_membership);
