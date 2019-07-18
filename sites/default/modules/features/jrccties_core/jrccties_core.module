@@ -377,7 +377,10 @@ function jrccties_core_og_context_negotiation_info() {
 function jrccties_core_handler_ajax_request() {
   // Execute only on node/add pages when doing ajax calls.
   if (strpos(current_path(), 'file/ajax') === 0 && strpos($_SERVER['HTTP_REFERER'], 'node/add') !== FALSE) {
-    if (isset($_SESSION['og_context'])) {
+    if (isset($_SESSION['og_context']['group_type']) &&
+        !empty($_SESSION['og_context']['group_type'])&&
+        isset($_SESSION['og_context']['gid']) &&
+        !empty($_SESSION['og_context']['gid'])) {
       return array(
         $_SESSION['og_context']['group_type'] => array($_SESSION['og_context']['gid']),
       );
