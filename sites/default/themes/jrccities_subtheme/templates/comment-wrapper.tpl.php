@@ -35,7 +35,7 @@
  */
 ?>
 <div id="comments" class="<?php print $classes; ?>"<?php print $attributes; ?>>
-  <?php if ($content['comments']['#sorted']): ?>
+  <?php if (isset($content['comments']['#sorted'])): ?>
     <?php print render($title_prefix); ?>
     <h2 class="title"><?php print t('Comments'); ?></h2>
     <?php print render($title_suffix); ?>
