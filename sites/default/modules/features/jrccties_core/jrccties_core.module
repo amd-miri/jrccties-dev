@@ -462,3 +462,12 @@ function jrccties_core_url_outbound_alter(&$path, &$options, $original_path) {
       break;
   }
 }
+
+/**
+ * Implements hook_module_implements_alter().
+ */
+function jrccties_core_module_implements_alter(&$implementations, $hook) {
+  if ($hook == 'node_update') {
+    unset($implementations['communities']);
+  }
+}
