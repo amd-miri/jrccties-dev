@@ -383,24 +383,29 @@ function jrccties_core_og_context_negotiation_info() {
 /**
  * Context handler. Get groups from the page that initiated an Ajax request.
  *
+ * Works with:
+ * Media widget - requests starting with: media/ajax.
+ * Image widget - requests starting with: file/ajax.
+ * Add more button - requests starting with: system/ajax.
+ *
  * @return array
  *   The structured og context handler data.
  */
 function jrccties_core_handler_ajax_request() {
+  static $ajax_pattern = "/^(system|file|media)\/ajax.*$/";
+
   // Execute only on node/add pages when doing ajax calls.
-  // Works for media widget as well as for standard image widget.
-  if (strpos($_SERVER['HTTP_REFERER'], 'node/add') !== FALSE && (strpos(current_path(), 'file/ajax') === 0 || strpos(current_path(), 'media/ajax') === 0)) {
+  if (strpos($_SERVER['HTTP_REFERER'], 'node/add') !== FALSE && preg_match($ajax_pattern, current_path())) {
     if (!empty($_SESSION['og_context']['group_type']) && !empty($_SESSION['og_context']['gid'])) {
       return array(
         $_SESSION['og_context']['group_type'] => array($_SESSION['og_context']['gid']),
       );
     }
-    else {
-      $url = drupal_parse_url($_SERVER['HTTP_REFERER']);
-      return array(
-        'node' => array($url['query']['og_group_ref']),
-      );
-    }
+
+    $url = drupal_parse_url($_SERVER['HTTP_REFERER']);
+    return array(
+      'node' => array($url['query']['og_group_ref']),
+    );
   }
 }
 
