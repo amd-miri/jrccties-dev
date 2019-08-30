@@ -728,3 +728,10 @@ $conf['multisite_toolbox_cs_whitelist'] = array('*.europa.eu');
 define('FPFIS_ECAS_URL', 'ecas.ec.europa.eu');
 define('FPFIS_ECAS_PORT', 443);
 define('FPFIS_ECAS_URI', '/cas');
+
+$conf['error_level'] = 2;
+$conf['views_ui_show_sql_query'] = 1;
+$conf['views_ui_show_performance_statistics'] = 1;
+$conf['views_show_additional_queries'] = 1;
+
+$base_url = 'https://localhost/jrccties';
