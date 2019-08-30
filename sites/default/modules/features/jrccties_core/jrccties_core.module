@@ -223,7 +223,7 @@ function jrccties_core_form_node_form_alter(&$form, &$form_state, $form_id) {
   // Add a JS for users who leaves their edit page without saving.
   $form['#attributes']['class'][] = 'js-confirm-pop-up';
   $form['#attached']['js'] = array(
-    drupal_get_path('module', 'jrc_sh_core') . '/js/js_confirm_pop_up.js',
+    drupal_get_path('module', 'jrccties_core') . '/js/js_confirm_pop_up.js',
   );
 
   // Show the field_select_expertise only when it's not empty.

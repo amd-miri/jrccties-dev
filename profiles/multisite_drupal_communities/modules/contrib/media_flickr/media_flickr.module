@@ -116,9 +116,9 @@ function media_flickr_theme($existing, $type, $theme, $path) {
  * @return string
  *   The unique URI based on its stream wrapper, or NULL.
  */
-function media_flickr_media_parse($url, $options = array()) {
+function media_flickr_media_parse($url) {
   module_load_include('inc', 'media_flickr', 'includes/media_flickr.utilities');
-  return _media_flickr_media_parse($url, $options);
+  return _media_flickr_media_parse($url);
 }
 
 /**

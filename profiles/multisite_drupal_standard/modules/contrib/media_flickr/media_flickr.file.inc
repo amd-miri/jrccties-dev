@@ -21,6 +21,8 @@ function media_flickr_file_operations() {
 
 /**
  * Clear the cached Flickr content for the selected files.
+ *
+ * @param $fids array
  */
 function media_flickr_cache_clear($fids) {
   $fids = array_keys($fids);

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @file
  * Theme functions for the Media: Flickr module.
@@ -43,7 +44,7 @@ function media_flickr_preprocess_media_flickr_photoset(&$variables) {
 }
 
 function theme_media_flickr_embed($variables) {
-  if(isset($variables['preset']) && isset($variables['object'])){
+  if (isset($variables['preset']) && isset($variables['object'])) {
     //get preset information from the variables object
     $preset_name = $variables[(string)'preset'];
     $all_presets = $variables[(string)'presets'];
@@ -56,7 +57,6 @@ function theme_media_flickr_embed($variables) {
     $uri = $variables['uri'];
     $wrapper = file_stream_wrapper_get_instance_by_uri($uri);
     $parts = $wrapper->get_parameters();
-
     $width = $height = 0;
 
     foreach ($preset['effects'] as $effect) {

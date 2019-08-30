@@ -15,8 +15,8 @@ dependencies[] = media
 dependencies[] = media_internet
 php = 5.6
 
-; Information added by Drupal.org packaging script on 2019-06-04
-version = "7.x-1.4"
+; Information added by Drupal.org packaging script on 2019-07-18
+version = "7.x-1.5"
 core = "7.x"
 project = "media_avportal"
-datestamp = "1559652188"
+datestamp = "1563466693"

@@ -1,0 +1,63 @@
+<?php
+
+/**
+ * @file
+ * Media Flickr simpletest.
+ */
+
+/**
+ * Provides testing Media Flickr image handling.
+ */
+class MediaFlickrTestHelper extends MediaInternetTestHelper {
+  public function setUp() {
+    $modules = func_get_args();
+    if (isset($modules[0]) && is_array($modules[0])) {
+      $modules = $modules[0];
+    }
+    $modules[] = 'media_flickr';
+    parent::setUp($modules);
+  }
+}
+
+/**
+ * Class MediaInternetFlickrTestCase
+ * Basic media_flickr test case.
+ */
+class MediaInternetFlickrTestCase extends MediaFlickrTestHelper {
+  public static function getInfo() {
+    return array(
+      'name' => 'Flickr file handler provider',
+      'description' => 'Test the Flickr handler provider.',
+      'group' => 'Media Flickr',
+    );
+  }
+
+  /**
+   * Test setup. and user with right permission to run as test.
+   *
+   * @todo Flickr external API call should be replaced by a local mock response.
+   */
+  public function setUp() {
+    parent::setUp('media_flickr');
+    variable_del('file_private_path');
+    variable_set('media_flickr_api_key', '2e093d5b06aeeeefb593912a00ddd2ab');
+    variable_set('media_flickr_api_secret', '923fab0d41486668');
+
+    $web_user = $this->drupalCreateUser(array('view files', 'add media from remote sources', 'edit own image files'));
+    $this->drupalLogin($web_user);
+  }
+
+  /**
+   * Basic Flickr file handle test. Post a Flickr image to Drupal, load saved
+   * image and verify that image exist.
+   */
+  public function testFlickrFileHandling() {
+    $edit = array();
+    $edit['embed_code'] = 'https://www.flickr.com/photos/steinmb/3279274349/in/album-72157613786741477';
+    $this->drupalPost('file/add/web', $edit, t('Next'));
+    $fid = $this->getLastFileId();
+    $file = file_load($fid);
+    $this->assertTrue($file, t('File found in database.'));
+    $this->assertRaw(t('!type %name was uploaded.', array('!type' => 'Image', '%name' => $file->filename)), t('Image file uploaded.'));
+  }
+}

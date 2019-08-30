@@ -2601,9 +2601,12 @@ function node_feed($nids = FALSE, $channel = array()) {
     $account = user_load($node->uid);
     $node->rss_elements = array(
       array('key' => 'pubDate', 'value' => gmdate('r', $node->created)),
-      array('key' => 'dc:creator', 'value' => format_username($account)),
       array('key' => 'guid', 'value' => $node->nid . ' at ' . $base_url, 'attributes' => array('isPermaLink' => 'false'))
     );
+
+    if (variable_get('node_submitted_' . $node->type, TRUE)) {
+      $node->rss_elements[] = array('key' => 'dc:creator', 'value' => $node->name);
+    }
 
     // The node gets built and modules add to or modify $node->rss_elements
     // and $node->rss_namespaces.

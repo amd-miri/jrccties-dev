@@ -77,16 +77,29 @@ function drush_toolkit_check_modules_authorized_security($project_id = NULL) {
     else {
       $status = TRUE;
     }
+
+    // If modules defined in devel.make add to authorised modules list.
+    $develMakeFile = '../resources/devel.make';
+    $fpfisModules = array('gelf_log', 'redis', 'skippy_cookie');
+    $develModules = array();
+    if (file_exists($develMakeFile)) {
+      $devel = drupal_parse_info_file($develMakeFile);
+      if (isset($devel['projects'])) {
+        $develModules += array_keys($devel['projects']);
+      }
+    }
+    $allowedModules = array_merge($develModules, $fpfisModules);
+    $modulesName += $allowedModules;
   
     foreach ($d7ModulesList as $module) {
       // Get list of modules authorised for all projects.
-      if ($module['restricted_us'] == '0') {
+      if ($module['restricted_use'] == '0') {
         $modulesName[] = $module['name'];
         $modulesArray[] = $module;
       }
       // Get list of restricted modules.
-      if ($module['restricted_us'] != '0' && $module['restricted_us'] != '1') {
-        $restrictedByProject = explode(',', $module['restricted_us']);
+      if ($module['restricted_use'] != '0' && $module['restricted_use'] != '1') {
+        $restrictedByProject = explode(',', $module['restricted_use']);
   
         foreach ($restrictedByProject as $project) {
   
@@ -117,7 +130,7 @@ function drush_toolkit_check_modules_authorized_security($project_id = NULL) {
         $availableUpdates = update_get_available(TRUE);
         $moduleAvailableUpdates = update_calculate_project_data($availableUpdates);
   
-        if (isset($moduleAvailableUpdates[$moduleId]['security updates'])) {
+        if (isset($moduleAvailableUpdates[$moduleId]['security updates']) && !in_array($moduleId, $allowedModules)) {
           $modulePath = drupal_get_path('module', $moduleAvailableUpdates[$moduleId]['name']);
           drush_log('The module ' . $moduleAvailableUpdates[$moduleId]['name'] . ' with version ' . $moduleAvailableUpdates[$moduleId]['existing_version'] . ' has a security update! Update to ' . $moduleAvailableUpdates[$moduleId]['recommended'], LogLevel::ERROR);
         }
@@ -195,13 +208,13 @@ function drush_toolkit_check_modules_minimum_version($project_id = NULL) {
   
     // Get list of modules authorised for all projects.
     foreach ($d7ModulesList as $module) {
-      if ($module['restricted_us'] == '0') {
+      if ($module['restricted_use'] == '0') {
         $modulesName[] = $module['name'];
         $modulesArray[] = $module;
       }
       // Get list of restricted modules.
-      if ($module['restricted_us'] != '0' && $module['restricted_us'] != '1') {
-        $restrictedByProject = explode(',', $module['restricted_us']);
+      if ($module['restricted_use'] != '0' && $module['restricted_use'] != '1') {
+        $restrictedByProject = explode(',', $module['restricted_use']);
   
         foreach ($restrictedByProject as $project) {
   
@@ -301,35 +314,23 @@ function searchForVersion($moduleName, $modulesArray) {
 // Helper function to get the list of authorised modules.
 function getModulesList() {
   // Get list of authorised modules.
-  $url = 'https://raw.githubusercontent.com/ec-europa/qa-tests/components/module_list.json';
-  $github_api_token = getenv('GITHUB_API_TOKEN');
+  $url = 'https://webgate.ec.europa.eu/fpfis/qa/api/v1/package-reviews?version=7.x';
+  $curl = curl_init($url);
+  curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+  $result = curl_exec($curl);
 
-  if (!empty($github_api_token)) {
-    $request_headers = array(
-      'Authorization: token ' . $github_api_token
-    );
-  
-    $curl = curl_init($url);
-    curl_setopt($curl, CURLOPT_HTTPHEADER, $request_headers);
-    curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-    $result = curl_exec($curl);
-  
-    // If request did not fail.
-    if ($result !== false) {
-      // Request was ok? check response code.
-      $statusCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-      if ($statusCode == 200) {
-        $d7ModulesList = json_decode($result, true);
-      }
-      else {
-        drush_set_error(dt('Curl request failed with error code @statusCode.', array('@statusCode' => $statusCode)));
-      }
+  // If request did not fail.
+  if ($result !== false) {
+    // Request was ok? check response code.
+    $statusCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+    if ($statusCode == 200) {
+      $d7ModulesList = json_decode($result, true);
     }
-    return $d7ModulesList;
+    else {
+      drush_set_error(dt('Curl request failed with error code @statusCode.', array('@statusCode' => $statusCode)));
+    }
   }
-  else {
-    drush_log(dt('GITHUB_API_TOKEN not set. Not executing command.'), 'warning');
-  }
+  return $d7ModulesList;
 }
 
 // Helper function to discover all existing modules in project,

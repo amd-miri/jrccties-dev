@@ -327,13 +327,9 @@ function scheduler_workbench_node_presave($node) {
   $status = $node->status;
   // Let schedule_node_presave() run.
   scheduler_node_presave($node);
-  if (($state = variable_get('scheduler_publish_moderation_state_' . $node->type, FALSE)) &&
-    !empty($node->workbench_moderation['my_revision']) &&
-    $node->workbench_moderation['my_revision']->state == $state
-  ) {
-    // Set things back the way they were.
-    $node->status = $status;
-  }
+  // There is no reason to unpublish a node when scheduler
+  // is used in combination with workbench_moderation.
+  $node->status = $status;
 }
 
 /**
