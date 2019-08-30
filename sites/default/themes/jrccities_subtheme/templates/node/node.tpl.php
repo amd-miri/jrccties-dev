@@ -90,7 +90,7 @@
   <?php endif; ?>
   <?php print render($title_suffix); ?>
   <div class="content clearfix"<?php print $content_attributes; ?>>
-    <?php if ($prefix_display):?>
+    <?php if ($prefix_display): ?>
     <div class="node-private label label-default clearfix">
       <span class="glyphicon glyphicon-lock"></span>
       <?php print t('This content is private'); ?>
@@ -120,7 +120,7 @@
         </div>
       </div>
     </div>
-    <?php endif;?>
+    <?php endif; ?>
 
     <?php print render($content['comments']); ?>
 

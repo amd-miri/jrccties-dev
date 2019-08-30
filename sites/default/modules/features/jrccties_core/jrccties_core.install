@@ -67,7 +67,7 @@ function jrccties_core_update_7001() {
     'privatemsg_roles',
     'privatemsg_rules',
   ),
-  TRUE);
+    TRUE);
   if (module_exists('media_browser_plus')) {
     module_disable(array('media_browser_plus'), FALSE);
     drupal_uninstall_modules(array('media_browser_plus'));
@@ -103,7 +103,7 @@ function jrccties_core_update_7004() {
     'metatag_twitter_cards',
     'metatag_views',
   ),
-  TRUE);
+    TRUE);
 }
 
 /**
@@ -570,17 +570,5 @@ function jrccties_core_update_7024() {
       entity_save('og_membership', $alumni_og_membership);
     }
   }
-}
 
-/**
- * Delete jrc_sh_core module from system table.
- */
-function jrccties_core_update_7025() {
-  $modules = array(
-    'jrc_sh_core',
-  );
-  db_delete('system')
-    ->condition('name', $modules, 'IN')
-    ->condition('type', 'module')
-    ->execute();
 }

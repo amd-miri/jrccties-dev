@@ -199,27 +199,57 @@ function _media_flickr_photoset_exists($photoset_id) {
   }
 }
 
-function _media_flickr_get_user_id($user_id) {
-  $info = _media_flickr_sets_request('flickr.people.getInfo', array('user_id' => $user_id));
+/**
+ * Find Flickr user ID.
+ *
+ * @param array $parts
+ *
+ * @return string user NSID
+ *   Return Flickr NSID. If nothing found, returns FALSE.
+ */
+function _media_flickr_get_user_id($parts) {
+  $user_id = '';
 
-  if ($info && ($info['@attributes']['stat'] != 'fail')) {
-    return $user_id;
-  }
-  elseif (isset($info['err']) && $info['err']['@attributes']['code'] == 1) {
-    // See if we were passed a username instead.
-    $info = _media_flickr_sets_request('flickr.people.findByUsername', array('username' => $user_id));
-    if ($info && $info['@attributes']['stat'] != 'fail') {
-      return $info['user']['@attributes']['id'];
+  if (isset($parts['p'])) {
+    $media_id = $parts['p'];
+    $media_info = _media_flickr_sets_request(
+      'flickr.photos.getInfo',
+      [
+        'photo_id' => $media_id,
+      ]
+    );
+    if ($media_info['@attributes']['stat'] != 'fail') {
+      $user_id = $media_info['photo']['owner']['@attributes']['nsid'];
     }
   }
+
+  if (isset($parts['s'])) {
+    $media_id = $parts['s'];
+    $media_info = _media_flickr_sets_request('flickr.photosets.getInfo',
+      ['photoset_id' => $media_id]);
+    if ($media_info['@attributes']['stat'] != 'fail') {
+      $user_id = $media_info['photoset']['@attributes']['owner'];
+    }
+  }
+
+  return $user_id;
 }
 
+/**
+ * Build the streamwrapper URI if the remote media exists.
+
+ * @param array $parts
+ *
+ * @return string $uri
+ */
 function _media_flickr_build_uri($parts) {
-  if (isset($parts['u'])) {
-     $user_id = _media_flickr_get_user_id($parts['u']);
-     $parts['u'] = isset($user_id) ? $user_id : $parts['u'];
+  $user_id = _media_flickr_get_user_id($parts);
+
+  if ($user_id) {
+    $parts['u'] = isset($user_id) ? $user_id : $parts['u'];
   }
-  if (isset($parts['u'])) {
+
+  if ($parts['u']) {
     if (isset($parts['p'])) {
       $uri = file_stream_wrapper_uri_normalize('flickr://u/' . $parts['u'] . "/p/" . $parts['p']);
       if (_media_flickr_photo_exists($parts['p'])) {
@@ -233,6 +263,7 @@ function _media_flickr_build_uri($parts) {
       }
     }
   }
+
   if (isset($parts['search'])) {
     return file_stream_wrapper_uri_normalize('flickr://search/' . $parts['search']);
   }
@@ -243,18 +274,37 @@ function _media_flickr_build_uri($parts) {
  *
  * @param $url
  *   The original URL or embed code to parse.
- * @param array $options
  *
  * @return string
  *   The unique URI for the file, based on its stream wrapper, or NULL.
  */
-function _media_flickr_media_parse($url, $options = array()) {
+function _media_flickr_media_parse($url) {
+  // Flickr short form URL.
+  $patterns = array('@flic\.kr/(p|s)/([0-9A-Za-z]+)@i');
+  foreach ($patterns as $pattern) {
+    preg_match($pattern, $url, $matches);
+    if (isset($matches[1])) {
+      $long_id = _media_flickr_shorturl($matches[2]);
+      if ($long_id) {
+        if ($matches[1] == 'p') {
+          return _media_flickr_build_uri(array('p' => $long_id));
+        }
+        else {
+          return _media_flickr_build_uri(array('s' => $long_id));
+        }
+      }
+    }
+  }
+
   // The following are single images.
   $patterns = array(
     '@flickr\.com/photos/([0-9A-Za-z\@\&\$_-]+)/([0-9]+)/in/photostream@i',
     '@flickr\.com/photos/([0-9A-Za-z\@\&\$_-]+)/([0-9]+)/in/set-([0-9]+)@i',
+    '@flickr\.com/photos/([0-9A-Za-z\@\&\$_-]+)/([0-9]+)/in/faves-([0-9]+)@i',
     '@flickr\.com/photos/([0-9A-Za-z\@\&\$_-]+)/([0-9]+)/?$@i',
     '@flickr\.com/photos/([0-9A-Za-z\@\&\$_-]+)/([0-9]+)/in/pool-([0-9A-Za-z\@\&\$_-]+)@i',
+    '@flickr\.com/photos/([0-9A-Za-z\@\&\$_-]+)/([0-9]+)/in/explore-([0-9]+)@i',
+    '@flickr\.com/photos/([0-9A-Za-z\@\&\$_-]+)/([0-9]+)/in/album-([0-9]+)@i',
   );
   foreach ($patterns as $pattern) {
     preg_match($pattern, $url, $matches);
@@ -295,4 +345,29 @@ function _media_flickr_media_parse($url, $options = array()) {
       return _media_flickr_build_uri(array('search' => $matches[1]));
     }
   }
+}
+
+/**
+ * Convert Flickr short form ID to long form. Short form is a base58
+ * with a reduced alphabet.
+ *
+ * @param $num string
+ *   ID parsed from short URL form.
+ *
+ * @return int
+ *   Full media ID.
+ */
+function _media_flickr_shorturl($num) {
+  $alphabet = '123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ';
+  $decoded = 0;
+  $multi = 1;
+
+  while (strlen($num) > 0) {
+    $digit = $num[strlen($num)-1];
+    $decoded += $multi * strpos($alphabet, $digit);
+    $multi = $multi * strlen($alphabet);
+    $num = substr($num, 0, -1);
+  }
+
+  return $decoded;
 }

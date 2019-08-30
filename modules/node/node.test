@@ -985,6 +985,33 @@ class NodeRSSContentTestCase extends DrupalWebTestCase {
 }
 
 /**
+ * Test the display of post settings in RSS feeds.
+ */
+function testNodeRSSPostInfo() {
+  // Create a node.
+  $node = $this->drupalCreateNode(array('type' => 'article', 'promote' => 1));
+
+  // Display the post information.
+  variable_set('node_submitted_' . $node->type, TRUE);
+
+  $this->drupalGet('rss.xml');
+
+  // Check that the author's name appears.
+  $user = user_load($node->uid);
+  $this->assertText($user->name, t('Node author appears in RSS feed when post information is set to be displayed.'));
+
+  // Set the post information to not be displayed.
+  variable_set('node_submitted_' . $node->type, FALSE);
+  cache_clear_all();
+  $this->drupalGet('rss.xml');
+
+  // Check that the author's name does not appear.
+  $user = user_load($node->uid);
+  $this->assertNoText($user->name, t('Node author does not appear in RSS feed when post information is set to not be displayed.'));
+
+}
+
+/**
  * Tests basic node_access functionality.
  *
  * Note that hook_node_access_records() is covered in another test class.

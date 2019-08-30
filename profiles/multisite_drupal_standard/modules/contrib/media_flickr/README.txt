@@ -12,7 +12,8 @@ INTRODUCTION
 
 Current Maintainers:
 
- * Devin Carlson <http://drupal.org/user/290182>
+ * Devin Carlson <https://drupal.org/user/290182>
+ * steinmb <https://www.drupal.org/user/74669>
 
 Media: Flickr adds Flickr as a supported media provider.
 

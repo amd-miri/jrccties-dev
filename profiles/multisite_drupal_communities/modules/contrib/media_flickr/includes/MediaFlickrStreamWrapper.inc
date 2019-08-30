@@ -35,7 +35,7 @@ class MediaFlickrStreamWrapper extends MediaReadOnlyStreamWrapper {
   /**
    * Get the url of the original image.
    */
-  function getExternalUrl($suffixed = '0') {
+  function getExternalUrl() {
     // Look for Photosets & searches.
     if (!isset($this->parameters['p'])) {
       if (isset($this->parameters['search']) || (isset($this->parameters['s']) && $this->parameters['s'])) {
@@ -47,18 +47,10 @@ class MediaFlickrStreamWrapper extends MediaReadOnlyStreamWrapper {
 
     // Return the direct image.
     $url =  media_flickr_image_url($this->parameters['p']);
-        if ($suffixed == '1') {
-        $url = preg_replace('/(\.gif|\.jpg|\.png)/', '_q$1', $url);
-        }
     return $url;
   }
-  
   function getOriginalThumbnailPath() {
     return $this->getExternalUrl();
-  }
-
-  function getRemoteSuffixedThumbnailPath() {
-    return $this->getExternalUrl($suffixed = '1');
   }
 
   function getLocalThumbnailPath() {

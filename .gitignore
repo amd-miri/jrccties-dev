@@ -2,8 +2,8 @@
 sites/*/settings*.php
 
 # Ignore paths that contain user-generated content.
-sites/default/files
-sites/default/private_files
+sites/*/files
+sites/*/private
 
 # Ignore tmp folder
 sites/default/tmp
