@@ -7,6 +7,196 @@
 
 define('JRCCTIES_CORE_OG_ENTITYFORM_AUDIENCE_FIELD', 'og_group_ref');
 
+
+/**
+ * Gets subscribed users.
+ *
+ * @return array
+ *   An array of user ids that have subscribed to the weekly newsletter.
+ */
+function _jrccties_core_get_subscribed_users() {
+  // Gets all ids that have subscribed and the timestamp is older than a week.
+  $query= db_select('field_data_field_newsletter_subscribe', 'fdfns');
+  $query->leftJoin('og_membership', 'og', 'fdfns.entity_id = og.id');
+  $query->leftJoin('field_data_field_newsletter_timestamp', 'fdfnt', 'og.etid = fdfnt.entity_id');
+  $query->addField('og','etid');
+  $query
+    ->condition('fdfns.field_newsletter_subscribe_value', 1 )
+    ->condition('fdfnt.field_newsletter_timestamp_value', strtotime('-1 minute') , '<')
+    ->groupBy('etid');
+  return $query->execute()->fetchCol(0);
+}
+
+/**
+ * Gets list of communities that have subscriptions.
+ * @param array $uids
+ *   Array of user ids.
+ *
+ * @return mixed
+ *   Array of nids that are the community nodes.
+ */
+function _jrccties_core_get_subscribed_communities($uids) {
+  $query = db_select('og_membership', 'om')
+    ->fields('om', array('gid'))
+    ->condition('om.type', array('alumni_network', 'enlightenment', 'bioeconomy'), 'IN')
+    ->condition('om.entity_type', 'user')
+    ->condition('om.etid', $uids, 'IN')
+    ->groupBy('gid');
+
+  return $query->execute()->fetchCol(0);
+}
+
+/**
+ * Gets latest content for given communities.
+ * @param $gids
+ *
+ * @return array
+ */
+function _jrccties_core_generate_latest_content($gids) {
+  // Generate latest content per community and store in an array.
+  $latest_content = array();
+  static $link_options = array('absolute' => TRUE);
+  foreach ($gids as $gid) {
+    $query = db_select('node', 'n')
+      ->fields('n', array('title', 'nid', 'created', 'type'));
+    $query->leftJoin('og_membership', 'ogm', "n.nid = ogm.etid AND ogm.entity_type = 'node'");
+    $query->condition('ogm.gid', $gid)
+      ->condition('n.status', 1)
+      ->condition('n.type', array('jrc_com_article', 'audio', 'page', 'discussion', 'document', 'event', 'news', 'photo', 'video_page'), 'IN')
+      ->condition('n.created', strtotime('-3 month') , '>')
+      ->orderBy('n.created', 'DESC');
+    $results = $query->execute()->fetchAll();
+
+    foreach ($results as $result) {
+      if (!isset($latest_content[$gid]['title'])) {
+        $group_node = node_load($gid);
+        $latest_content[$gid]['title'] = l($group_node->title, url("node/$gid"), $link_options);
+      }
+      $latest_content[$gid]['links'][] = l($result->title, url("node/$result->nid"), $link_options);
+    }
+  }
+  return $latest_content;
+}
+
+function _jrccties_core_get_groups_per_user($uid) {
+  $query = db_select('og_membership', 'ogm')
+    ->fields('ogm', array('gid'))
+    ->condition('ogm.etid', $uid)
+    ->condition('ogm.type', array('alumni_network', 'enlightenment', 'bioeconomy'), 'IN')
+    ->condition('ogm.entity_type', 'user');
+  return $query->execute()->fetchCol(0);
+}
+
+function _jrccties_core_get_user_mail_by_uid($uid) {
+  $query = db_select('users','u')
+    ->fields('u', array('mail'))
+    ->condition('uid', $uid)
+    ->execute()
+    ->fetchField();
+  return $query;
+}
+
+function _jrccties_core_generate_weekly_mails() {
+
+  $subscribed_users = _jrccties_core_get_subscribed_users();
+  $subscribed_communities = _jrccties_core_get_subscribed_communities($subscribed_users);
+  $latest_content = _jrccties_core_generate_latest_content($subscribed_communities);
+
+  foreach ($subscribed_users as $uid) {
+    $content_per_user = array();
+    $communities_per_user = _jrccties_core_get_groups_per_user($uid);
+    foreach($communities_per_user as $gid) {
+      $content_per_user[] = $latest_content[$gid];
+    }
+
+    $email_body = theme('newsletter_digest', array(
+      'user' => null,
+      'content_per_user' => $content_per_user
+    ));
+
+    $module = 'jrccties_core';
+    $key = 'newsletter_digest';
+    $to = _jrccties_core_get_user_mail_by_uid($uid);
+
+    $params = array(
+      'subject' => t('Weekly Newsletter'),
+      'body' => $email_body,
+    );
+    
+    $mail = drupal_mail($module, $key, $to, language_default(), $params, NULL, TRUE);
+    if (!$mail['result']) {
+      $error_msg = 'Failed to send Weekly Newsletter';
+      watchdog('jrccties_core', $error_msg, array(), WATCHDOG_ALERT);
+    }
+  }
+}
+
+/**
+ * Implements hook_init().
+ */
+function jrccties_core_init() {
+  // return;
+  _jrccties_core_generate_weekly_mails();
+}
+
+/**
+ * Implements hook_mail()
+ */
+function jrccties_core_mail($key, &$message, $params) {
+  switch($key) {
+    case "newsletter_digest" :
+      // $message['headers']['Content-Type'] = 'text/html; charset=UTF-8; format=flowed';
+      $message['subject'] = $params['subject'];
+      $message['body'][] =  $params['body'];
+      break;
+  }
+}
+
+/**
+ * Implements hook_theme();
+ */
+function jrccties_core_theme($existing, $type, $theme, $path) {
+  if ($type == 'module') {
+    return array(
+      'newsletter_digest' => array(
+        'variables' => array(
+//          'user' => NULL,
+//          'content_per_user' => NULL,
+        ),
+        'template' => 'newsletter-digest',
+        'path' => drupal_get_path('module', 'jrccties_core') . '/theme',
+      ),
+
+    );
+  }
+}
+
+/**
+ * Implements hook_og_membership_presave().
+ */
+function jrccties_core_og_membership_presave(OgMembership $og_membership) {
+  global $user;
+
+  $membership_types = array(
+    'alumni_network',
+    'bioeconomy',
+    'enlightenment',
+  );
+
+  if (in_array($og_membership->type, $membership_types)) {
+    $account = user_load($user->uid);
+    $account->field_newsletter_timestamp[LANGUAGE_NONE][0]['value'] = $og_membership->created;
+    user_save($account);
+  }
+}
+
+/**
+ * Implements hook_cron().
+ */
+function jrccties_core_cron() {
+
+}
+
 /**
  * Implements hook_form_FORM_ID_alter().
  */
