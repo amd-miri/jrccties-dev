@@ -462,7 +462,7 @@ function jrccties_core_url_outbound_alter(&$path, &$options, $original_path) {
   // Always make login links go back to the current page.
   switch ($path) {
     case 'ecas':
-      if (current_path() != 'ecas') {
+      if (current_path() != 'ecas' AND current_path() != 'user/login') {
         $options['query']['destination'] = current_path();
       }
       break;
