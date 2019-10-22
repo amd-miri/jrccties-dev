@@ -12,7 +12,7 @@
     "karma-phantomjs-launcher": "^0.1.4",
     "leaflet": "~0.7.0",
     "mocha": "~1.14.0",
-    "uglify-js": "~2.4.3"
+    "uglify-js": "~3.6.3"
   },
   "main": "dist/leaflet.draw.js",
   "directories": {
