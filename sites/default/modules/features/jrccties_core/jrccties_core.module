@@ -71,6 +71,7 @@ function _jrccties_core_generate_latest_content($gids) {
       if (!isset($latest_content[$gid]['title'])) {
         $group_node = node_load($gid);
         $latest_content[$gid]['title'] = l($group_node->title, url("node/$gid"), $link_options);
+        $latest_content[$gid]['logo'] = theme('image_style', array('style_name' => 'media_thumbnail', 'path' => $group_node->field_thumbnail[LANGUAGE_NONE][0]['uri']));
       }
       $latest_content[$gid]['links'][] = l($result->title, url("node/$result->nid"), $link_options);
     }
@@ -78,6 +79,15 @@ function _jrccties_core_generate_latest_content($gids) {
   return $latest_content;
 }
 
+/**
+ * Gets list of groups per user.
+ *
+ * @param int $uid
+ *   The user id.
+ *
+ * @return mixed
+ *   An array of group ids.
+ */
 function _jrccties_core_get_groups_per_user($uid) {
   $query = db_select('og_membership', 'ogm')
     ->fields('ogm', array('gid'))
@@ -87,6 +97,15 @@ function _jrccties_core_get_groups_per_user($uid) {
   return $query->execute()->fetchCol(0);
 }
 
+/**
+ * Gets user mail by user id.
+ *
+ * @param int $uid
+ *   The user id.
+ *
+ * @return string
+ *   The email of the user.
+ */
 function _jrccties_core_get_user_mail_by_uid($uid) {
   $query = db_select('users','u')
     ->fields('u', array('mail'))
@@ -96,6 +115,9 @@ function _jrccties_core_get_user_mail_by_uid($uid) {
   return $query;
 }
 
+/**
+ * Generates weekly mails.
+ */
 function _jrccties_core_generate_weekly_mails() {
 
   $subscribed_users = _jrccties_core_get_subscribed_users();
@@ -109,8 +131,10 @@ function _jrccties_core_generate_weekly_mails() {
       $content_per_user[] = $latest_content[$gid];
     }
 
+    $account = user_load($uid);
+
     $email_body = theme('newsletter_digest', array(
-      'user' => null,
+      'realname' => $account->realname,
       'content_per_user' => $content_per_user
     ));
 
@@ -160,8 +184,6 @@ function jrccties_core_theme($existing, $type, $theme, $path) {
     return array(
       'newsletter_digest' => array(
         'variables' => array(
-//          'user' => NULL,
-//          'content_per_user' => NULL,
         ),
         'template' => 'newsletter-digest',
         'path' => drupal_get_path('module', 'jrccties_core') . '/theme',
