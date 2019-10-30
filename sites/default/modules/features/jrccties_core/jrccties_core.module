@@ -160,7 +160,7 @@ function _jrccties_core_generate_weekly_mails() {
  */
 function jrccties_core_init() {
   // return;
-  _jrccties_core_generate_weekly_mails();
+  // _jrccties_core_generate_weekly_mails();
 }
 
 /**
@@ -723,7 +723,79 @@ function jrccties_core_menu() {
     'access arguments' => array('administer site configuration'),
     'type' => MENU_CALLBACK,
   );
+
+  $items['user/newsletter'] = array(
+    'title' => 'Newsletter subscription',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('jrccties_core_newsletter_subscription_form'),
+    'access arguments' => array('administer site configuration'),
+  );
   return $items;
+}
+
+/**
+ * Implements hook_form().
+ */
+function jrccties_core_newsletter_subscription_form($form, &$form_state) {
+  global $user;
+  static $newsletter_communities = array(
+    'bioeconomy',
+    'enlightenment',
+    'alumni_network',
+  );
+  $query = db_select('og_membership', 'ogm')
+    ->fields('ogm' , array('gid', 'id'));
+  $query->innerJoin('node', 'n', 'n.nid = ogm.gid');
+  $query->addField('n', 'title');
+  $query->condition('ogm.etid', $user->uid)
+    ->condition('ogm.entity_type', 'user')
+    ->condition('ogm.type', $newsletter_communities, 'IN');
+  $results = $query->execute()->fetchAll();
+
+  $options = array();
+  foreach ($results as $result) {
+    $options[$result->id] = $result->title;
+  }
+
+  $query_default_values = db_select('field_data_field_newsletter_subscribe', 'fdfns')
+    ->fields('fdfns', array('entity_id'))
+    ->condition('fdfns.entity_id', array_keys($options), 'IN')
+    ->condition('fdfns.field_newsletter_subscribe_value', 1)
+    ->execute()->fetchCol(0);
+
+  $form['newsletter_subscription'] = array(
+    '#type' => 'checkboxes',
+    '#options' => $options,
+    '#default_value' => $query_default_values,
+    '#title' => t('For which communities do you want to receive latest content?'),
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Click Here!'),
+  );
+  return $form;
+}
+
+/**
+ * Implements hook_form().
+ */
+function jrccties_core_newsletter_subscription_form_submit($form, &$form_state) {
+
+  $results = $form_state['values']['newsletter_subscription'];
+
+
+  foreach ($results as $key => $value) {
+    $membership = og_membership_load($key);
+    $t = 0;
+    if ($value != 0) {
+      $t = 1;
+    }
+    $membership->field_newsletter_subscribe[LANGUAGE_NONE][0]['value'] = $t;
+    og_membership_save($membership);
+  }
+
+  $form_state['redirect'] = false;
 }
 
 /**
