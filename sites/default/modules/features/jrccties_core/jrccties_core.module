@@ -146,7 +146,7 @@ function _jrccties_core_generate_weekly_mails() {
       'subject' => t('Weekly Newsletter'),
       'body' => $email_body,
     );
-    
+
     $mail = drupal_mail($module, $key, $to, language_default(), $params, NULL, TRUE);
     if (!$mail['result']) {
       $error_msg = 'Failed to send Weekly Newsletter';
@@ -674,7 +674,7 @@ function jrccties_core_url_outbound_alter(&$path, &$options, $original_path) {
   // Always make login links go back to the current page.
   switch ($path) {
     case 'ecas':
-      if (current_path() != 'ecas') {
+      if (current_path() != 'ecas' && current_path() != 'user/login') {
         $options['query']['destination'] = current_path();
       }
       break;
@@ -688,4 +688,102 @@ function jrccties_core_module_implements_alter(&$implementations, $hook) {
   if ($hook == 'node_update') {
     unset($implementations['communities']);
   }
+}
+
+/**
+ * Implements hook_admin_paths().
+ */
+function jrccties_core_admin_paths() {
+  $paths = array(
+    'community/*/content' => TRUE,
+    'community/*/articles' => TRUE,
+    'community/*/events' => TRUE,
+    'community/*/past-events' => TRUE,
+    'community/*/upcoming-events' => TRUE,
+    'community/*/news' => TRUE,
+    'community/*/forum' => TRUE,
+    'community/*/files' => TRUE,
+    'community/*/comments' => TRUE,
+    'community/*/polls' => TRUE,
+    'community/*/library/documents' => TRUE,
+    'community/*/library/audios' => TRUE,
+    'community/*/library/photos' => TRUE,
+    'community/*/library/videos' => TRUE,
+  );
+  return $paths;
+}
+
+/**
+ * Implements hook_menu().
+ */
+function jrccties_core_menu() {
+  $items['admin/linkchecker/csvexport'] = array(
+    'title' => 'Linkchecker',
+    'page callback' => 'jrccties_core_linchecker_csv_export',
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_CALLBACK,
+  );
+  return $items;
+}
+
+/**
+ * Generates Linkchecker CSV.
+ */
+function jrccties_core_linchecker_csv_export() {
+
+  // Using db_query is the preferred way here, for easier maintenance.
+  $sql = "
+      SELECT
+        ll.lid AS LinkcheckerID,
+        n2.nid AS CommunityID,
+        n2.title AS CommunityTitle,
+        n.nid AS NodeID,
+        n.vid as RevisionID,
+        CONCAT('https://ec.europa.eu/jrc/communities/en/node/',ln.nid ) AS Page,
+        ll.url AS BrokenLink,
+        ll.code AS ErrorCode,
+        ll.error AS ErrorMessage,
+        ll.fail_count AS FailCount,
+        from_unixtime(ll.last_checked) AS LastCheckedDate,
+        u.uid AS UserID,
+        r.realname AS UserName,
+        u.mail AS UserMail,
+        fc.field_creator_value AS Unit
+      FROM linkchecker_link AS ll
+             INNER JOIN linkchecker_node AS ln ON ll.lid = ln.lid
+             INNER JOIN node AS n ON ln.nid = n.nid
+             INNER JOIN node_revision AS nr ON n.nid = nr.nid
+             INNER JOIN users AS u ON nr.uid = u.uid
+             INNER JOIN field_data_field_creator AS fc ON u.uid = fc.entity_id
+             INNER JOIN realname AS r ON u.uid = r.uid
+             INNER JOIN og_membership as ogm on n.nid = ogm.etid
+             INNER JOIN node as n2 on n2.nid = ogm.gid
+      WHERE n.vid = nr.vid
+      AND ogm.entity_type = 'node'";
+
+  $results = db_query($sql)->fetchAll();
+
+  if ($results) {
+    // Adds necessary headers for browsers.
+    drupal_add_http_header('Content-Type', 'text/csv; utf-8');
+    drupal_add_http_header('Content-Disposition', 'attachment; filename = linkchecker.csv');
+
+    // Instead of writing down to a file we write to the output stream.
+    $fh = fopen('php://output', 'w');
+
+    // Since fetchAll() returns an array of StdObjects, this line is
+    // generating the headers, from the QueryKeys, so if the query is updated,
+    // the other structures will be generated automatically.
+    $header_values = array_keys(get_object_vars(reset($results)));
+
+    // Generate headers.
+    fputcsv($fh, $header_values);
+
+    // Write data in the CSV format.
+    foreach ($results as $result) {
+      fputcsv($fh, get_object_vars($result));
+    }
+    fclose($fh);
+  }
+
 }
