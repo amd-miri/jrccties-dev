@@ -484,19 +484,8 @@ function jrccties_core_module_implements_alter(&$implementations, $hook) {
 function jrccties_core_admin_paths() {
   $paths = array(
     'community/*/content' => TRUE,
-    'community/*/articles' => TRUE,
-    'community/*/events' => TRUE,
-    'community/*/past-events' => TRUE,
-    'community/*/upcoming-events' => TRUE,
-    'community/*/news' => TRUE,
-    'community/*/forum' => TRUE,
     'community/*/files' => TRUE,
     'community/*/comments' => TRUE,
-    'community/*/polls' => TRUE,
-    'community/*/library/documents' => TRUE,
-    'community/*/library/audios' => TRUE,
-    'community/*/library/photos' => TRUE,
-    'community/*/library/videos' => TRUE,
   );
   return $paths;
 }
