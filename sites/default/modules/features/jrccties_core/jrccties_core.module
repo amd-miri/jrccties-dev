@@ -38,9 +38,11 @@ function _jrccties_core_get_subscribed_users() {
 function _jrccties_core_get_subscribed_communities($uids) {
   $query = db_select('og_membership', 'om')
     ->fields('om', array('gid'))
-    ->condition('om.type', array('alumni_network', 'enlightenment', 'bioeconomy'), 'IN')
-    ->condition('om.entity_type', 'user')
+    ->condition('om.type', array('alumni_network', 'enlightenment', 'bioeconomy'), 'IN');
+  $query->leftJoin('field_data_field_newsletter_subscribe', 'fdfns', 'om.id = fdfns.entity_id');
+  $query->condition('om.entity_type', 'user')
     ->condition('om.etid', $uids, 'IN')
+    ->condition('fdfns.field_newsletter_subscribe_value', 1)
     ->groupBy('gid');
 
   return $query->execute()->fetchCol(0);
@@ -121,6 +123,9 @@ function _jrccties_core_get_user_mail_by_uid($uid) {
 function _jrccties_core_generate_weekly_mails() {
 
   $subscribed_users = _jrccties_core_get_subscribed_users();
+  if (!$subscribed_users) {
+    return;
+  }
   $subscribed_communities = _jrccties_core_get_subscribed_communities($subscribed_users);
   $latest_content = _jrccties_core_generate_latest_content($subscribed_communities);
 
@@ -128,14 +133,17 @@ function _jrccties_core_generate_weekly_mails() {
     $content_per_user = array();
     $communities_per_user = _jrccties_core_get_groups_per_user($uid);
     foreach($communities_per_user as $gid) {
-      $content_per_user[] = $latest_content[$gid];
+      if (isset($latest_content[$gid])) {
+        $content_per_user[] = $latest_content[$gid];
+      }
     }
 
     $account = user_load($uid);
 
     $email_body = theme('newsletter_digest', array(
       'realname' => $account->realname,
-      'content_per_user' => $content_per_user
+      'content_per_user' => $content_per_user,
+      'unsubscribe_link' => l(t('click here'), 'newsletter')
     ));
 
     $module = 'jrccties_core';
@@ -160,7 +168,7 @@ function _jrccties_core_generate_weekly_mails() {
  */
 function jrccties_core_init() {
   // return;
-  // _jrccties_core_generate_weekly_mails();
+   _jrccties_core_generate_weekly_mails();
 }
 
 /**
@@ -169,7 +177,6 @@ function jrccties_core_init() {
 function jrccties_core_mail($key, &$message, $params) {
   switch($key) {
     case "newsletter_digest" :
-      // $message['headers']['Content-Type'] = 'text/html; charset=UTF-8; format=flowed';
       $message['subject'] = $params['subject'];
       $message['body'][] =  $params['body'];
       break;
@@ -216,7 +223,7 @@ function jrccties_core_og_membership_presave(OgMembership $og_membership) {
  * Implements hook_cron().
  */
 function jrccties_core_cron() {
-
+  _jrccties_core_generate_weekly_mails();
 }
 
 /**
@@ -724,7 +731,7 @@ function jrccties_core_menu() {
     'type' => MENU_CALLBACK,
   );
 
-  $items['user/newsletter'] = array(
+  $items['newsletter'] = array(
     'title' => 'Newsletter subscription',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('jrccties_core_newsletter_subscription_form'),
@@ -774,6 +781,7 @@ function jrccties_core_newsletter_subscription_form($form, &$form_state) {
     '#type' => 'submit',
     '#value' => t('Click Here!'),
   );
+  $form['#redirect'] = false;
   return $form;
 }
 
@@ -781,21 +789,15 @@ function jrccties_core_newsletter_subscription_form($form, &$form_state) {
  * Implements hook_form().
  */
 function jrccties_core_newsletter_subscription_form_submit($form, &$form_state) {
-
   $results = $form_state['values']['newsletter_subscription'];
-
-
   foreach ($results as $key => $value) {
     $membership = og_membership_load($key);
-    $t = 0;
     if ($value != 0) {
-      $t = 1;
+      $value = 1;
     }
-    $membership->field_newsletter_subscribe[LANGUAGE_NONE][0]['value'] = $t;
+    $membership->field_newsletter_subscribe[LANGUAGE_NONE][0]['value'] = $value;
     og_membership_save($membership);
   }
-
-  $form_state['redirect'] = false;
 }
 
 /**

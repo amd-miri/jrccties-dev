@@ -1,0 +1,41 @@
+.newsletter-body {
+  font-size: 1em;
+  line-height: 1.30em;
+  width: 80%;
+  background: gray;
+  text-center: align;
+}
+
+.newsletter-body a {
+  color: #0065A2;
+}
+
+.newsletter-body .newsletter-community {
+  background: white;
+  width: 100%;
+  position: relative;
+
+}
+.newsletter-body .newsletter-community-left {
+  display: table-cell;
+  background: blue;
+}
+
+.newsletter-body .newsletter-community-right {
+  background: red;
+  display: table-cell;
+  max-width: 200px;
+
+
+}
+.newsletter-body .newsletter-community-logo {
+
+}
+
+.newsletter-body .newsletter-community-title {
+
+}
+
+.newsletter-body .newsletter-community-content {
+  float: right;
+}
