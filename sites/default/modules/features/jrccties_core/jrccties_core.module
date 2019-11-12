@@ -57,7 +57,12 @@ function _jrccties_core_get_subscribed_communities($uids) {
 function _jrccties_core_generate_latest_content($gids) {
   // Generate latest content per community and store in an array.
   $latest_content = array();
-  static $link_options = array('absolute' => TRUE);
+  $link_options = array(
+    'absolute' => TRUE,
+    'attributes' => array(
+      'class' => 'newsletter-link'
+    ),
+  );
   foreach ($gids as $gid) {
     $query = db_select('node', 'n')
       ->fields('n', array('title', 'nid', 'created', 'type'));
@@ -69,13 +74,20 @@ function _jrccties_core_generate_latest_content($gids) {
       ->orderBy('n.created', 'DESC');
     $results = $query->execute()->fetchAll();
 
+    $i = 0;
     foreach ($results as $result) {
+
       if (!isset($latest_content[$gid]['title'])) {
         $group_node = node_load($gid);
         $latest_content[$gid]['title'] = l($group_node->title, url("node/$gid"), $link_options);
         $latest_content[$gid]['logo'] = theme('image_style', array('style_name' => 'media_thumbnail', 'path' => $group_node->field_thumbnail[LANGUAGE_NONE][0]['uri']));
       }
       $latest_content[$gid]['links'][] = l($result->title, url("node/$result->nid"), $link_options);
+
+      $i++;
+      if ($i == 5) {
+        break;
+      }
     }
   }
   return $latest_content;
