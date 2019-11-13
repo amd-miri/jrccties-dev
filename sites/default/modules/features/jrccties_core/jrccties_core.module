@@ -212,13 +212,6 @@ function _jrccties_core_generate_weekly_mails() {
 }
 
 /**
- * Implements hook_init().
- */
-function jrccties_core_init() {
-  _jrccties_core_generate_weekly_mails();
-}
-
-/**
  * Implements hook_mail().
  */
 function jrccties_core_mail($key, &$message, $params) {
