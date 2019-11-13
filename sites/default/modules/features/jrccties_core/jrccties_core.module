@@ -7,6 +7,15 @@
 
 define('JRCCTIES_CORE_OG_ENTITYFORM_AUDIENCE_FIELD', 'og_group_ref');
 
+/**
+ * JRCCTIES_CORE_NEWSLETTER_PERIOD constant.
+ */
+define('JRCCTIES_CORE_NEWSLETTER_PERIOD', '-1 month');
+
+/**
+ * JRCCTIES_CORE_NEWSLETTER_TIMESTAMP_INCREASE constant.
+ */
+define('JRCCTIES_CORE_NEWSLETTER_TIMESTAMP_INCREASE', '1 month');
 
 /**
  * Gets subscribed users.
@@ -16,29 +25,34 @@ define('JRCCTIES_CORE_OG_ENTITYFORM_AUDIENCE_FIELD', 'og_group_ref');
  */
 function _jrccties_core_get_subscribed_users() {
   // Gets all ids that have subscribed and the timestamp is older than a week.
-  $query= db_select('field_data_field_newsletter_subscribe', 'fdfns');
+  $query = db_select('field_data_field_newsletter_subscribe', 'fdfns');
   $query->leftJoin('og_membership', 'og', 'fdfns.entity_id = og.id');
   $query->leftJoin('field_data_field_newsletter_timestamp', 'fdfnt', 'og.etid = fdfnt.entity_id');
-  $query->addField('og','etid');
+  $query->addField('og', 'etid');
   $query
-    ->condition('fdfns.field_newsletter_subscribe_value', 1 )
-    ->condition('fdfnt.field_newsletter_timestamp_value', strtotime('-1 minute') , '<')
+    ->condition('fdfns.field_newsletter_subscribe_value', 1)
+    ->condition('fdfnt.field_newsletter_timestamp_value', strtotime(JRCCTIES_CORE_NEWSLETTER_PERIOD), '<')
     ->groupBy('etid');
   return $query->execute()->fetchCol(0);
 }
 
 /**
  * Gets list of communities that have subscriptions.
+ *
  * @param array $uids
  *   Array of user ids.
  *
  * @return mixed
  *   Array of nids that are the community nodes.
  */
-function _jrccties_core_get_subscribed_communities($uids) {
+function _jrccties_core_get_subscribed_communities(array $uids) {
   $query = db_select('og_membership', 'om')
     ->fields('om', array('gid'))
-    ->condition('om.type', array('alumni_network', 'enlightenment', 'bioeconomy'), 'IN');
+    ->condition('om.type', array(
+      'alumni_network',
+      'enlightenment',
+      'bioeconomy',
+    ), 'IN');
   $query->leftJoin('field_data_field_newsletter_subscribe', 'fdfns', 'om.id = fdfns.entity_id');
   $query->condition('om.entity_type', 'user')
     ->condition('om.etid', $uids, 'IN')
@@ -50,17 +64,20 @@ function _jrccties_core_get_subscribed_communities($uids) {
 
 /**
  * Gets latest content for given communities.
- * @param $gids
+ *
+ * @param array $gids
+ *   Array of group ids.
  *
  * @return array
+ *   An array of content to be rendered in the email template.
  */
-function _jrccties_core_generate_latest_content($gids) {
+function _jrccties_core_generate_latest_content(array $gids) {
   // Generate latest content per community and store in an array.
   $latest_content = array();
   $link_options = array(
     'absolute' => TRUE,
     'attributes' => array(
-      'class' => 'newsletter-link'
+      'class' => array('newsletter-link'),
     ),
   );
   foreach ($gids as $gid) {
@@ -69,14 +86,23 @@ function _jrccties_core_generate_latest_content($gids) {
     $query->leftJoin('og_membership', 'ogm', "n.nid = ogm.etid AND ogm.entity_type = 'node'");
     $query->condition('ogm.gid', $gid)
       ->condition('n.status', 1)
-      ->condition('n.type', array('jrc_com_article', 'audio', 'page', 'discussion', 'document', 'event', 'news', 'photo', 'video_page'), 'IN')
-      ->condition('n.created', strtotime('-3 month') , '>')
+      ->condition('n.type', array(
+        'jrc_com_article',
+        'audio',
+        'page',
+        'discussion',
+        'document',
+        'event',
+        'news',
+        'photo',
+        'video_page',
+      ), 'IN'
+      )
+      ->condition('n.created', strtotime(JRCCTIES_CORE_NEWSLETTER_PERIOD), '>')
       ->orderBy('n.created', 'DESC');
     $results = $query->execute()->fetchAll();
 
-    $i = 0;
     foreach ($results as $result) {
-
       if (!isset($latest_content[$gid]['title'])) {
         $group_node = node_load($gid);
         $latest_content[$gid]['title'] = l($group_node->title, url("node/$gid"), $link_options);
@@ -84,10 +110,6 @@ function _jrccties_core_generate_latest_content($gids) {
       }
       $latest_content[$gid]['links'][] = l($result->title, url("node/$result->nid"), $link_options);
 
-      $i++;
-      if ($i == 5) {
-        break;
-      }
     }
   }
   return $latest_content;
@@ -103,10 +125,11 @@ function _jrccties_core_generate_latest_content($gids) {
  *   An array of group ids.
  */
 function _jrccties_core_get_groups_per_user($uid) {
+  static $communities = array('alumni_network', 'enlightenment', 'bioeconomy');
   $query = db_select('og_membership', 'ogm')
     ->fields('ogm', array('gid'))
     ->condition('ogm.etid', $uid)
-    ->condition('ogm.type', array('alumni_network', 'enlightenment', 'bioeconomy'), 'IN')
+    ->condition('ogm.type', $communities, 'IN')
     ->condition('ogm.entity_type', 'user');
   return $query->execute()->fetchCol(0);
 }
@@ -121,7 +144,7 @@ function _jrccties_core_get_groups_per_user($uid) {
  *   The email of the user.
  */
 function _jrccties_core_get_user_mail_by_uid($uid) {
-  $query = db_select('users','u')
+  $query = db_select('users', 'u')
     ->fields('u', array('mail'))
     ->condition('uid', $uid)
     ->execute()
@@ -144,18 +167,26 @@ function _jrccties_core_generate_weekly_mails() {
   foreach ($subscribed_users as $uid) {
     $content_per_user = array();
     $communities_per_user = _jrccties_core_get_groups_per_user($uid);
-    foreach($communities_per_user as $gid) {
+    foreach ($communities_per_user as $gid) {
       if (isset($latest_content[$gid])) {
         $content_per_user[] = $latest_content[$gid];
       }
     }
 
-    $account = user_load($uid);
+    if (!$content_per_user) {
+      continue;
+    }
 
+    $account = user_load($uid);
+    // $d = l(t('unsubscribe'), 'newsletter', $link_options);.
     $email_body = theme('newsletter_digest', array(
       'realname' => $account->realname,
       'content_per_user' => $content_per_user,
-      'unsubscribe_link' => l(t('click here'), 'newsletter')
+      'unsubscribe_link' => l(t('unsubscribe'), 'newsletter', array(
+        'attributes' => array(
+          'class' => array('newsletter-link'),
+        ),
+      )),
     ));
 
     $module = 'jrccties_core';
@@ -172,6 +203,11 @@ function _jrccties_core_generate_weekly_mails() {
       $error_msg = 'Failed to send Weekly Newsletter';
       watchdog('jrccties_core', $error_msg, array(), WATCHDOG_ALERT);
     }
+    else {
+      $account->field_newsletter_timestamp[LANGUAGE_NONE][0]['value'] = strtotime(JRCCTIES_CORE_NEWSLETTER_TIMESTAMP_INCREASE);
+      // user_save($account);
+    }
+
   }
 }
 
@@ -179,31 +215,29 @@ function _jrccties_core_generate_weekly_mails() {
  * Implements hook_init().
  */
 function jrccties_core_init() {
-  // return;
-   _jrccties_core_generate_weekly_mails();
+  _jrccties_core_generate_weekly_mails();
 }
 
 /**
- * Implements hook_mail()
+ * Implements hook_mail().
  */
 function jrccties_core_mail($key, &$message, $params) {
-  switch($key) {
-    case "newsletter_digest" :
+  switch ($key) {
+    case "newsletter_digest":
       $message['subject'] = $params['subject'];
-      $message['body'][] =  $params['body'];
+      $message['body'][] = $params['body'];
       break;
   }
 }
 
 /**
- * Implements hook_theme();
+ * Implements hook_theme().
  */
 function jrccties_core_theme($existing, $type, $theme, $path) {
   if ($type == 'module') {
     return array(
       'newsletter_digest' => array(
-        'variables' => array(
-        ),
+        'variables' => array(),
         'template' => 'newsletter-digest',
         'path' => drupal_get_path('module', 'jrccties_core') . '/theme',
       ),
@@ -763,7 +797,7 @@ function jrccties_core_newsletter_subscription_form($form, &$form_state) {
     'alumni_network',
   );
   $query = db_select('og_membership', 'ogm')
-    ->fields('ogm' , array('gid', 'id'));
+    ->fields('ogm', array('gid', 'id'));
   $query->innerJoin('node', 'n', 'n.nid = ogm.gid');
   $query->addField('n', 'title');
   $query->condition('ogm.etid', $user->uid)
@@ -793,7 +827,7 @@ function jrccties_core_newsletter_subscription_form($form, &$form_state) {
     '#type' => 'submit',
     '#value' => t('Click Here!'),
   );
-  $form['#redirect'] = false;
+  $form['#redirect'] = FALSE;
   return $form;
 }
 

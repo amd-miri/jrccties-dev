@@ -1,40 +1,57 @@
-html { width: 100% !important; height: 100% !important; }
-body, #bodytable { width: 100% !important; height: 100% !important; margin: 0; padding: 0; }
-body, table, td, p, a, li, blockquote { -ms-text-size-adjust: 100%; -webkit-text-size-adjust: 100%; }
-table, td { border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
-img { -ms-interpolation-mode: bicubic; }
-img, a img { border: 0; outline: none; text-decoration: none; }
-.ReadMsgBody { width: 100%; }
-.ExternalClass { width: 100%; }
-.ExternalClass, .ExternalClass p, .ExternalClass span, .ExternalClass font, .ExternalClass td, .ExternalClass div { line-height: 100%; }
-
-@media only screen and (max-width: 650px) {
-  .container { width: 100% !important; }
-  .cell { width: 100% !important; display: block !important; padding: 0px !important; }
-  .table { width: 100% !important; display: block !important; padding: 0px !important; }
-  .header-l { font-size: 18px !important; }
-  .header-s { font-size: 16px !important; }
-}
-
-@media only screen and (max-width: 650px) {
-  .container { width: 100% !important; }
-  .cell { width: 100% !important; display: block !important; padding: 0px !important; }
-  .table { width: 100% !important; display: block !important; padding: 0px !important; }
-  .header-l { font-size: 18px !important; }
-  .header-s { font-size: 16px !important; }
-}
-
 html {
-  font-family: Verdana, "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+body, .bodytable {
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0;
+  padding: 0;
+}
+
+body, table, td, p, a, li, blockquote {
+  -ms-text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+table, td {
+  border-collapse: collapse;
+  mso-table-lspace: 0pt;
+  mso-table-rspace: 0pt;
+}
+img {
+  -ms-interpolation-mode: bicubic;
+}
+img, a img {
+  border: 0;
+  outline: none;
+  text-decoration: none;
 }
 .newsletter-link {
   color: #369;
-  font-family: Verdana, "Helvetica Neue", Helvetica, Arial, sans-serif !important;
-  /*text-underline: none !important;*/
-  /*text-decoration: none !important;*/
-}
-
-.newsletter-intro, .newsletter-footer {
   font-family: Verdana, "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-size: 14px;
+}
+.newsletter-text {
+  font-family: Verdana, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 14px;
+}
+
+h2 a {
+  font-size: 20px !important;
+}
+
+@media only screen and (max-width: 650px) {
+  .container { width: 100% !important; }
+  .cell { width: 100% !important; display: block !important; padding: 0px !important; }
+  .table { width: 100% !important; display: block !important; padding: 0px !important; }
+  .header-l { font-size: 18px !important; }
+  .header-s { font-size: 16px !important; }
+}
+
+@media only screen and (max-width: 650px) {
+  .container { width: 100% !important; }
+  .cell { width: 100% !important; display: block !important; padding: 0px !important; }
+  .table { width: 100% !important; display: block !important; padding: 0px !important; }
+  .header-l { font-size: 18px !important; }
+  .header-s { font-size: 16px !important; }
 }
