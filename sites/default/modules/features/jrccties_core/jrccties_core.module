@@ -10,12 +10,72 @@ define('JRCCTIES_CORE_OG_ENTITYFORM_AUDIENCE_FIELD', 'og_group_ref');
 /**
  * JRCCTIES_CORE_NEWSLETTER_PERIOD constant.
  */
-define('JRCCTIES_CORE_NEWSLETTER_PERIOD', '-1 month');
+define('JRCCTIES_CORE_NEWSLETTER_PERIOD', variable_get('jrccties_core_newsletter_period', '-1 month'));
 
 /**
  * JRCCTIES_CORE_NEWSLETTER_TIMESTAMP_INCREASE constant.
  */
-define('JRCCTIES_CORE_NEWSLETTER_TIMESTAMP_INCREASE', '1 month');
+define('JRCCTIES_CORE_NEWSLETTER_TIMESTAMP_INCREASE', variable_get('jrccties_core_timestamp_increase', '1 month'));
+
+/**
+ * Admin form for newsletter settings.
+ */
+function jrccties_newsletter_settings_form($form, $form_state) {
+
+  $form['jrccties_core_newsletter_period'] = array(
+    '#type' => 'select',
+    '#title' => t('Newsletter period'),
+    '#options' => array(
+      '-1 minute' => t('-1 minute'),
+      '-1 week' => t('-1 week'),
+      '-2 weeks' => t('-2 weeks'),
+      '-1 month' => t('-1 month'),
+    ),
+    '#default_value' => variable_get('jrccties_core_newsletter_period', '-1 month'),
+    '#description' => t('The system will look for content that is created between now and the value specified.'),
+  );
+
+  $form['jrccties_core_timestamp_increase'] = array(
+    '#type' => 'select',
+    '#title' => t('Timestamp increase'),
+    '#options' => array(
+      '1 minute' => t('1 minute'),
+      '1 week' => t('1 week'),
+      '2 weeks' => t('2 weeks'),
+      '1 month' => t('1 month'),
+    ),
+    '#default_value' => variable_get('jrccties_core_timestamp_increase', '1 month'),
+    '#description' => t('After sending an email the system increases the timestamp for the last sent newsletter by this amount (converted into seconds)'),
+  );
+
+  $form['submit'] = [
+    '#type' => 'submit',
+    '#value' => t('Submit'),
+  ];
+  return $form;
+}
+
+/**
+ * Submit handler for the newsletter settings form.
+ */
+function jrccties_newsletter_settings_form_submit($form, $form_state) {
+  variable_set('jrccties_core_newsletter_period', $form_state['values']['jrccties_core_newsletter_period']);
+  variable_set('jrccties_core_timestamp_increase', $form_state['values']['jrccties_core_timestamp_increase']);
+}
+
+/**
+ * Returns all og_membership bundles where we have field_newsletter_subscribe.
+ *
+ * @return mixed
+ *   Array of og_membership bundles.
+ */
+function _jrccties_core_get_newsletter_communities() {
+  $query = db_select('field_config_instance', 'fci')
+    ->fields('fci', array('bundle'))
+    ->condition('fci.field_name', 'field_newsletter_subscribe')
+    ->condition('fci.entity_type', 'og_membership');
+  return $query->execute()->fetchCol(0);
+}
 
 /**
  * Gets subscribed users.
@@ -46,13 +106,10 @@ function _jrccties_core_get_subscribed_users() {
  *   Array of nids that are the community nodes.
  */
 function _jrccties_core_get_subscribed_communities(array $uids) {
+  $newsletter_communities = _jrccties_core_get_newsletter_communities();
   $query = db_select('og_membership', 'om')
     ->fields('om', array('gid'))
-    ->condition('om.type', array(
-      'alumni_network',
-      'enlightenment',
-      'bioeconomy',
-    ), 'IN');
+    ->condition('om.type', $newsletter_communities, 'IN');
   $query->leftJoin('field_data_field_newsletter_subscribe', 'fdfns', 'om.id = fdfns.entity_id');
   $query->condition('om.entity_type', 'user')
     ->condition('om.etid', $uids, 'IN')
@@ -125,11 +182,11 @@ function _jrccties_core_generate_latest_content(array $gids) {
  *   An array of group ids.
  */
 function _jrccties_core_get_groups_per_user($uid) {
-  static $communities = array('alumni_network', 'enlightenment', 'bioeconomy');
+  $newsletter_communities = _jrccties_core_get_newsletter_communities();
   $query = db_select('og_membership', 'ogm')
     ->fields('ogm', array('gid'))
     ->condition('ogm.etid', $uid)
-    ->condition('ogm.type', $communities, 'IN')
+    ->condition('ogm.type', $newsletter_communities, 'IN')
     ->condition('ogm.entity_type', 'user');
   return $query->execute()->fetchCol(0);
 }
@@ -155,7 +212,7 @@ function _jrccties_core_get_user_mail_by_uid($uid) {
 /**
  * Generates weekly mails.
  */
-function _jrccties_core_generate_weekly_mails() {
+function _jrccties_core_generate_mails() {
 
   $subscribed_users = _jrccties_core_get_subscribed_users();
   if (!$subscribed_users) {
@@ -178,7 +235,7 @@ function _jrccties_core_generate_weekly_mails() {
     }
 
     $account = user_load($uid);
-    // $d = l(t('unsubscribe'), 'newsletter', $link_options);.
+
     $email_body = theme('newsletter_digest', array(
       'realname' => $account->realname,
       'content_per_user' => $content_per_user,
@@ -205,7 +262,7 @@ function _jrccties_core_generate_weekly_mails() {
     }
     else {
       $account->field_newsletter_timestamp[LANGUAGE_NONE][0]['value'] = strtotime(JRCCTIES_CORE_NEWSLETTER_TIMESTAMP_INCREASE);
-      // user_save($account);
+      user_save($account);
     }
 
   }
@@ -245,11 +302,7 @@ function jrccties_core_theme($existing, $type, $theme, $path) {
 function jrccties_core_og_membership_presave(OgMembership $og_membership) {
   global $user;
 
-  $membership_types = array(
-    'alumni_network',
-    'bioeconomy',
-    'enlightenment',
-  );
+  $membership_types = _jrccties_core_get_newsletter_communities();
 
   if (in_array($og_membership->type, $membership_types)) {
     $account = user_load($user->uid);
@@ -262,7 +315,7 @@ function jrccties_core_og_membership_presave(OgMembership $og_membership) {
  * Implements hook_cron().
  */
 function jrccties_core_cron() {
-  _jrccties_core_generate_weekly_mails();
+  _jrccties_core_generate_mails();
 }
 
 /**
@@ -760,6 +813,22 @@ function jrccties_core_admin_paths() {
 }
 
 /**
+ * Implements hook_permission().
+ */
+function jrccties_core_permission() {
+  return array(
+    'change newsletter subscription' => array(
+      'title' => t('Change newsletter subscription'),
+      'description' => t('Change newsletter subscription'),
+    ),
+    'administer newsletter settings' => array(
+      'title' => t('Administer newsletter settings'),
+      'description' => t('Administer newsletter settings'),
+    ),
+  );
+}
+
+/**
  * Implements hook_menu().
  */
 function jrccties_core_menu() {
@@ -774,7 +843,15 @@ function jrccties_core_menu() {
     'title' => 'Newsletter subscription',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('jrccties_core_newsletter_subscription_form'),
-    'access arguments' => array('administer site configuration'),
+    'access arguments' => array('change newsletter subscription'),
+  );
+
+  $items['admin/newsletter-settings'] = array(
+    'title' => 'Newsletter settings',
+    'description' => 'Newsletter settings',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('jrccties_newsletter_settings_form'),
+    'access arguments' => array('administer newsletter settings'),
   );
   return $items;
 }
@@ -784,11 +861,7 @@ function jrccties_core_menu() {
  */
 function jrccties_core_newsletter_subscription_form($form, &$form_state) {
   global $user;
-  static $newsletter_communities = array(
-    'bioeconomy',
-    'enlightenment',
-    'alumni_network',
-  );
+  $newsletter_communities = _jrccties_core_get_newsletter_communities();
   $query = db_select('og_membership', 'ogm')
     ->fields('ogm', array('gid', 'id'));
   $query->innerJoin('node', 'n', 'n.nid = ogm.gid');
