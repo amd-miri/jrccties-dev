@@ -87,6 +87,9 @@ function jrccities_subtheme_preprocess_page(&$variables) {
     drupal_add_js(libraries_get_path('jquery-ui') . '/jquery-ui.js');
     drupal_add_js(drupal_get_path('theme', 'jrccities_subtheme') . '/js/specific/jrccities_jrc_evidence_to_inform_policy.js');
   }
+
+  // JRCCTIES-80: usage of CCK mandatody on all ec.europa pages.
+  drupal_add_js('https://ec.europa.eu/wel/cookie-consent/consent.js', 'external');
 }
 
 /**
