@@ -572,3 +572,24 @@ function jrccties_core_update_7024() {
   }
 
 }
+
+/**
+ * Enable mimemail module.
+ */
+function jrccties_core_update_7025() {
+  module_enable(array(
+    'mimemail',
+  ), TRUE);
+}
+
+/**
+ * Disable taxonomy_csv module.
+ */
+function jrccties_core_update_7026() {
+  module_disable(array(
+    'taxonomy_csv',
+  ), FALSE);
+  drupal_uninstall_modules(array(
+    'taxonomy_csv',
+  ), FALSE);
+}
