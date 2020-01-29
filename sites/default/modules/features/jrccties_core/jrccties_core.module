@@ -13,6 +13,11 @@ define('JRCCTIES_CORE_OG_ENTITYFORM_AUDIENCE_FIELD', 'og_group_ref');
 define('JRCCTIES_CORE_NEWSLETTER_PERIOD', variable_get('jrccties_core_newsletter_period', '-1 month'));
 
 /**
+ * JRCCTIES_CORE_NEWSLETTER_PERIOD constant.
+ */
+define('JRCCTIES_CORE_NEWSLETTER_USER_PERIOD', variable_get('jrccties_core_newsletter_user_period', '-1 month'));
+
+/**
  * JRCCTIES_CORE_NEWSLETTER_TIMESTAMP_INCREASE constant.
  */
 define('JRCCTIES_CORE_NEWSLETTER_TIMESTAMP_INCREASE', variable_get('jrccties_core_timestamp_increase', '1 month'));
@@ -24,20 +29,47 @@ function jrccties_newsletter_settings_form($form, $form_state) {
 
   $form['jrccties_core_newsletter_period'] = array(
     '#type' => 'select',
-    '#title' => t('Newsletter period'),
+    '#title' => t('Newsletter frequency'),
+    '#options' => array(
+      '-1 minute' => t('Development mode (1 minute)'),
+      '-1 week' => t('Weekly'),
+      '-2 weeks' => t('Bi-Weekly'),
+      '-1 month' => t('Monthly'),
+    ),
+    '#default_value' => variable_get('jrccties_core_newsletter_period', '-1 month'),
+    '#description' => t('The system will look for content that is created between now and the value specified. </br>
+      For example: If today is 30 of January and the the selected option is -2 weeks,
+      the system will find only content that is published between 16th of january and 30 of January'),
+  );
+  $form['jrccties_core_newsletter_debug_mode'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Debug mode: Enable only if you know what you are doing.'),
+    '#default_value' => variable_get('jrccties_core_newsletter_debug_mode'),
+  );
+
+  $disabled_debug = TRUE;
+  if (variable_get('jrccties_core_newsletter_debug_mode')) {
+    $disabled_debug = FALSE;
+  }
+
+  $form['jrccties_core_newsletter_user_period'] = array(
+    '#type' => 'select',
+    '#title' => t('DEBUG MODE: Newsletter User period'),
     '#options' => array(
       '-1 minute' => t('-1 minute'),
       '-1 week' => t('-1 week'),
       '-2 weeks' => t('-2 weeks'),
       '-1 month' => t('-1 month'),
     ),
-    '#default_value' => variable_get('jrccties_core_newsletter_period', '-1 month'),
-    '#description' => t('The system will look for content that is created between now and the value specified.'),
+    '#disabled' => $disabled_debug,
+    '#default_value' => variable_get('jrccties_core_newsletter_user_period', '-1 month'),
+    '#description' => t('When looking for subscribed users, show only users that have field_newsletter_timestamp_value that is lower than strtotime(this value)'),
   );
 
   $form['jrccties_core_timestamp_increase'] = array(
     '#type' => 'select',
-    '#title' => t('Timestamp increase'),
+    '#title' => t('DEBUG MODE: Timestamp increase'),
+    '#disabled' => $disabled_debug,
     '#options' => array(
       '1 minute' => t('1 minute'),
       '1 week' => t('1 week'),
@@ -45,7 +77,7 @@ function jrccties_newsletter_settings_form($form, $form_state) {
       '1 month' => t('1 month'),
     ),
     '#default_value' => variable_get('jrccties_core_timestamp_increase', '1 month'),
-    '#description' => t('After sending an email the system increases the timestamp for the last sent newsletter by this amount (converted into seconds)'),
+    '#description' => t('After sending an email to a user, the value of field_newsletter_timestamp for that user is increased by this amount (converted into seconds)'),
   );
 
   $form['submit'] = [
@@ -60,7 +92,9 @@ function jrccties_newsletter_settings_form($form, $form_state) {
  */
 function jrccties_newsletter_settings_form_submit($form, $form_state) {
   variable_set('jrccties_core_newsletter_period', $form_state['values']['jrccties_core_newsletter_period']);
+  variable_set('jrccties_core_newsletter_user_period', $form_state['values']['jrccties_core_newsletter_user_period']);
   variable_set('jrccties_core_timestamp_increase', $form_state['values']['jrccties_core_timestamp_increase']);
+  variable_set('jrccties_core_newsletter_debug_mode', $form_state['values']['jrccties_core_newsletter_debug_mode']);
 }
 
 /**
@@ -84,6 +118,11 @@ function _jrccties_core_get_newsletter_communities() {
  *   An array of user ids that have subscribed to the weekly newsletter.
  */
 function _jrccties_core_get_subscribed_users() {
+
+  $period = JRCCTIES_CORE_NEWSLETTER_PERIOD;
+  if (variable_get('jrccties_core_newsletter_debug_mode')) {
+    $period = JRCCTIES_CORE_NEWSLETTER_USER_PERIOD;
+  }
   // Gets all ids that have subscribed and the timestamp is older than a week.
   $query = db_select('field_data_field_newsletter_subscribe', 'fdfns');
   $query->leftJoin('og_membership', 'og', 'fdfns.entity_id = og.id');
@@ -91,7 +130,7 @@ function _jrccties_core_get_subscribed_users() {
   $query->addField('og', 'etid');
   $query
     ->condition('fdfns.field_newsletter_subscribe_value', 1)
-    ->condition('fdfnt.field_newsletter_timestamp_value', strtotime(JRCCTIES_CORE_NEWSLETTER_PERIOD), '<')
+    ->condition('fdfnt.field_newsletter_timestamp_value', strtotime($period), '<')
     ->groupBy('etid');
   return $query->execute()->fetchCol(0);
 }
@@ -261,7 +300,21 @@ function _jrccties_core_generate_mails() {
       watchdog('jrccties_core', $error_msg, array(), WATCHDOG_ALERT);
     }
     else {
-      $account->field_newsletter_timestamp[LANGUAGE_NONE][0]['value'] = strtotime(JRCCTIES_CORE_NEWSLETTER_TIMESTAMP_INCREASE);
+      $mapping = array(
+        '1 minute' => 60,
+        '1 week' => 604800,
+        '2 weeks' => 1209600,
+        '1 month' => 2419200,
+      );
+
+      if (variable_get('jrccties_core_newsletter_debug_mode')) {
+        $increase = JRCCTIES_CORE_NEWSLETTER_TIMESTAMP_INCREASE;
+      }
+      else {
+        $increase = str_replace('-', '', JRCCTIES_CORE_NEWSLETTER_PERIOD);
+      }
+
+      $account->field_newsletter_timestamp[LANGUAGE_NONE][0]['value'] += $mapping[$increase];
       user_save($account);
     }
 
