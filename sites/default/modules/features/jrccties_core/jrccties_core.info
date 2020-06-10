@@ -1,7 +1,7 @@
 name = jrccties_core
 description = Basic settings and views for JRC Communities.
 core = 7.x
-package = jrccities
+package = jrccties
 php = 5.2.4
 dependencies[] = privatemsg
 dependencies[] = views_data_export

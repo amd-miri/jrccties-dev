@@ -593,3 +593,14 @@ function jrccties_core_update_7026() {
     'taxonomy_csv',
   ), FALSE);
 }
+
+/**
+ * Enable permission and rules features.
+ */
+function jrccties_core_update_7027() {
+  module_enable(array(
+    'jrccties_permissions',
+    'jrccties_rules',
+  ),
+    TRUE);
+}
