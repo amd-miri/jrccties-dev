@@ -4,3 +4,5 @@
  * @file
  * Drupal needs this blank file.
  */
+
+include_once 'jrccties_permissions.features.inc';
