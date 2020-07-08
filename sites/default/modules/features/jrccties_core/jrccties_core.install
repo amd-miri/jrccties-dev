@@ -604,3 +604,25 @@ function jrccties_core_update_7027() {
   ),
     TRUE);
 }
+
+/**
+ * Enable user management feature.
+ */
+function jrccties_core_update_7028() {
+  module_enable(array(
+    'jrccties_user_management',
+  ),
+    TRUE);
+}
+
+/**
+ * Disable taxonomy_csv module.
+ */
+function jrccties_core_update_7029() {
+  module_disable(array(
+    'feeds_ex',
+  ), FALSE);
+  drupal_uninstall_modules(array(
+    'feeds_ex',
+  ), FALSE);
+}
