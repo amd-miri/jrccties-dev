@@ -1,0 +1,8 @@
+<?php
+
+/**
+ * @file
+ * Code for the jrccties views feature.
+ */
+
+include_once 'jrccties_views.features.inc';
